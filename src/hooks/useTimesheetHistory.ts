@@ -45,16 +45,37 @@ export async function saveTimesheet(payload: {
   const supabase = createClient();
   const { entries, ...header } = payload;
 
-  const { data: ts, error: tsErr } = await supabase
-    .from('timesheets').upsert(header, {
-      onConflict: payload.laborer_id ? 'laborer_id,month,year' : undefined,
-    }).select().single();
+  // Check if a timesheet already exists for this laborer/month/year
+  let tsId: string;
+  if (payload.laborer_id) {
+    const { data: existing } = await supabase
+      .from('timesheets').select('id')
+      .eq('laborer_id', payload.laborer_id)
+      .eq('month', payload.month)
+      .eq('year', payload.year)
+      .maybeSingle();
 
-  if (tsErr || !ts) return tsErr ?? new Error('Failed to save timesheet');
+    if (existing) {
+      const { data: ts, error: tsErr } = await supabase
+        .from('timesheets').update(header).eq('id', existing.id).select().single();
+      if (tsErr || !ts) return tsErr ?? new Error('Failed to update timesheet');
+      tsId = ts.id;
+    } else {
+      const { data: ts, error: tsErr } = await supabase
+        .from('timesheets').insert(header).select().single();
+      if (tsErr || !ts) return tsErr ?? new Error('Failed to save timesheet');
+      tsId = ts.id;
+    }
+  } else {
+    const { data: ts, error: tsErr } = await supabase
+      .from('timesheets').insert(header).select().single();
+    if (tsErr || !ts) return tsErr ?? new Error('Failed to save timesheet');
+    tsId = ts.id;
+  }
 
-  await supabase.from('timesheet_entries').delete().eq('timesheet_id', ts.id);
+  await supabase.from('timesheet_entries').delete().eq('timesheet_id', tsId);
   const { error: entErr } = await supabase.from('timesheet_entries').insert(
-    entries.map(e => ({ ...e, timesheet_id: ts.id }))
+    entries.map(e => ({ ...e, timesheet_id: tsId }))
   );
   return entErr;
 }
