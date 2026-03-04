@@ -29,7 +29,10 @@ export default function VendorDetailPage() {
         <h3 className="text-sm font-semibold text-white mb-4">Contact Details</h3>
         <div className="grid grid-cols-2 gap-4 text-sm">
           {[['Contact Person', vendor.contact_person], ['Phone', vendor.phone], ['Email', vendor.email], ['Address', vendor.address]].map(([l, v]) => (
-            <div key={l}><div className="text-xs mb-0.5" style={{ color: '#64748b' }}>{l}</div><div className="text-white">{v || '—'}</div></div>
+            <div key={l}>
+              <div className="text-xs mb-0.5" style={{ color: 'var(--text-muted)' }}>{l}</div>
+              <div className="text-white">{v || '—'}</div>
+            </div>
           ))}
         </div>
       </Card>
@@ -38,17 +41,17 @@ export default function VendorDetailPage() {
           <h3 className="text-sm font-semibold text-white">Machines ({vendorMachines.length})</h3>
           <Link href="/machines/new"><Button size="sm" variant="secondary">Add Machine</Button></Link>
         </div>
-        {!vendorMachines.length ? <p className="text-sm" style={{ color: '#94a3b8' }}>No machines assigned to this vendor.</p> : (
+        {!vendorMachines.length ? <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No machines assigned to this vendor.</p> : (
           <table className="w-full text-sm">
-            <thead><tr style={{ color: '#64748b' }}>
+            <thead><tr style={{ color: 'var(--text-muted)' }}>
               {['Machine','Type','Plate','Status',''].map(h => <th key={h} className="text-left pb-2 font-medium">{h}</th>)}
             </tr></thead>
             <tbody>
               {vendorMachines.map(m => (
-                <tr key={m.id} style={{ borderTop: '1px solid #2d3454' }}>
+                <tr key={m.id} style={{ borderTop: '1px solid var(--border)' }}>
                   <td className="py-2 text-white">{m.name}</td>
-                  <td className="py-2" style={{ color: '#94a3b8' }}>{m.type}</td>
-                  <td className="py-2" style={{ color: '#94a3b8' }}>{m.plate_number || '—'}</td>
+                  <td className="py-2" style={{ color: 'var(--text-secondary)' }}>{m.type}</td>
+                  <td className="py-2" style={{ color: 'var(--text-secondary)' }}>{m.plate_number || '—'}</td>
                   <td className="py-2">{machineStatusBadge(m.status)}</td>
                   <td className="py-2"><Link href={`/machines/${m.id}`} className="text-xs" style={{ color: '#e8762b' }}>View →</Link></td>
                 </tr>

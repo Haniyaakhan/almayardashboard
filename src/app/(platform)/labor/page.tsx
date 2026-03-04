@@ -27,12 +27,12 @@ export default function LaborPage() {
 
       {/* Search */}
       <div className="flex items-center gap-2 mb-4 px-3 py-2 rounded-lg max-w-sm"
-        style={{ background: '#1e2336', border: '1px solid #2d3454' }}>
-        <Search size={14} style={{ color: '#64748b' }} />
+        style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+        <Search size={14} style={{ color: 'var(--text-muted)' }} />
         <input value={search} onChange={e => setSearch(e.target.value)}
           placeholder="Search by name or designation…"
-          className="flex-1 bg-transparent text-sm text-white outline-none"
-          style={{ color: '#f1f5f9' }} />
+          className="flex-1 bg-transparent text-sm outline-none"
+          style={{ color: 'var(--text-primary)' }} />
       </div>
 
       {!filtered.length ? (
@@ -40,27 +40,27 @@ export default function LaborPage() {
           description="Add your first laborer to get started."
           action={<Link href="/labor/new"><Button size="sm">Add Laborer</Button></Link>} />
       ) : (
-        <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #2d3454' }}>
+        <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
           <table className="w-full text-sm">
-            <thead style={{ background: '#1a1f2e' }}>
+            <thead style={{ background: 'var(--bg-sidebar)' }}>
               <tr>
                 {['Name','Designation','Supplier','Phone','Status','Actions'].map(h => (
-                  <th key={h} className="px-4 py-3 text-left font-medium" style={{ color: '#64748b' }}>{h}</th>
+                  <th key={h} className="px-4 py-3 text-left font-medium" style={{ color: 'var(--text-muted)' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {filtered.map((l, i) => (
-                <tr key={l.id} style={{ background: i % 2 === 0 ? '#1e2336' : '#1a1f2e', borderTop: '1px solid #2d3454' }}>
+                <tr key={l.id} style={{ background: i % 2 === 0 ? 'var(--bg-card)' : 'var(--row-alt)', borderTop: '1px solid var(--border)' }}>
                   <td className="px-4 py-3 font-medium text-white">{l.full_name}</td>
-                  <td className="px-4 py-3" style={{ color: '#94a3b8' }}>{l.designation}</td>
-                  <td className="px-4 py-3" style={{ color: '#94a3b8' }}>{l.supplier_name || '—'}</td>
-                  <td className="px-4 py-3" style={{ color: '#94a3b8' }}>{l.phone || '—'}</td>
+                  <td className="px-4 py-3" style={{ color: 'var(--text-secondary)' }}>{l.designation}</td>
+                  <td className="px-4 py-3" style={{ color: 'var(--text-secondary)' }}>{l.supplier_name || '—'}</td>
+                  <td className="px-4 py-3" style={{ color: 'var(--text-secondary)' }}>{l.phone || '—'}</td>
                   <td className="px-4 py-3"><Badge color={l.is_active ? 'green' : 'gray'}>{l.is_active ? 'Active' : 'Inactive'}</Badge></td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       <Link href={`/labor/${l.id}`} className="text-xs" style={{ color: '#e8762b' }}>View</Link>
-                      <Link href={`/labor/${l.id}/edit`} className="text-xs" style={{ color: '#94a3b8' }}>Edit</Link>
+                      <Link href={`/labor/${l.id}/edit`} className="text-xs" style={{ color: 'var(--text-secondary)' }}>Edit</Link>
                       {l.is_active && (
                         <button onClick={async () => { await deactivateLaborer(l.id); refetch(); }}
                           className="text-xs" style={{ color: '#ef4444' }}>Deactivate</button>

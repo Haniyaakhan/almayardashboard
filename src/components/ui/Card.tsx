@@ -10,7 +10,7 @@ export function Card({ children, className = '', padding = 'p-6' }: CardProps) {
   return (
     <div
       className={`rounded-xl ${padding} ${className}`}
-      style={{ background: '#1e2336', border: '1px solid #2d3454' }}
+      style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
     >
       {children}
     </div>

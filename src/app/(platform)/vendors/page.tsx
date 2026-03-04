@@ -20,24 +20,24 @@ export default function VendorsPage() {
           description="Add equipment suppliers to track machine rentals."
           action={<Link href="/vendors/new"><Button size="sm">Add Vendor</Button></Link>} />
       ) : (
-        <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #2d3454' }}>
+        <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
           <table className="w-full text-sm">
-            <thead style={{ background: '#1a1f2e' }}>
+            <thead style={{ background: 'var(--bg-sidebar)' }}>
               <tr>{['Company','Contact','Phone','Email','Actions'].map(h => (
-                <th key={h} className="px-4 py-3 text-left font-medium" style={{ color: '#64748b' }}>{h}</th>
+                <th key={h} className="px-4 py-3 text-left font-medium" style={{ color: 'var(--text-muted)' }}>{h}</th>
               ))}</tr>
             </thead>
             <tbody>
               {vendors.map((v, i) => (
-                <tr key={v.id} style={{ background: i % 2 === 0 ? '#1e2336' : '#1a1f2e', borderTop: '1px solid #2d3454' }}>
+                <tr key={v.id} style={{ background: i % 2 === 0 ? 'var(--bg-card)' : 'var(--row-alt)', borderTop: '1px solid var(--border)' }}>
                   <td className="px-4 py-3 font-medium text-white">{v.name}</td>
-                  <td className="px-4 py-3" style={{ color: '#94a3b8' }}>{v.contact_person || '—'}</td>
-                  <td className="px-4 py-3" style={{ color: '#94a3b8' }}>{v.phone || '—'}</td>
-                  <td className="px-4 py-3" style={{ color: '#94a3b8' }}>{v.email || '—'}</td>
+                  <td className="px-4 py-3" style={{ color: 'var(--text-secondary)' }}>{v.contact_person || '—'}</td>
+                  <td className="px-4 py-3" style={{ color: 'var(--text-secondary)' }}>{v.phone || '—'}</td>
+                  <td className="px-4 py-3" style={{ color: 'var(--text-secondary)' }}>{v.email || '—'}</td>
                   <td className="px-4 py-3">
                     <div className="flex gap-3">
                       <Link href={`/vendors/${v.id}`} className="text-xs" style={{ color: '#e8762b' }}>View</Link>
-                      <Link href={`/vendors/${v.id}/edit`} className="text-xs" style={{ color: '#94a3b8' }}>Edit</Link>
+                      <Link href={`/vendors/${v.id}/edit`} className="text-xs" style={{ color: 'var(--text-secondary)' }}>Edit</Link>
                     </div>
                   </td>
                 </tr>

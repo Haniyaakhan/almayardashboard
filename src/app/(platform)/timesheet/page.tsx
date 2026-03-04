@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useTimesheet } from '@/hooks/useTimesheet';
 import { useLaborers } from '@/hooks/useLaborers';
-import { saveTimesheet } from '@/hooks/useTimesheetHistory';
+import { saveTimesheet, getTimesheetWithEntries } from '@/hooks/useTimesheetHistory';
 import TimesheetHeader from '@/components/TimesheetHeader';
 import InfoTable from '@/components/InfoTable';
 import WorkTable from '@/components/WorkTable';
@@ -11,14 +12,62 @@ import FooterSection from '@/components/FooterSection';
 import ExportButtons from '@/components/ExportButtons';
 import { Button } from '@/components/ui/Button';
 import { Save, Link as LinkIcon } from 'lucide-react';
+import type { DayEntry } from '@/types/timesheet';
 
-export default function TimesheetPage() {
+function TimesheetPageInner() {
   const timesheetRef = useRef<HTMLDivElement>(null);
   const timesheet = useTimesheet();
   const { laborers } = useLaborers();
   const [selectedLaborerId, setSelectedLaborerId] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState('');
+  const searchParams = useSearchParams();
+
+  // On mount: load existing timesheet if ?ts= param is present
+  useEffect(() => {
+    const tsId = searchParams.get('ts');
+    const laborerId = searchParams.get('laborer');
+    if (laborerId) setSelectedLaborerId(laborerId);
+    if (tsId) {
+      getTimesheetWithEntries(tsId).then(ts => {
+        if (!ts) return;
+        const entries: DayEntry[] = ((ts as any).entries ?? []).map((e: any) => ({
+          day: e.day,
+          timeIn: e.time_in ?? '',
+          timeOutLunch: e.time_out_lunch ?? '',
+          lunchBreak: e.lunch_break ?? '',
+          timeIn2: e.time_in_2 ?? '',
+          timeOut2: e.time_out_2 ?? '',
+          totalDuration: e.total_duration ?? 0,
+          overTime: e.over_time ?? 0,
+          actualWorked: e.actual_worked ?? 0,
+          approverSig: e.approver_sig ?? '',
+          remarks: e.remarks ?? '',
+        }));
+        timesheet.loadEntries(entries, {
+          month: ts.month,
+          year: ts.year,
+          laborName: (ts as any).laborer?.full_name ?? ts.supplier_name ?? '',
+          projectName: ts.project_name ?? '',
+          supplierName: ts.supplier_name ?? '',
+          siteEngineerName: ts.site_engineer_name ?? '',
+          designation: ts.designation ?? '',
+        });
+      });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // When laborers load and ?laborer= param exists (no ts param), auto-fill laborer info
+  useEffect(() => {
+    const laborerId = searchParams.get('laborer');
+    const tsId = searchParams.get('ts');
+    if (!laborerId || !laborers.length || tsId) return;
+    const lab = laborers.find(l => l.id === laborerId);
+    if (!lab) return;
+    timesheet.setLaborName(lab.full_name);
+    timesheet.setDesignation(lab.designation);
+    timesheet.setSupplierName(lab.supplier_name ?? '');
+  }, [laborers]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function onLaborerSelect(id: string) {
     setSelectedLaborerId(id);
@@ -27,14 +76,15 @@ export default function TimesheetPage() {
     if (!lab) return;
     timesheet.setLaborName(lab.full_name);
     timesheet.setDesignation(lab.designation);
-    timesheet.setSupplierName(lab.supplier_name);
+    timesheet.setSupplierName(lab.supplier_name ?? '');
   }
 
   async function handleSave() {
     setSaving(true);
     setSaveMsg('');
+    const laborerId = selectedLaborerId || searchParams.get('laborer') || null;
     const error = await saveTimesheet({
-      laborer_id: selectedLaborerId || null,
+      laborer_id: laborerId,
       month: timesheet.month,
       year: timesheet.year,
       project_name: timesheet.projectName,
@@ -46,16 +96,16 @@ export default function TimesheetPage() {
       total_actual: timesheet.totalActual,
       entries: timesheet.workData.map(e => ({
         day: e.day,
-        time_in: e.timeIn,
-        time_out_lunch: e.timeOutLunch,
-        lunch_break: e.lunchBreak,
-        time_in_2: e.timeIn2,
-        time_out_2: e.timeOut2,
-        total_duration: e.totalDuration,
-        over_time: e.overTime,
-        actual_worked: e.actualWorked,
-        approver_sig: e.approverSig,
-        remarks: e.remarks,
+        time_in: e.timeIn ?? '',
+        time_out_lunch: e.timeOutLunch ?? '',
+        lunch_break: e.lunchBreak ?? '',
+        time_in_2: e.timeIn2 ?? '',
+        time_out_2: e.timeOut2 ?? '',
+        total_duration: e.totalDuration ?? 0,
+        over_time: e.overTime ?? 0,
+        actual_worked: e.actualWorked ?? 0,
+        approver_sig: e.approverSig ?? '',
+        remarks: e.remarks ?? '',
       })),
     });
     setSaving(false);
@@ -67,15 +117,15 @@ export default function TimesheetPage() {
     <div style={{ background: '#f5f5f5', minHeight: '100%' }}>
       {/* Actions bar — hidden on print */}
       <div className="print:hidden flex items-center gap-3 px-6 py-3 flex-wrap"
-        style={{ background: '#1a1f2e', borderBottom: '1px solid #2d3454' }}>
+        style={{ background: 'var(--bg-sidebar)', borderBottom: '1px solid var(--border)' }}>
         {/* Laborer linker */}
         <div className="flex items-center gap-2">
-          <LinkIcon size={14} style={{ color: '#94a3b8' }} />
+          <LinkIcon size={14} style={{ color: 'var(--text-muted)' }} />
           <select
             value={selectedLaborerId}
             onChange={e => onLaborerSelect(e.target.value)}
             className="text-sm rounded-lg px-3 py-1.5 outline-none"
-            style={{ background: '#0f1117', color: '#f1f5f9', border: '1px solid #2d3454', minWidth: 180 }}
+            style={{ background: 'var(--input-bg)', color: 'var(--text-primary)', border: '1px solid var(--border)', minWidth: 180 }}
           >
             <option value="">Select Laborer (optional)</option>
             {laborers.map(l => (
@@ -142,5 +192,13 @@ export default function TimesheetPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function TimesheetPage() {
+  return (
+    <Suspense>
+      <TimesheetPageInner />
+    </Suspense>
   );
 }

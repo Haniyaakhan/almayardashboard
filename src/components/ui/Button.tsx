@@ -13,9 +13,9 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 const styles: Record<Variant, React.CSSProperties> = {
   primary:   { background: '#e8762b', color: '#fff' },
-  secondary: { background: '#2d3454', color: '#f1f5f9', border: '1px solid #2d3454' },
+  secondary: { background: 'var(--btn-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border)' },
   danger:    { background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)' },
-  ghost:     { background: 'transparent', color: '#94a3b8', border: '1px solid #2d3454' },
+  ghost:     { background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border)' },
 };
 
 const sizes: Record<Size, string> = {

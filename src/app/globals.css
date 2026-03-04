@@ -2,6 +2,33 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Theme CSS Variables ── */
+:root {
+  --bg-canvas:      #0f1117;
+  --bg-sidebar:     #1a1f2e;
+  --bg-card:        #1e2336;
+  --border:         #2d3454;
+  --text-primary:   #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted:     #64748b;
+  --input-bg:       #0f1117;
+  --row-alt:        #1a1f2e;
+  --btn-secondary:  #2d3454;
+}
+
+html[data-theme="light"] {
+  --bg-canvas:      #f1f5f9;
+  --bg-sidebar:     #ffffff;
+  --bg-card:        #ffffff;
+  --border:         #e2e8f0;
+  --text-primary:   #0f172a;
+  --text-secondary: #475569;
+  --text-muted:     #94a3b8;
+  --input-bg:       #f8fafc;
+  --row-alt:        #f8fafc;
+  --btn-secondary:  #e2e8f0;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -10,7 +37,7 @@
 
 body {
   font-family: Arial, sans-serif;
-  background: #0f1117;
+  background: var(--bg-canvas);
   padding: 0;
 }
 
@@ -55,8 +82,13 @@ input[type='number'] {
   -moz-appearance: textfield;
 }
 
+/* Light mode: make content text dark (Button uses inline color so is unaffected) */
+html[data-theme="light"] .text-white {
+  color: var(--text-primary) !important;
+}
+
 /* Platform scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: #1a1f2e; }
-::-webkit-scrollbar-thumb { background: #2d3454; border-radius: 3px; }
+::-webkit-scrollbar-track { background: var(--bg-sidebar); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #e8762b; }

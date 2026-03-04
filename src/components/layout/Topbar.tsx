@@ -1,6 +1,8 @@
 'use client';
 import React from 'react';
 import { usePathname } from 'next/navigation';
+import { Sun, Moon } from 'lucide-react';
+import { useTheme } from '@/contexts/ThemeContext';
 
 const titles: Record<string, string> = {
   '/dashboard': 'Dashboard',
@@ -31,15 +33,33 @@ function getTitle(pathname: string): string {
 export function Topbar() {
   const pathname = usePathname();
   const title = getTitle(pathname);
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <header className="flex items-center px-6 print:hidden"
-      style={{ height: 56, background: '#1a1f2e', borderBottom: '1px solid #2d3454', flexShrink: 0 }}>
-      <h2 className="text-sm font-semibold" style={{ color: '#f1f5f9' }}>{title}</h2>
+      style={{
+        height: 56,
+        background: 'var(--bg-sidebar)',
+        borderBottom: '1px solid var(--border)',
+        flexShrink: 0,
+      }}>
+      <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{title}</h2>
       <div className="ml-auto flex items-center gap-3">
         <div className="text-xs px-2 py-1 rounded" style={{ background: 'rgba(232,118,43,0.12)', color: '#e8762b' }}>
           UAE Oman Railway · Package 5B
         </div>
+        <button
+          onClick={toggleTheme}
+          className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+          style={{
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border)',
+            color: 'var(--text-secondary)',
+          }}
+          title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
+          {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+        </button>
       </div>
     </header>
   );

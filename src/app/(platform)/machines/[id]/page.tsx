@@ -40,8 +40,8 @@ export default function MachineDetailPage() {
           ['Daily Rate', machine.daily_rate ? `AED ${machine.daily_rate}` : '—'],
           ['Total Hours Logged', `${totalHours.toFixed(1)}h`],
         ].map(([label, val]) => (
-          <div key={label} className="rounded-xl p-4" style={{ background: '#1e2336', border: '1px solid #2d3454' }}>
-            <div className="text-xs mb-1" style={{ color: '#64748b' }}>{label}</div>
+          <div key={label} className="rounded-xl p-4" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+            <div className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>{label}</div>
             <div className="text-base font-semibold text-white">{val}</div>
           </div>
         ))}
@@ -53,21 +53,21 @@ export default function MachineDetailPage() {
           <Link href={`/machines/${id}/usage/new`}><Button size="sm" icon={<Plus size={13}/>}>Log Usage</Button></Link>
         </div>
         {logsLoading ? <PageSpinner /> : !logs.length ? (
-          <p className="text-sm" style={{ color: '#94a3b8' }}>No usage logged yet.</p>
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No usage logged yet.</p>
         ) : (
           <table className="w-full text-sm">
-            <thead><tr style={{ color: '#64748b' }}>
+            <thead><tr style={{ color: 'var(--text-muted)' }}>
               {['Date','Hours','Operator','Task','Fuel','Remarks'].map(h => <th key={h} className="text-left pb-2 font-medium">{h}</th>)}
             </tr></thead>
             <tbody>
               {logs.map(log => (
-                <tr key={log.id} style={{ borderTop: '1px solid #2d3454' }}>
+                <tr key={log.id} style={{ borderTop: '1px solid var(--border)' }}>
                   <td className="py-2 text-white">{log.log_date}</td>
                   <td className="py-2 font-medium" style={{ color: '#e8762b' }}>{log.hours_used}h</td>
-                  <td className="py-2" style={{ color: '#94a3b8' }}>{log.operator_name || '—'}</td>
-                  <td className="py-2" style={{ color: '#94a3b8' }}>{log.task_description || '—'}</td>
-                  <td className="py-2" style={{ color: '#94a3b8' }}>{log.fuel_consumed ? `${log.fuel_consumed}L` : '—'}</td>
-                  <td className="py-2" style={{ color: '#94a3b8' }}>{log.remarks || '—'}</td>
+                  <td className="py-2" style={{ color: 'var(--text-secondary)' }}>{log.operator_name || '—'}</td>
+                  <td className="py-2" style={{ color: 'var(--text-secondary)' }}>{log.task_description || '—'}</td>
+                  <td className="py-2" style={{ color: 'var(--text-secondary)' }}>{log.fuel_consumed ? `${log.fuel_consumed}L` : '—'}</td>
+                  <td className="py-2" style={{ color: 'var(--text-secondary)' }}>{log.remarks || '—'}</td>
                 </tr>
               ))}
             </tbody>

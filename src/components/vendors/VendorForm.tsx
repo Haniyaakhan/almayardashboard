@@ -28,30 +28,32 @@ export function VendorForm({ initial, onSubmit, submitLabel = 'Save' }: Props) {
     setLoading(false);
   }
 
+  const inputStyle = { background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4 max-w-lg">
       {fields.map(f => (
         <div key={f.name}>
-          <label className="block text-sm mb-1" style={{ color: '#94a3b8' }}>
+          <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>
             {f.label}{f.required && <span style={{ color: '#e8762b' }}> *</span>}
           </label>
           <input type={f.type ?? 'text'} required={f.required} value={form[f.name] as string}
             onChange={e => setForm(p => ({ ...p, [f.name]: e.target.value }))}
-            className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
-            style={{ background: '#0f1117', border: '1px solid #2d3454' }}
+            className="w-full px-3 py-2 rounded-lg text-sm outline-none"
+            style={inputStyle}
             onFocus={e => (e.target.style.borderColor = '#e8762b')}
-            onBlur={e => (e.target.style.borderColor = '#2d3454')}
+            onBlur={e => (e.target.style.borderColor = 'var(--border)')}
           />
         </div>
       ))}
       <div>
-        <label className="block text-sm mb-1" style={{ color: '#94a3b8' }}>Notes</label>
+        <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Notes</label>
         <textarea value={form.notes ?? ''} rows={3}
           onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
-          className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none resize-none"
-          style={{ background: '#0f1117', border: '1px solid #2d3454' }}
+          className="w-full px-3 py-2 rounded-lg text-sm outline-none resize-none"
+          style={inputStyle}
           onFocus={e => (e.target.style.borderColor = '#e8762b')}
-          onBlur={e => (e.target.style.borderColor = '#2d3454')}
+          onBlur={e => (e.target.style.borderColor = 'var(--border)')}
         />
       </div>
       {error && <p className="text-sm" style={{ color: '#ef4444' }}>{error}</p>}

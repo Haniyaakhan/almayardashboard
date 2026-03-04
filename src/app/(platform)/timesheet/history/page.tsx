@@ -25,23 +25,23 @@ export default function TimesheetHistoryPage() {
         <EmptyState icon={<ClipboardList size={24}/>} title="No timesheets saved yet"
           description="Fill a timesheet and click Save to store it here." />
       ) : (
-        <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #2d3454' }}>
+        <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
           <table className="w-full text-sm">
-            <thead style={{ background: '#1a1f2e' }}>
+            <thead style={{ background: 'var(--bg-sidebar)' }}>
               <tr>
                 {['Laborer','Period','Project','Total Hours','OT','Status',''].map(h => (
-                  <th key={h} className="px-4 py-3 text-left font-medium" style={{ color: '#64748b' }}>{h}</th>
+                  <th key={h} className="px-4 py-3 text-left font-medium" style={{ color: 'var(--text-muted)' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {timesheets.map((ts, i) => (
-                <tr key={ts.id} style={{ background: i % 2 === 0 ? '#1e2336' : '#1a1f2e', borderTop: '1px solid #2d3454' }}>
+                <tr key={ts.id} style={{ background: i % 2 === 0 ? 'var(--bg-card)' : 'var(--row-alt)', borderTop: '1px solid var(--border)' }}>
                   <td className="px-4 py-3 text-white">{(ts.laborer as any)?.full_name ?? '—'}</td>
-                  <td className="px-4 py-3" style={{ color: '#94a3b8' }}>{MONTHS[ts.month]} {ts.year}</td>
+                  <td className="px-4 py-3" style={{ color: 'var(--text-secondary)' }}>{MONTHS[ts.month]} {ts.year}</td>
                   <td className="px-4 py-3 text-white max-w-[200px] truncate">{ts.project_name || '—'}</td>
                   <td className="px-4 py-3 text-white font-medium">{ts.total_actual}h</td>
-                  <td className="px-4 py-3" style={{ color: ts.total_ot > 0 ? '#e8762b' : '#94a3b8' }}>{ts.total_ot > 0 ? `+${ts.total_ot}h` : '—'}</td>
+                  <td className="px-4 py-3" style={{ color: ts.total_ot > 0 ? '#e8762b' : 'var(--text-secondary)' }}>{ts.total_ot > 0 ? `+${ts.total_ot}h` : '—'}</td>
                   <td className="px-4 py-3">{timesheetStatusBadge(ts.status)}</td>
                   <td className="px-4 py-3">
                     <Link href={`/timesheet/history/${ts.id}`} className="text-xs font-medium" style={{ color: '#e8762b' }}>View →</Link>

@@ -18,7 +18,7 @@ export function SidebarLink({ href, icon, label }: SidebarLinkProps) {
       href={href}
       className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors"
       style={{
-        color: isActive ? '#e8762b' : '#94a3b8',
+        color: isActive ? '#e8762b' : 'var(--text-secondary)',
         background: isActive ? 'rgba(232,118,43,0.12)' : 'transparent',
         borderLeft: isActive ? '2px solid #e8762b' : '2px solid transparent',
         fontWeight: isActive ? 600 : 400,

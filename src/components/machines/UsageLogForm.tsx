@@ -33,20 +33,20 @@ export function UsageLogForm({ machineId, onSuccess }: Props) {
     else onSuccess();
   }
 
-  const inputClass = "w-full px-3 py-2 rounded-lg text-sm text-white outline-none";
-  const inputStyle = { background: '#0f1117', border: '1px solid #2d3454' };
+  const inputClass = "w-full px-3 py-2 rounded-lg text-sm outline-none";
+  const inputStyle = { background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' };
   const focus = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => (e.target.style.borderColor = '#e8762b');
-  const blur  = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => (e.target.style.borderColor = '#2d3454');
+  const blur  = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => (e.target.style.borderColor = 'var(--border)');
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 max-w-lg">
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm mb-1" style={{ color: '#94a3b8' }}>Date <span style={{ color: '#e8762b' }}>*</span></label>
+          <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Date <span style={{ color: '#e8762b' }}>*</span></label>
           <input type="date" required value={form.log_date} onChange={e => set('log_date', e.target.value)} className={inputClass} style={inputStyle} onFocus={focus} onBlur={blur} />
         </div>
         <div>
-          <label className="block text-sm mb-1" style={{ color: '#94a3b8' }}>Hours Used <span style={{ color: '#e8762b' }}>*</span></label>
+          <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Hours Used <span style={{ color: '#e8762b' }}>*</span></label>
           <input type="number" step="0.5" min="0" required value={form.hours_used} onChange={e => set('hours_used', e.target.value)} className={inputClass} style={inputStyle} onFocus={focus} onBlur={blur} />
         </div>
       </div>
@@ -58,16 +58,16 @@ export function UsageLogForm({ machineId, onSuccess }: Props) {
         { label: 'Site Location', name: 'site_location' },
       ].map(f => (
         <div key={f.name}>
-          <label className="block text-sm mb-1" style={{ color: '#94a3b8' }}>{f.label}</label>
+          <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>{f.label}</label>
           <input type={f.type ?? 'text'} value={(form as any)[f.name]}
             onChange={e => set(f.name, e.target.value)} className={inputClass} style={inputStyle} onFocus={focus} onBlur={blur} />
         </div>
       ))}
 
       <div>
-        <label className="block text-sm mb-1" style={{ color: '#94a3b8' }}>Remarks</label>
+        <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Remarks</label>
         <textarea value={form.remarks} rows={2} onChange={e => set('remarks', e.target.value)}
-          className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none resize-none"
+          className="w-full px-3 py-2 rounded-lg text-sm outline-none resize-none"
           style={inputStyle} onFocus={focus} onBlur={blur} />
       </div>
 

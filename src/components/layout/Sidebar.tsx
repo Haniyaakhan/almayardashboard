@@ -38,15 +38,17 @@ export function Sidebar() {
 
   return (
     <aside className="flex flex-col print:hidden" style={{
-      width: 220, minWidth: 220, background: '#1a1f2e',
-      borderRight: '1px solid #2d3454', height: '100vh',
+      width: 220, minWidth: 220,
+      background: 'var(--bg-sidebar)',
+      borderRight: '1px solid var(--border)',
+      height: '100vh',
     }}>
       {/* Branding */}
-      <div className="flex items-center gap-3 px-4 py-5" style={{ borderBottom: '1px solid #2d3454' }}>
+      <div className="flex items-center gap-3 px-4 py-5" style={{ borderBottom: '1px solid var(--border)' }}>
         <Image src="/npclogo.jpeg" alt="NPC" width={32} height={32} className="rounded-md" />
         <div>
           <div className="text-sm font-bold" style={{ color: '#e8762b' }}>ALMYAR</div>
-          <div className="text-xs" style={{ color: '#64748b' }}>Project Platform</div>
+          <div className="text-xs" style={{ color: 'var(--text-muted)' }}>Project Platform</div>
         </div>
       </div>
 
@@ -55,7 +57,7 @@ export function Sidebar() {
         {nav.map(({ group, items }) => (
           <div key={group ?? 'main'}>
             {group && (
-              <div className="px-3 mb-1 text-xs font-semibold tracking-wider" style={{ color: '#64748b' }}>
+              <div className="px-3 mb-1 text-xs font-semibold tracking-wider" style={{ color: 'var(--text-muted)' }}>
                 {group}
               </div>
             )}
@@ -67,21 +69,21 @@ export function Sidebar() {
       </nav>
 
       {/* User */}
-      <div className="px-3 py-4" style={{ borderTop: '1px solid #2d3454' }}>
+      <div className="px-3 py-4" style={{ borderTop: '1px solid var(--border)' }}>
         <div className="flex items-center gap-2 px-2 mb-2">
           <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white"
             style={{ background: '#e8762b' }}>
             {user?.email?.[0]?.toUpperCase() ?? '?'}
           </div>
-          <span className="text-xs truncate" style={{ color: '#94a3b8', maxWidth: 140 }}>
+          <span className="text-xs truncate" style={{ color: 'var(--text-secondary)', maxWidth: 140 }}>
             {user?.email ?? ''}
           </span>
         </div>
         <button onClick={signOut}
           className="flex items-center gap-2 w-full px-3 py-1.5 rounded-lg text-sm transition-colors"
-          style={{ color: '#94a3b8' }}
+          style={{ color: 'var(--text-secondary)' }}
           onMouseEnter={e => (e.currentTarget.style.color = '#ef4444')}
-          onMouseLeave={e => (e.currentTarget.style.color = '#94a3b8')}
+          onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-secondary)')}
         >
           <LogOut size={14} /> Sign Out
         </button>

@@ -16,8 +16,8 @@ export function EmptyState({ icon, title, description, action }: EmptyStateProps
           {icon}
         </div>
       )}
-      <h3 className="text-base font-semibold text-white mb-1">{title}</h3>
-      {description && <p className="text-sm mb-4" style={{ color: '#94a3b8' }}>{description}</p>}
+      <h3 className="text-base font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>{title}</h3>
+      {description && <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>{description}</p>}
       {action}
     </div>
   );

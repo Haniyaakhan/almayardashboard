@@ -48,30 +48,30 @@ export function LaborerForm({ initial, onSubmit, submitLabel = 'Save' }: Props) 
     <form onSubmit={handleSubmit} className="space-y-4 max-w-lg">
       {fields.map(f => (
         <div key={f.name}>
-          <label className="block text-sm mb-1" style={{ color: '#94a3b8' }}>
+          <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>
             {f.label}{f.required && <span style={{ color: '#e8762b' }}> *</span>}
           </label>
           <input
             type={f.type} required={f.required}
             value={(form[f.name] ?? '') as string}
             onChange={e => set(f.name, f.type === 'number' ? (e.target.value ? Number(e.target.value) : null) : e.target.value)}
-            className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
-            style={{ background: '#0f1117', border: '1px solid #2d3454' }}
+            className="w-full px-3 py-2 rounded-lg text-sm outline-none"
+            style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
             onFocus={e => (e.target.style.borderColor = '#e8762b')}
-            onBlur={e => (e.target.style.borderColor = '#2d3454')}
+            onBlur={e => (e.target.style.borderColor = 'var(--border)')}
           />
         </div>
       ))}
 
       <div>
-        <label className="block text-sm mb-1" style={{ color: '#94a3b8' }}>Notes</label>
+        <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Notes</label>
         <textarea
           value={form.notes ?? ''} rows={3}
           onChange={e => set('notes', e.target.value)}
-          className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none resize-none"
-          style={{ background: '#0f1117', border: '1px solid #2d3454' }}
+          className="w-full px-3 py-2 rounded-lg text-sm outline-none resize-none"
+          style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
           onFocus={e => (e.target.style.borderColor = '#e8762b')}
-          onBlur={e => (e.target.style.borderColor = '#2d3454')}
+          onBlur={e => (e.target.style.borderColor = 'var(--border)')}
         />
       </div>
 

@@ -38,18 +38,18 @@ export default function ReportsPage() {
         <h3 className="text-sm font-semibold text-white mb-4">Select Report Period</h3>
         <div className="flex items-end gap-4 flex-wrap">
           <div>
-            <label className="block text-xs mb-1" style={{ color: '#94a3b8' }}>Month</label>
+            <label className="block text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>Month</label>
             <select value={month} onChange={e => setMonth(Number(e.target.value))}
-              className="px-3 py-2 rounded-lg text-sm text-white outline-none"
-              style={{ background: '#0f1117', border: '1px solid #2d3454' }}>
+              className="px-3 py-2 rounded-lg text-sm outline-none"
+              style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}>
               {MONTHS.map((m, i) => <option key={i} value={i}>{m}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-xs mb-1" style={{ color: '#94a3b8' }}>Year</label>
+            <label className="block text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>Year</label>
             <input type="number" value={year} min="2020" max="2040" onChange={e => setYear(Number(e.target.value))}
-              className="w-24 px-3 py-2 rounded-lg text-sm text-white outline-none"
-              style={{ background: '#0f1117', border: '1px solid #2d3454' }} />
+              className="w-24 px-3 py-2 rounded-lg text-sm outline-none"
+              style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }} />
           </div>
           <Button onClick={loadPreview} loading={loading} icon={<FileBarChart size={14}/>}>
             Generate Preview
@@ -59,7 +59,6 @@ export default function ReportsPage() {
 
       {preview && (
         <>
-          {/* KPI Summary */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
               ['Timesheets', preview.timesheets.length],
@@ -67,30 +66,27 @@ export default function ReportsPage() {
               ['Machine Log Entries', preview.machineLogs.length],
               ['Total Machine Hours', `${totalMachineHours(preview.machineLogs).toFixed(1)}h`],
             ].map(([label, val]) => (
-              <div key={label as string} className="rounded-xl p-4" style={{ background: '#1e2336', border: '1px solid #2d3454' }}>
-                <div className="text-xs mb-1" style={{ color: '#64748b' }}>{label}</div>
+              <div key={label as string} className="rounded-xl p-4" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                <div className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>{label}</div>
                 <div className="text-xl font-bold text-white">{val}</div>
               </div>
             ))}
           </div>
 
-          {/* Labor Summary */}
           {preview.timesheets.length > 0 && (
             <Card>
-              <h3 className="text-sm font-semibold text-white mb-4">
-                Labor Summary — {MONTHS[month]} {year}
-              </h3>
+              <h3 className="text-sm font-semibold text-white mb-4">Labor Summary — {MONTHS[month]} {year}</h3>
               <table className="w-full text-sm">
-                <thead><tr style={{ color: '#64748b' }}>
+                <thead><tr style={{ color: 'var(--text-muted)' }}>
                   {['Laborer','Designation','Worked (h)','OT (h)','Total (h)'].map(h => <th key={h} className="text-left pb-2 font-medium">{h}</th>)}
                 </tr></thead>
                 <tbody>
                   {preview.timesheets.map((ts: any) => (
-                    <tr key={ts.id} style={{ borderTop: '1px solid #2d3454' }}>
+                    <tr key={ts.id} style={{ borderTop: '1px solid var(--border)' }}>
                       <td className="py-2 text-white">{ts.laborer?.full_name ?? '—'}</td>
-                      <td className="py-2" style={{ color: '#94a3b8' }}>{ts.laborer?.designation ?? ts.designation}</td>
+                      <td className="py-2" style={{ color: 'var(--text-secondary)' }}>{ts.laborer?.designation ?? ts.designation}</td>
                       <td className="py-2 text-white">{ts.total_worked}</td>
-                      <td className="py-2" style={{ color: ts.total_ot > 0 ? '#e8762b' : '#94a3b8' }}>{ts.total_ot || '—'}</td>
+                      <td className="py-2" style={{ color: ts.total_ot > 0 ? '#e8762b' : 'var(--text-secondary)' }}>{ts.total_ot || '—'}</td>
                       <td className="py-2 font-semibold text-white">{ts.total_actual}</td>
                     </tr>
                   ))}
@@ -99,23 +95,22 @@ export default function ReportsPage() {
             </Card>
           )}
 
-          {/* Machine Summary */}
           {preview.machineLogs.length > 0 && (
             <Card>
               <h3 className="text-sm font-semibold text-white mb-4">Machine Usage — {MONTHS[month]} {year}</h3>
               <table className="w-full text-sm">
-                <thead><tr style={{ color: '#64748b' }}>
+                <thead><tr style={{ color: 'var(--text-muted)' }}>
                   {['Date','Machine','Type','Operator','Hours','Fuel'].map(h => <th key={h} className="text-left pb-2 font-medium">{h}</th>)}
                 </tr></thead>
                 <tbody>
                   {preview.machineLogs.map((log: any) => (
-                    <tr key={log.id} style={{ borderTop: '1px solid #2d3454' }}>
-                      <td className="py-2" style={{ color: '#94a3b8' }}>{log.log_date}</td>
+                    <tr key={log.id} style={{ borderTop: '1px solid var(--border)' }}>
+                      <td className="py-2" style={{ color: 'var(--text-secondary)' }}>{log.log_date}</td>
                       <td className="py-2 text-white">{log.machine?.name ?? '—'}</td>
-                      <td className="py-2" style={{ color: '#94a3b8' }}>{log.machine?.type ?? '—'}</td>
-                      <td className="py-2" style={{ color: '#94a3b8' }}>{log.operator_name || '—'}</td>
+                      <td className="py-2" style={{ color: 'var(--text-secondary)' }}>{log.machine?.type ?? '—'}</td>
+                      <td className="py-2" style={{ color: 'var(--text-secondary)' }}>{log.operator_name || '—'}</td>
                       <td className="py-2 font-medium" style={{ color: '#e8762b' }}>{log.hours_used}h</td>
-                      <td className="py-2" style={{ color: '#94a3b8' }}>{log.fuel_consumed ? `${log.fuel_consumed}L` : '—'}</td>
+                      <td className="py-2" style={{ color: 'var(--text-secondary)' }}>{log.fuel_consumed ? `${log.fuel_consumed}L` : '—'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -123,18 +118,15 @@ export default function ReportsPage() {
             </Card>
           )}
 
-          {/* Email button (placeholder for when Resend is configured) */}
           <Card>
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-semibold text-white">Email This Report</h3>
-                <p className="text-xs mt-0.5" style={{ color: '#64748b' }}>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
                   Add RESEND_API_KEY and REPORT_RECIPIENT_EMAIL to .env.local to enable email sending.
                 </p>
               </div>
-              <Button variant="secondary" icon={<Mail size={14}/>} disabled>
-                Send via Email
-              </Button>
+              <Button variant="secondary" icon={<Mail size={14}/>} disabled>Send via Email</Button>
             </div>
             {msg && <p className="text-sm mt-2" style={{ color: msg.startsWith('Error') ? '#ef4444' : '#22c55e' }}>{msg}</p>}
           </Card>
