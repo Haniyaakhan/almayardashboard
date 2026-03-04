@@ -1,5 +1,4 @@
 import React from 'react';
-import Image from 'next/image';
 
 export default function TimesheetHeader() {
   return (
@@ -8,13 +7,13 @@ export default function TimesheetHeader() {
       <div style={{ display: 'flex', gap: '20px' }}>
         {/* Logo */}
         <div style={{ width: '95px', flexShrink: 0 }}>
-          <Image
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
             src="/npclogo.jpeg"
             alt="NPC Logo"
             width={160}
             height={110}
             style={{ display: 'block', marginTop: '-5px', marginLeft: '-1px' }}
-            priority
           />
         </div>
 
