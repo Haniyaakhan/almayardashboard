@@ -4,16 +4,14 @@ export default function TimesheetHeader() {
   return (
     <div className="mb-0" style={{ fontStyle: 'normal' }}>
       {/* 2-column layout: Logo | Content */}
-      <div style={{ display: 'flex', gap: '20px' }}>
+      <div style={{ display: 'flex', gap: '8px', alignItems: 'stretch' }}>
         {/* Logo */}
-        <div style={{ width: '95px', flexShrink: 0 }}>
+        <div style={{ width: '72px', flexShrink: 0, display: 'flex', alignItems: 'center' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/npclogo.png"
             alt="NPC Logo"
-            width={160}
-            height={110}
-            style={{ display: 'block', marginTop: '-5px', marginLeft: '-1px' }}
+            style={{ display: 'block', width: '100%', height: 'auto' }}
           />
         </div>
 
