@@ -1,0 +1,99 @@
+'use client';
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/Button';
+import { useVendors } from '@/hooks/useVendors';
+import type { Machine } from '@/types/database';
+
+type FormData = Omit<Machine, 'id' | 'created_at' | 'updated_at' | 'vendor'>;
+
+interface Props { initial?: Partial<FormData>; onSubmit: (data: FormData) => Promise<void>; submitLabel?: string; }
+
+const machineTypes = ['Excavator','Crane','Bulldozer','Compactor','Loader','Grader','Dump Truck','Concrete Mixer','Generator','Pump','Other'];
+
+export function MachineForm({ initial, onSubmit, submitLabel = 'Save' }: Props) {
+  const { vendors } = useVendors();
+  const [form, setForm] = useState<FormData>({
+    vendor_id: null, name: '', type: '', plate_number: '', model: '',
+    year: null, daily_rate: null, status: 'available', notes: '', is_active: true, ...initial,
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  function set(key: keyof FormData, value: unknown) { setForm(p => ({ ...p, [key]: value })); }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault(); setLoading(true); setError('');
+    try { await onSubmit(form); } catch (err: any) { setError(err.message); }
+    setLoading(false);
+  }
+
+  const inputClass = "w-full px-3 py-2 rounded-lg text-sm text-white outline-none";
+  const inputStyle = { background: '#0f1117', border: '1px solid #2d3454' };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4 max-w-lg">
+      <div>
+        <label className="block text-sm mb-1" style={{ color: '#94a3b8' }}>Vendor / Supplier</label>
+        <select value={form.vendor_id ?? ''} onChange={e => set('vendor_id', e.target.value || null)}
+          className={inputClass} style={inputStyle}>
+          <option value="">— No vendor —</option>
+          {vendors.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+        </select>
+      </div>
+
+      <div>
+        <label className="block text-sm mb-1" style={{ color: '#94a3b8' }}>Machine Name <span style={{ color: '#e8762b' }}>*</span></label>
+        <input required value={form.name} onChange={e => set('name', e.target.value)} className={inputClass} style={inputStyle}
+          onFocus={e => (e.target.style.borderColor = '#e8762b')} onBlur={e => (e.target.style.borderColor = '#2d3454')} />
+      </div>
+
+      <div>
+        <label className="block text-sm mb-1" style={{ color: '#94a3b8' }}>Machine Type <span style={{ color: '#e8762b' }}>*</span></label>
+        <select required value={form.type} onChange={e => set('type', e.target.value)} className={inputClass} style={inputStyle}>
+          <option value="">Select type…</option>
+          {machineTypes.map(t => <option key={t} value={t}>{t}</option>)}
+        </select>
+      </div>
+
+      {[
+        { label: 'Plate / Unit No.', name: 'plate_number' as const },
+        { label: 'Model', name: 'model' as const },
+      ].map(f => (
+        <div key={f.name}>
+          <label className="block text-sm mb-1" style={{ color: '#94a3b8' }}>{f.label}</label>
+          <input value={form[f.name] as string} onChange={e => set(f.name, e.target.value)}
+            className={inputClass} style={inputStyle}
+            onFocus={e => (e.target.style.borderColor = '#e8762b')} onBlur={e => (e.target.style.borderColor = '#2d3454')} />
+        </div>
+      ))}
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm mb-1" style={{ color: '#94a3b8' }}>Year</label>
+          <input type="number" min="1990" max="2030" value={form.year ?? ''}
+            onChange={e => set('year', e.target.value ? Number(e.target.value) : null)}
+            className={inputClass} style={inputStyle}
+            onFocus={e => (e.target.style.borderColor = '#e8762b')} onBlur={e => (e.target.style.borderColor = '#2d3454')} />
+        </div>
+        <div>
+          <label className="block text-sm mb-1" style={{ color: '#94a3b8' }}>Daily Rate (AED)</label>
+          <input type="number" value={form.daily_rate ?? ''}
+            onChange={e => set('daily_rate', e.target.value ? Number(e.target.value) : null)}
+            className={inputClass} style={inputStyle}
+            onFocus={e => (e.target.style.borderColor = '#e8762b')} onBlur={e => (e.target.style.borderColor = '#2d3454')} />
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm mb-1" style={{ color: '#94a3b8' }}>Status</label>
+        <select value={form.status} onChange={e => set('status', e.target.value as Machine['status'])}
+          className={inputClass} style={inputStyle}>
+          {['available','in_use','maintenance','returned'].map(s => <option key={s} value={s}>{s.replace('_',' ')}</option>)}
+        </select>
+      </div>
+
+      {error && <p className="text-sm" style={{ color: '#ef4444' }}>{error}</p>}
+      <Button type="submit" loading={loading}>{submitLabel}</Button>
+    </form>
+  );
+}

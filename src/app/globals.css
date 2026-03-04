@@ -10,8 +10,8 @@
 
 body {
   font-family: Arial, sans-serif;
-  background: #e0e0e0;
-  padding: 20px;
+  background: #0f1117;
+  padding: 0;
 }
 
 /* Print styles */
@@ -54,3 +54,9 @@ input[type='number']::-webkit-inner-spin-button {
 input[type='number'] {
   -moz-appearance: textfield;
 }
+
+/* Platform scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #1a1f2e; }
+::-webkit-scrollbar-thumb { background: #2d3454; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #e8762b; }
