@@ -68,7 +68,7 @@ export default function ExportButtons({
           padding: '7px 16px',
           fontSize: '13px',
           fontWeight: 600,
-          border: 'none',
+          border: 'none', 
           borderRadius: '7px',
           cursor: isExporting ? 'not-allowed' : 'pointer',
           opacity: isExporting ? 0.5 : 1,
