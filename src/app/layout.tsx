@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Labor Time Sheet',
+  title: 'Almyar',
   description: 'Labor timesheet management system for ALMYAR UNITED TRADING LLC',
 };
 
