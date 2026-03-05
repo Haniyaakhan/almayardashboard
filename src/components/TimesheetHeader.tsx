@@ -6,7 +6,7 @@ export default function TimesheetHeader() {
       {/* 2-column layout: Logo | Content */}
       <div style={{ display: 'flex', gap: '35px', alignItems: 'stretch' }}>
         {/* Logo */}
-        <div style={{ width: '144px', flexShrink: 0, alignItems: 'center',marginTop:'20px' }}>
+        <div style={{ width: '144px', flexShrink: 0, alignItems: 'center',marginTop:'17px' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/npclogo.png"
@@ -21,9 +21,9 @@ export default function TimesheetHeader() {
           <div
             className="border border-black bg-timesheet-bg"
             style={{
-              padding: '6px 20px',
+              padding: '3px 20px',
               fontSize: '19px',
-              fontWeight: 'bold',
+              // fontWeight: 'bold',
               textAlign: 'center',
               fontStyle: 'normal',
             }}
