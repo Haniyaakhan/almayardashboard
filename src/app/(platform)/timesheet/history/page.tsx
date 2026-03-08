@@ -1,7 +1,7 @@
 'use client';
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { useTimesheetHistory } from '@/hooks/useTimesheetHistory';
+import { useTimesheetHistory, approveTimesheet } from '@/hooks/useTimesheetHistory';
 import { PageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { timesheetStatusBadge } from '@/components/ui/Badge';
@@ -10,7 +10,7 @@ import { ClipboardList, Plus } from 'lucide-react';
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 export default function TimesheetHistoryPage() {
-  const { timesheets, loading } = useTimesheetHistory();
+  const { timesheets, loading, refetch } = useTimesheetHistory();
   const [filter, setFilter] = useState<'All' | 'approved' | 'draft'>('All');
   const [monthFilter, setMonthFilter] = useState('All');
 
@@ -120,9 +120,15 @@ export default function TimesheetHistoryPage() {
                         }}>
                           {(laborerData?.full_name ?? '—').split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()}
                         </div>
-                        <span style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                        <Link href={`/timesheet/history/${ts.id}`} style={{
+                          fontSize: '12.5px', fontWeight: 600, color: 'var(--text-secondary)',
+                          textDecoration: 'none', cursor: 'pointer',
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.color = 'var(--orange)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-secondary)'; }}
+                        >
                           {laborerData?.full_name ?? '—'}
-                        </span>
+                        </Link>
                       </div>
                     </td>
                     <td style={{ padding: '10px 13px', fontSize: 12, color: 'var(--text-light)' }}>
@@ -142,11 +148,17 @@ export default function TimesheetHistoryPage() {
                           border: '1px solid var(--border2)', background: 'var(--bg-card)',
                           color: 'var(--text-light)', textDecoration: 'none',
                         }}>EDIT</Link>
-                        <Link href={`/timesheet/history/${ts.id}`} style={{
+                        <button onClick={async () => {
+                          if (ts.status === 'approved') return;
+                          await approveTimesheet(ts.id);
+                          refetch();
+                        }} style={{
                           fontSize: 11, fontWeight: 600, padding: '4px 9px', borderRadius: 6,
-                          border: 'none', background: 'var(--orange)', color: '#fff',
-                          textDecoration: 'none',
-                        }}>VIEW</Link>
+                          border: 'none', cursor: ts.status === 'approved' ? 'default' : 'pointer',
+                          background: ts.status === 'approved' ? '#d1d5db' : 'var(--orange)',
+                          color: ts.status === 'approved' ? '#6b7280' : '#fff',
+                          opacity: ts.status === 'approved' ? 0.7 : 1,
+                        }}>{ts.status === 'approved' ? 'SAVED' : 'SAVE'}</button>
                       </div>
                     </td>
                   </tr>

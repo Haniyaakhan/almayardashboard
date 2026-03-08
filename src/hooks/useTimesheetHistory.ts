@@ -30,6 +30,12 @@ export async function getTimesheetWithEntries(id: string): Promise<Timesheet | n
   return data as Timesheet | null;
 }
 
+export async function approveTimesheet(id: string): Promise<Error | null> {
+  const supabase = createClient();
+  const { error } = await supabase.from('timesheets').update({ status: 'approved' }).eq('id', id);
+  return error;
+}
+
 export async function saveTimesheet(payload: {
   laborer_id: string | null;
   month: number; year: number;

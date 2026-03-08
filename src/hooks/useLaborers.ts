@@ -47,3 +47,9 @@ export async function deactivateLaborer(id: string) {
   const { error } = await supabase.from('laborers').update({ is_active: false }).eq('id', id);
   return error;
 }
+
+export async function reactivateLaborer(id: string) {
+  const supabase = createClient();
+  const { error } = await supabase.from('laborers').update({ is_active: true }).eq('id', id);
+  return error;
+}

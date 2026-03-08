@@ -26,7 +26,7 @@ export default function TimesheetDetailPage() {
   if (loading) return <PageSpinner />;
   if (!ts) return (
     <div className="p-6">
-      <p className="text-sm" style={{ color: '#94a3b8' }}>Timesheet not found.</p>
+      <p className="text-sm" style={{ color: 'var(--text-light)' }}>Timesheet not found.</p>
     </div>
   );
 
@@ -57,8 +57,8 @@ export default function TimesheetDetailPage() {
           ['Designation', ts.designation || '—'],
           ['Site Engineer', ts.site_engineer_name || '—'],
         ].map(([label, val]) => (
-          <div key={label} className="rounded-xl p-4" style={{ background: '#1e2336', border: '1px solid #2d3454' }}>
-            <div className="text-xs mb-1" style={{ color: '#64748b' }}>{label}</div>
+          <div key={label} className="rounded-xl p-4" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+            <div className="text-xs mb-1" style={{ color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', fontSize: '10.5px', fontWeight: 600 }}>{label}</div>
             <div className="text-sm font-semibold text-[var(--text-primary)]">{val}</div>
           </div>
         ))}
@@ -71,9 +71,9 @@ export default function TimesheetDetailPage() {
           ['Overtime', `${ts.total_ot}h`],
           ['Total Actual', `${ts.total_actual}h`],
         ].map(([label, val]) => (
-          <div key={label} className="rounded-xl p-4 text-center" style={{ background: '#1e2336', border: '1px solid #2d3454' }}>
-            <div className="text-xs mb-1" style={{ color: '#64748b' }}>{label}</div>
-            <div className="text-2xl font-bold" style={{ color: '#e8762b' }}>{val}</div>
+          <div key={label} className="rounded-xl p-4 text-center" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+            <div className="text-xs mb-1" style={{ color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', fontSize: '10.5px', fontWeight: 600 }}>{label}</div>
+            <div className="text-2xl font-bold" style={{ color: 'var(--orange)' }}>{val}</div>
           </div>
         ))}
       </div>
@@ -84,7 +84,7 @@ export default function TimesheetDetailPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr style={{ color: '#64748b', borderBottom: '1px solid #2d3454' }}>
+              <tr style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>
                 {['Day','Time In','Out (Lunch)','Break','In (PM)','Time Out','Duration','OT','Actual','Remarks'].map(h => (
                   <th key={h} className="pb-2 text-left font-medium pr-3 whitespace-nowrap">{h}</th>
                 ))}
@@ -94,25 +94,25 @@ export default function TimesheetDetailPage() {
               {Array.from({ length: days }, (_, i) => i + 1).map(day => {
                 const e = entryByDay[day];
                 if (!e) return (
-                  <tr key={day} style={{ borderTop: '1px solid #2d3454' }}>
+                  <tr key={day} style={{ borderTop: '1px solid var(--border)' }}>
                     <td className="py-1.5 text-[var(--text-primary)] pr-3">{day}</td>
                     {Array(9).fill(null).map((_, j) => (
-                      <td key={j} className="py-1.5 pr-3" style={{ color: '#374151' }}>—</td>
+                      <td key={j} className="py-1.5 pr-3" style={{ color: 'var(--text-muted)' }}>—</td>
                     ))}
                   </tr>
                 );
                 return (
-                  <tr key={day} style={{ borderTop: '1px solid #2d3454' }}>
+                  <tr key={day} style={{ borderTop: '1px solid var(--border)' }}>
                     <td className="py-1.5 text-[var(--text-primary)] pr-3">{day}</td>
-                    <td className="py-1.5 pr-3" style={{ color: '#94a3b8' }}>{e.time_in || '—'}</td>
-                    <td className="py-1.5 pr-3" style={{ color: '#94a3b8' }}>{e.time_out_lunch || '—'}</td>
-                    <td className="py-1.5 pr-3" style={{ color: '#94a3b8' }}>{e.lunch_break || '—'}</td>
-                    <td className="py-1.5 pr-3" style={{ color: '#94a3b8' }}>{e.time_in_2 || '—'}</td>
-                    <td className="py-1.5 pr-3" style={{ color: '#94a3b8' }}>{e.time_out_2 || '—'}</td>
+                    <td className="py-1.5 pr-3" style={{ color: 'var(--text-light)' }}>{e.time_in || '—'}</td>
+                    <td className="py-1.5 pr-3" style={{ color: 'var(--text-light)' }}>{e.time_out_lunch || '—'}</td>
+                    <td className="py-1.5 pr-3" style={{ color: 'var(--text-light)' }}>{e.lunch_break || '—'}</td>
+                    <td className="py-1.5 pr-3" style={{ color: 'var(--text-light)' }}>{e.time_in_2 || '—'}</td>
+                    <td className="py-1.5 pr-3" style={{ color: 'var(--text-light)' }}>{e.time_out_2 || '—'}</td>
                     <td className="py-1.5 pr-3 font-medium text-[var(--text-primary)]">{e.total_duration || '—'}</td>
-                    <td className="py-1.5 pr-3" style={{ color: e.over_time > 0 ? '#e8762b' : '#94a3b8' }}>{e.over_time > 0 ? e.over_time : '—'}</td>
+                    <td className="py-1.5 pr-3" style={{ color: e.over_time > 0 ? '#e8762b' : 'var(--text-light)' }}>{e.over_time > 0 ? e.over_time : '—'}</td>
                     <td className="py-1.5 pr-3 font-semibold text-[var(--text-primary)]">{e.actual_worked || '—'}</td>
-                    <td className="py-1.5 truncate" style={{ color: '#94a3b8', maxWidth: '120px' }}>{e.remarks || '—'}</td>
+                    <td className="py-1.5 truncate" style={{ color: 'var(--text-light)', maxWidth: '120px' }}>{e.remarks || '—'}</td>
                   </tr>
                 );
               })}

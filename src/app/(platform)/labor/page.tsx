@@ -1,11 +1,11 @@
 'use client';
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { useLaborers, deactivateLaborer } from '@/hooks/useLaborers';
+import { useLaborers, deactivateLaborer, reactivateLaborer } from '@/hooks/useLaborers';
 import { PageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Badge } from '@/components/ui/Badge';
-import { Users, Plus, Search, Pencil, Trash2 } from 'lucide-react';
+import { Users, Plus, Search, Pencil, Trash2, RotateCcw } from 'lucide-react';
 
 const designations = ['All', 'Helper', 'Scaffolder', 'Electrician', 'Rigger', 'Steel Fixer'];
 
@@ -136,7 +136,7 @@ export default function LaborPage() {
                     </td>
                     <td style={{ padding: '10px 13px' }}>
                       <div className="flex items-center gap-1.5">
-                        <Link href={`/labor/${l.id}`} title="View / Edit" style={{
+                        <Link href={`/labor/${l.id}/edit`} title="Edit" style={{
                           padding: 5, borderRadius: 7,
                           border: '1px solid var(--border2)', background: 'var(--bg-card)',
                           color: 'var(--text-light)', cursor: 'pointer',
@@ -145,8 +145,11 @@ export default function LaborPage() {
                         }}>
                           <Pencil size={13} />
                         </Link>
-                        {l.is_active && (
-                          <button onClick={async () => { await deactivateLaborer(l.id); refetch(); }}
+                        {l.is_active ? (
+                          <button onClick={async () => {
+                            if (!confirm(`Are you sure you want to deactivate "${l.full_name}"?`)) return;
+                            await deactivateLaborer(l.id); refetch();
+                          }}
                             title="Deactivate" style={{
                               padding: 5, borderRadius: 7,
                               border: '1px solid var(--red-border)', background: 'var(--red-bg)',
@@ -155,6 +158,20 @@ export default function LaborPage() {
                               transition: 'all 0.14s',
                             }}>
                             <Trash2 size={13} />
+                          </button>
+                        ) : (
+                          <button onClick={async () => {
+                            if (!confirm(`Re-activate "${l.full_name}"?`)) return;
+                            await reactivateLaborer(l.id); refetch();
+                          }}
+                            title="Re-activate" style={{
+                              padding: 5, borderRadius: 7,
+                              border: '1px solid #bbf7d0', background: 'rgba(34,197,94,0.08)',
+                              color: '#16a34a', cursor: 'pointer',
+                              display: 'flex', alignItems: 'center',
+                              transition: 'all 0.14s',
+                            }}>
+                            <RotateCcw size={13} />
                           </button>
                         )}
                       </div>

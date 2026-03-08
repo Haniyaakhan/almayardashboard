@@ -45,33 +45,34 @@ export default function LaborerDetailPage() {
 
       {/* Banner Header */}
       <div style={{
-        background: 'linear-gradient(135deg, #1a1a2e 0%, #2d2b55 100%)',
+        background: 'var(--bg-card)',
         borderRadius: 14, padding: '28px 32px',
+        border: '1px solid var(--border)',
         display: 'flex', alignItems: 'center', gap: 20,
       }}>
         <div style={{
           width: 64, height: 64, borderRadius: 14,
-          background: 'rgba(255,255,255,0.12)',
+          background: 'rgba(255,107,43,0.08)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 22, fontWeight: 700, color: '#fff',
+          fontSize: 22, fontWeight: 700, color: 'var(--orange)',
           fontFamily: "'Sora', sans-serif",
         }}>{initials}</div>
         <div>
           <div style={{
-            fontSize: 20, fontWeight: 700, color: '#fff',
+            fontSize: 20, fontWeight: 700, color: 'var(--text-primary)',
             fontFamily: "'Sora', sans-serif", letterSpacing: '-0.3px',
           }}>{laborer.full_name}</div>
-          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
             {laborer.designation} · {laborer.supplier_name || '—'} ·
             <span style={{
               display: 'inline-flex', alignItems: 'center', gap: 4,
               fontSize: 11, fontWeight: 600, padding: '2px 10px', borderRadius: 20,
-              background: laborer.is_active ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)',
-              color: laborer.is_active ? '#4ade80' : '#f87171',
+              background: laborer.is_active ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
+              color: laborer.is_active ? '#16a34a' : '#dc2626',
             }}>
               <span style={{
                 width: 6, height: 6, borderRadius: '50%',
-                background: laborer.is_active ? '#4ade80' : '#f87171',
+                background: laborer.is_active ? '#16a34a' : '#dc2626',
               }} />
               {laborer.is_active ? 'Active' : 'Left'}
             </span>
