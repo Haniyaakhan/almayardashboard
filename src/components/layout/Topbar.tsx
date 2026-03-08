@@ -42,7 +42,7 @@ export function Topbar() {
   return (
     <header className="flex items-center justify-between print:hidden"
       style={{
-        padding: '14px 24px',
+        padding: '8px 24px',
         background: 'var(--bg-card)',
         borderBottom: '1px solid var(--border)',
         flexShrink: 0,
@@ -78,8 +78,8 @@ export function Topbar() {
             }}
           />
         </div>
-        {/* Theme toggle */}
-        <button
+        {/* Theme toggle — hidden for now (light theme only) */}
+        {/* <button
           onClick={toggleTheme}
           className="flex items-center justify-center"
           style={{
@@ -92,7 +92,7 @@ export function Topbar() {
           title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
         >
           {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
-        </button>
+        </button> */}
         {/* User Avatar */}
         <div style={{
           width: 34, height: 34, borderRadius: 9,

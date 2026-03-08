@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { DayEntry, UseTimesheetReturn } from '@/types/timesheet';
 import { generateDaysInMonth } from '@/lib/dateUtils';
 
@@ -10,7 +10,11 @@ type LoadMeta = {
   supplierName?: string; siteEngineerName?: string; designation?: string;
 };
 
-export function useTimesheet(): UseTimesheetReturn & { loadEntries: (entries: DayEntry[], meta: LoadMeta) => void } {
+export function useTimesheet(): UseTimesheetReturn & {
+  loadEntries: (entries: DayEntry[], meta: LoadMeta) => void;
+  clearDayRange: (startDay: number, endDay: number) => void;
+  setWorkData: React.Dispatch<React.SetStateAction<DayEntry[]>>;
+} {
   const [month, setMonth] = useState(1);
   const [year, setYear] = useState(2026);
   const [laborName, setLaborName] = useState('');
@@ -67,6 +71,22 @@ export function useTimesheet(): UseTimesheetReturn & { loadEntries: (entries: Da
     setWorkData(entries);
   }, []);
 
+  // Clear entries for a range of days
+  const clearDayRange = useCallback((startDay: number, endDay: number) => {
+    setWorkData(prev => prev.map(entry => {
+      if (entry.day >= startDay && entry.day <= endDay) {
+        return {
+          ...entry,
+          timeIn: '', timeOutLunch: '', lunchBreak: '',
+          timeIn2: '', timeOut2: '',
+          totalDuration: 0, overTime: 0, actualWorked: 0,
+          approverSig: '', remarks: '',
+        };
+      }
+      return entry;
+    }));
+  }, []);
+
   // Calculate totals
   const { totalWorked, totalOT, totalActual } = useMemo(() => {
     const worked = workData.reduce((sum, entry) => sum + (entry.totalDuration || 0), 0);
@@ -78,6 +98,6 @@ export function useTimesheet(): UseTimesheetReturn & { loadEntries: (entries: Da
     month, year, laborName, projectName, supplierName, siteEngineerName, designation,
     workData, totalWorked, totalOT, totalActual,
     setMonth, setYear, setLaborName, setProjectName, setSupplierName,
-    setSiteEngineerName, setDesignation, updateDayEntry, loadEntries,
+    setSiteEngineerName, setDesignation, updateDayEntry, loadEntries, clearDayRange, setWorkData,
   };
 }

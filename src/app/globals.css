@@ -92,7 +92,7 @@ button, input, select, textarea {
 @media print {
   @page {
     size: A4;
-    margin: 0;
+    margin: 5mm;
   }
 
   * {

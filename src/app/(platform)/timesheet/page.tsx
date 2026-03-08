@@ -4,15 +4,16 @@ import React, { useRef, useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useTimesheet } from '@/hooks/useTimesheet';
 import { useLaborers } from '@/hooks/useLaborers';
-import { saveTimesheet, getTimesheetWithEntries } from '@/hooks/useTimesheetHistory';
+import { saveTimesheet, getTimesheetWithEntries, getTimesheetByLaborer } from '@/hooks/useTimesheetHistory';
 import TimesheetHeader from '@/components/TimesheetHeader';
 import InfoTable from '@/components/InfoTable';
 import WorkTable from '@/components/WorkTable';
 import FooterSection from '@/components/FooterSection';
 import ExportButtons from '@/components/ExportButtons';
 import { Button } from '@/components/ui/Button';
-import { Save, Link as LinkIcon } from 'lucide-react';
+import { Save, Link as LinkIcon, Eraser } from 'lucide-react';
 import type { DayEntry } from '@/types/timesheet';
+import { generateDaysInMonth } from '@/lib/dateUtils';
 
 function TimesheetPageInner() {
   const timesheetRef = useRef<HTMLDivElement>(null);
@@ -21,6 +22,8 @@ function TimesheetPageInner() {
   const [selectedLaborerId, setSelectedLaborerId] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState('');
+  const [clearStartDay, setClearStartDay] = useState(1);
+  const [clearEndDay, setClearEndDay] = useState(1);
   const searchParams = useSearchParams();
 
   // On mount: load existing timesheet if ?ts= param is present
@@ -69,14 +72,59 @@ function TimesheetPageInner() {
     timesheet.setSupplierName(lab.supplier_name ?? '');
   }, [laborers]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  function onLaborerSelect(id: string) {
+  async function onLaborerSelect(id: string) {
     setSelectedLaborerId(id);
     if (!id) return;
     const lab = laborers.find(l => l.id === id);
     if (!lab) return;
-    timesheet.setLaborName(lab.full_name);
-    timesheet.setDesignation(lab.designation);
-    timesheet.setSupplierName(lab.supplier_name ?? '');
+    try {
+      // Try to load existing timesheet for this laborer + current month/year
+      const existing = await getTimesheetByLaborer(id, timesheet.month, timesheet.year);
+      if (existing && (existing as any).entries?.length) {
+        const entries: DayEntry[] = ((existing as any).entries ?? []).map((e: any) => ({
+          day: e.day,
+          timeIn: e.time_in ?? '',
+          timeOutLunch: e.time_out_lunch ?? '',
+          lunchBreak: e.lunch_break ?? '',
+          timeIn2: e.time_in_2 ?? '',
+          timeOut2: e.time_out_2 ?? '',
+          totalDuration: e.total_duration ?? 0,
+          overTime: e.over_time ?? 0,
+          actualWorked: e.actual_worked ?? 0,
+          approverSig: e.approver_sig ?? '',
+          remarks: e.remarks ?? '',
+        }));
+        timesheet.loadEntries(entries, {
+          month: existing.month,
+          year: existing.year,
+          laborName: lab.full_name,
+          projectName: existing.project_name ?? timesheet.projectName,
+          supplierName: existing.supplier_name ?? lab.supplier_name ?? '',
+          siteEngineerName: existing.site_engineer_name ?? '',
+          designation: existing.designation ?? lab.designation,
+        });
+      } else {
+        // No existing timesheet — reset to default days and fill header
+        const days = generateDaysInMonth(timesheet.month, timesheet.year);
+        timesheet.loadEntries(days, {
+          month: timesheet.month,
+          year: timesheet.year,
+          laborName: lab.full_name,
+          designation: lab.designation,
+          supplierName: lab.supplier_name ?? '',
+        });
+      }
+    } catch {
+      // If API fails, still update header info
+      const days = generateDaysInMonth(timesheet.month, timesheet.year);
+      timesheet.loadEntries(days, {
+        month: timesheet.month,
+        year: timesheet.year,
+        laborName: lab.full_name,
+        designation: lab.designation,
+        supplierName: lab.supplier_name ?? '',
+      });
+    }
   }
 
   async function handleSave() {
@@ -145,7 +193,35 @@ function TimesheetPageInner() {
           </span>
         )}
 
-        <div className="ml-auto">
+        {/* Clear date range */}
+        <div className="flex items-center gap-1.5 ml-auto" style={{ marginRight: 8 }}>
+          <span className="text-xs" style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Day</span>
+          <input type="number" min={1} max={31} value={clearStartDay}
+            onChange={e => setClearStartDay(Number(e.target.value))}
+            className="text-sm rounded-lg px-2 py-1 outline-none text-center"
+            style={{ background: 'var(--input-bg)', color: 'var(--text-primary)', border: '1px solid var(--border)', width: 52 }}
+          />
+          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>to</span>
+          <input type="number" min={1} max={31} value={clearEndDay}
+            onChange={e => setClearEndDay(Number(e.target.value))}
+            className="text-sm rounded-lg px-2 py-1 outline-none text-center"
+            style={{ background: 'var(--input-bg)', color: 'var(--text-primary)', border: '1px solid var(--border)', width: 52 }}
+          />
+          <button onClick={() => {
+            if (!confirm(`Clear all timesheet entries from day ${clearStartDay} to ${clearEndDay}?`)) return;
+            timesheet.clearDayRange(clearStartDay, clearEndDay);
+          }}
+            className="flex items-center gap-1 text-xs font-semibold rounded-lg px-3 py-1.5"
+            style={{
+              background: 'var(--red-bg, #fef2f2)', border: '1px solid var(--red-border, #fecaca)',
+              color: 'var(--red-text, #dc2626)', cursor: 'pointer', whiteSpace: 'nowrap',
+            }}
+          >
+            <Eraser size={12} /> Clear
+          </button>
+        </div>
+
+        <div>
           <ExportButtons
             timesheetRef={timesheetRef}
             laborName={timesheet.laborName}

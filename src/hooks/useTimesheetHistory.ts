@@ -30,6 +30,19 @@ export async function getTimesheetWithEntries(id: string): Promise<Timesheet | n
   return data as Timesheet | null;
 }
 
+export async function getTimesheetByLaborer(laborerId: string, month: number, year: number): Promise<Timesheet | null> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from('timesheets')
+    .select('*, laborer:laborers(*), entries:timesheet_entries(*)')
+    .eq('laborer_id', laborerId)
+    .eq('month', month)
+    .eq('year', year)
+    .order('created_at', { ascending: false })
+    .limit(1);
+  return (data && data.length > 0 ? data[0] : null) as Timesheet | null;
+}
+
 export async function approveTimesheet(id: string): Promise<Error | null> {
   const supabase = createClient();
   const { error } = await supabase.from('timesheets').update({ status: 'approved' }).eq('id', id);
