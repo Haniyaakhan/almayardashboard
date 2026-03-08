@@ -1,33 +1,27 @@
 'use client';
 import React from 'react';
-import Image from 'next/image';
-import { useRouter } from 'next/navigation';
-import { SidebarLink } from './SidebarLink';
+import { useRouter, usePathname } from 'next/navigation';
 import { useSupabaseUser } from '@/hooks/useSupabaseUser';
 import { createClient } from '@/lib/supabase/client';
 import {
   LayoutDashboard, ClipboardList, Users, Truck,
-  Settings2, FileBarChart, LogOut,
+  Settings2, Wrench, FileBarChart, LogOut,
 } from 'lucide-react';
 
-const nav = [
-  { group: null, items: [{ href: '/dashboard', icon: <LayoutDashboard size={16}/>, label: 'Dashboard' }] },
-  { group: 'WORKFORCE', items: [
-    { href: '/timesheet', icon: <ClipboardList size={16}/>, label: 'Timesheet' },
-    { href: '/labor',     icon: <Users size={16}/>,         label: 'Labor Registry' },
-  ]},
-  { group: 'EQUIPMENT', items: [
-    { href: '/vendors',  icon: <Truck size={16}/>,    label: 'Vendors' },
-    { href: '/machines', icon: <Settings2 size={16}/>, label: 'Machines' },
-  ]},
-  { group: 'ADMINISTRATION', items: [
-    { href: '/reports', icon: <FileBarChart size={16}/>, label: 'Reports' },
-  ]},
+const navItems = [
+  { href: '/dashboard', icon: <LayoutDashboard size={19} />, label: 'Dashboard' },
+  { href: '/labor', icon: <Users size={19} />, label: 'Labour' },
+  { href: '/vendors', icon: <Truck size={19} />, label: 'Contractors' },
+  { href: '/machines', icon: <Settings2 size={19} />, label: 'Vehicles' },
+  { href: '/equipment', icon: <Wrench size={19} />, label: 'Equipment' },
+  { href: '/timesheet', icon: <ClipboardList size={19} />, label: 'Timesheets' },
+  { href: '/reports', icon: <FileBarChart size={19} />, label: 'Reports' },
 ];
 
 export function Sidebar() {
   const user = useSupabaseUser();
   const router = useRouter();
+  const pathname = usePathname();
 
   async function signOut() {
     const supabase = createClient();
@@ -37,55 +31,111 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="flex flex-col print:hidden" style={{
-      width: 220, minWidth: 220,
-      background: 'var(--bg-sidebar)',
-      borderRight: '1px solid var(--border)',
+    <aside className="flex flex-col items-center print:hidden" style={{
+      width: 68, minWidth: 68,
+      background: '#ffffff',
+      borderRight: '1px solid #ece8e2',
       height: '100vh',
+      padding: '18px 0',
+      gap: 4,
+      flexShrink: 0,
+      zIndex: 20,
     }}>
-      {/* Branding */}
-      <div className="flex items-center gap-3 px-4 py-5" style={{ borderBottom: '1px solid var(--border)' }}>
-        <Image src="/npclogo.png" alt="NPC" width={32} height={32} className="rounded-md" />
-        <div>
-          <div className="text-sm font-bold" style={{ color: '#e8762b' }}>ALMYAR</div>
-          <div className="text-xs" style={{ color: 'var(--text-muted)' }}>Project Platform</div>
-        </div>
+      {/* Logo */}
+      <div style={{
+        width: 40, height: 40, borderRadius: 11,
+        background: 'linear-gradient(135deg, #ff6b2b, #ff9a5c)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        marginBottom: 18,
+        boxShadow: '0 4px 14px rgba(255,107,43,0.3)',
+        fontFamily: "'Sora', sans-serif", fontWeight: 800, fontSize: 17, color: '#fff',
+      }}>
+        A
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
-        {nav.map(({ group, items }) => (
-          <div key={group ?? 'main'}>
-            {group && (
-              <div className="px-3 mb-1 text-xs font-semibold tracking-wider" style={{ color: 'var(--text-muted)' }}>
-                {group}
-              </div>
-            )}
-            <div className="space-y-0.5">
-              {items.map(item => <SidebarLink key={item.href} {...item} />)}
-            </div>
-          </div>
-        ))}
-      </nav>
+      {navItems.map(item => {
+        const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
+        return (
+          <button
+            key={item.href}
+            onClick={() => router.push(item.href)}
+            className="group relative"
+            style={{
+              width: 44, height: 44, borderRadius: 11,
+              border: 'none',
+              background: isActive ? 'var(--orange-lt)' : 'transparent',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: isActive ? 'var(--orange)' : '#9e9690',
+              cursor: 'pointer',
+              transition: 'all 0.18s',
+            }}
+            onMouseEnter={e => {
+              if (!isActive) {
+                e.currentTarget.style.background = '#f4f2ee';
+                e.currentTarget.style.color = '#5a5450';
+              }
+            }}
+            onMouseLeave={e => {
+              if (!isActive) {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = '#9e9690';
+              }
+            }}
+          >
+            {item.icon}
+            <span style={{
+              position: 'absolute', left: 56,
+              background: '#1a1a2e', color: '#fff',
+              fontSize: 11, fontWeight: 600,
+              padding: '4px 9px', borderRadius: 6,
+              whiteSpace: 'nowrap',
+              opacity: 0, pointerEvents: 'none',
+              transition: 'opacity 0.15s',
+              zIndex: 100,
+            }} className="group-hover:!opacity-100">
+              {item.label}
+            </span>
+          </button>
+        );
+      })}
 
-      {/* User */}
-      <div className="px-3 py-4" style={{ borderTop: '1px solid var(--border)' }}>
-        <div className="flex items-center gap-2 px-2 mb-2">
-          <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white"
-            style={{ background: '#e8762b' }}>
-            {user?.email?.[0]?.toUpperCase() ?? '?'}
-          </div>
-          <span className="text-xs truncate" style={{ color: 'var(--text-secondary)', maxWidth: 140 }}>
-            {user?.email ?? ''}
-          </span>
-        </div>
-        <button onClick={signOut}
-          className="flex items-center gap-2 w-full px-3 py-1.5 rounded-lg text-sm transition-colors"
-          style={{ color: 'var(--text-secondary)' }}
-          onMouseEnter={e => (e.currentTarget.style.color = '#ef4444')}
-          onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-secondary)')}
+      {/* Bottom: Logout */}
+      <div style={{ marginTop: 'auto' }}>
+        <button
+          onClick={signOut}
+          className="group relative"
+          style={{
+            width: 44, height: 44, borderRadius: 11,
+            border: 'none',
+            background: 'transparent',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: '#9e9690',
+            cursor: 'pointer',
+            transition: 'all 0.18s',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = '#f4f2ee';
+            e.currentTarget.style.color = '#5a5450';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = 'transparent';
+            e.currentTarget.style.color = '#9e9690';
+          }}
         >
-          <LogOut size={14} /> Sign Out
+          <LogOut size={19} />
+          <span style={{
+            position: 'absolute', left: 56,
+            background: '#1a1a2e', color: '#fff',
+            fontSize: 11, fontWeight: 600,
+            padding: '4px 9px', borderRadius: 6,
+            whiteSpace: 'nowrap',
+            opacity: 0, pointerEvents: 'none',
+            transition: 'opacity 0.15s',
+            zIndex: 100,
+          }} className="group-hover:!opacity-100">
+            Logout
+          </span>
         </button>
       </div>
     </aside>

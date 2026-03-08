@@ -25,15 +25,16 @@ export default function LaborerDetailPage() {
 
   const info: [string, string][] = [
     ['Designation', laborer.designation],
-    ['Supplier', laborer.supplier_name || '—'],
+    ['Contractor', laborer.supplier_name || '—'],
     ['ID / Iqama', laborer.id_number || '—'],
     ['Nationality', laborer.nationality || '—'],
     ['Phone', laborer.phone || '—'],
+    ['Status', laborer.is_active ? 'Active' : 'Left'],
     ['Daily Rate', laborer.daily_rate ? `AED ${laborer.daily_rate}` : '—'],
   ];
 
   return (
-    <div className="p-6 space-y-6">
+    <div style={{ padding: '20px 24px' }} className="space-y-5">
       <PageHeader title={laborer.full_name}
         subtitle={laborer.designation}
         action={
@@ -45,12 +46,12 @@ export default function LaborerDetailPage() {
       />
 
       <Card>
-        <h3 className="text-sm font-semibold text-white mb-4">Worker Details</h3>
+        <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">Worker Details</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {info.map(([label, val]) => (
             <div key={label}>
               <div className="text-xs mb-0.5" style={{ color: 'var(--text-muted)' }}>{label}</div>
-              <div className="text-sm text-white">{val}</div>
+              <div className="text-sm text-[var(--text-primary)]">{val}</div>
             </div>
           ))}
         </div>
@@ -59,7 +60,7 @@ export default function LaborerDetailPage() {
 
       <Card>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-white">Timesheet History</h3>
+          <h3 className="text-sm font-semibold text-[var(--text-primary)]">Timesheet History</h3>
           <Link href={`/timesheet?laborer=${id}`}>
             <Button size="sm" icon={<Plus size={13}/>}>New Timesheet</Button>
           </Link>
@@ -81,10 +82,10 @@ export default function LaborerDetailPage() {
             <tbody>
               {timesheets.map(ts => (
                 <tr key={ts.id} style={{ borderTop: '1px solid var(--border)' }}>
-                  <td className="py-2 text-white">{MONTHS[ts.month]} {ts.year}</td>
-                  <td className="py-2 text-right text-white">{ts.total_worked}h</td>
+                  <td className="py-2 text-[var(--text-primary)]">{MONTHS[ts.month]} {ts.year}</td>
+                  <td className="py-2 text-right text-[var(--text-primary)]">{ts.total_worked}h</td>
                   <td className="py-2 text-right" style={{ color: '#e8762b' }}>{ts.total_ot > 0 ? `+${ts.total_ot}h` : '—'}</td>
-                  <td className="py-2 text-right font-medium text-white">{ts.total_actual}h</td>
+                  <td className="py-2 text-right font-medium text-[var(--text-primary)]">{ts.total_actual}h</td>
                   <td className="py-2 text-right">{timesheetStatusBadge(ts.status)}</td>
                   <td className="py-2 text-right">
                     <div className="flex items-center justify-end gap-3">

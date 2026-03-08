@@ -1,19 +1,26 @@
 'use client';
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { useVendors } from '@/hooks/useVendors';
+import { useMachines } from '@/hooks/useMachines';
 import { PageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { Truck, Plus, Search, Pencil } from 'lucide-react';
+import { machineStatusBadge } from '@/components/ui/Badge';
+import { Settings2, Plus, Search, Pencil } from 'lucide-react';
 
-export default function VendorsPage() {
-  const { vendors, loading } = useVendors();
+const equipTypes = ['All', 'Generator', 'Compressor', 'Welding', 'Blower', 'Pump'];
+
+export default function EquipmentPage() {
+  const { machines, loading } = useMachines();
   const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState('All');
 
-  const filtered = vendors.filter(v =>
-    v.name.toLowerCase().includes(search.toLowerCase()) ||
-    (v.contact_person || '').toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = machines.filter(m => {
+    const matchSearch = m.name.toLowerCase().includes(search.toLowerCase()) ||
+      m.type.toLowerCase().includes(search.toLowerCase()) ||
+      (m.plate_number || '').toLowerCase().includes(search.toLowerCase());
+    const matchFilter = filter === 'All' || m.type.toLowerCase().includes(filter.toLowerCase());
+    return matchSearch && matchFilter;
+  });
 
   if (loading) return <PageSpinner />;
 
@@ -24,12 +31,19 @@ export default function VendorsPage() {
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         marginBottom: 14, flexWrap: 'wrap', gap: 10,
       }}>
-        <div className="flex items-center gap-1.5">
-          <button style={{
-            fontSize: 12, fontWeight: 500, padding: '5px 13px', borderRadius: 8,
-            border: '1px solid var(--navy)', background: 'var(--navy)', color: '#fff',
-            cursor: 'pointer',
-          }}>All</button>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {equipTypes.map(t => (
+            <button key={t} onClick={() => setFilter(t)} style={{
+              fontSize: 12, fontWeight: 500,
+              padding: '5px 13px', borderRadius: 8,
+              cursor: 'pointer', transition: 'all 0.14s',
+              border: filter === t ? '1px solid var(--navy)' : '1px solid var(--border2)',
+              background: filter === t ? 'var(--navy)' : 'var(--bg-card)',
+              color: filter === t ? '#fff' : 'var(--text-light)',
+            }}>
+              {t}
+            </button>
+          ))}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <div className="flex items-center gap-2" style={{
@@ -38,34 +52,34 @@ export default function VendorsPage() {
           }}>
             <Search size={14} style={{ color: 'var(--text-muted)' }} />
             <input value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Search contractors..."
+              placeholder="Search equipment..."
               style={{
                 border: 'none', background: 'transparent',
                 fontSize: '12.5px', color: 'var(--text-light)',
                 width: 180, outline: 'none',
               }} />
           </div>
-          <Link href="/vendors/new" style={{
+          <Link href="/machines/new" style={{
             display: 'flex', alignItems: 'center', gap: 6,
             background: 'var(--orange)', color: '#fff',
             border: 'none', padding: '8px 15px', borderRadius: 9,
             fontSize: '12.5px', fontWeight: 600, cursor: 'pointer',
             textDecoration: 'none', whiteSpace: 'nowrap',
           }}>
-            <Plus size={14} /> ADD CONTRACTOR
+            <Plus size={14} /> ADD EQUIPMENT
           </Link>
         </div>
       </div>
 
       {!filtered.length ? (
-        <EmptyState icon={<Truck size={24} />} title="No contractors registered"
-          description="Add vehicle contractors to track rentals."
-          action={<Link href="/vendors/new" style={{
+        <EmptyState icon={<Settings2 size={24} />} title="No equipment found"
+          description="Register equipment to track usage and maintenance."
+          action={<Link href="/machines/new" style={{
             display: 'inline-flex', alignItems: 'center', gap: 6,
             background: 'var(--orange)', color: '#fff', border: 'none',
             padding: '8px 15px', borderRadius: 9, fontSize: '12.5px',
             fontWeight: 600, textDecoration: 'none',
-          }}><Plus size={14} /> Add Contractor</Link>} />
+          }}><Plus size={14} /> Add Equipment</Link>} />
       ) : (
         <div style={{
           background: 'var(--bg-card)', borderRadius: 13,
@@ -75,7 +89,7 @@ export default function VendorsPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: 'var(--thead-bg)' }}>
-                {['Company', 'Contact', 'Phone', 'Email', 'Actions'].map(h => (
+                {['Company', 'Equipment Type', 'Serial No', 'Phone', 'Site', 'Status', 'Actions'].map(h => (
                   <th key={h} style={{
                     padding: '10px 13px', fontSize: '10.5px', fontWeight: 600,
                     color: 'var(--text-muted)', textAlign: 'left',
@@ -85,29 +99,31 @@ export default function VendorsPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map(v => (
-                <tr key={v.id} style={{
+              {filtered.map(m => (
+                <tr key={m.id} style={{
                   borderBottom: '1px solid #f4f1ed', transition: 'background 0.1s',
                 }}
                 onMouseEnter={e => { e.currentTarget.style.background = 'var(--row-hover)'; }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                 >
+                  <td style={{ padding: '10px 13px', fontSize: '12.5px', color: 'var(--text-secondary)' }}>{(m.vendor as any)?.name ?? '—'}</td>
                   <td style={{ padding: '10px 13px' }}>
-                    <Link href={`/vendors/${v.id}`} style={{
+                    <Link href={`/machines/${m.id}`} style={{
                       fontSize: '12.5px', fontWeight: 600,
                       color: 'var(--text-secondary)', textDecoration: 'none',
                       transition: 'color 0.12s',
                     }}
                     onMouseEnter={e => { e.currentTarget.style.color = 'var(--orange)'; }}
                     onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-secondary)'; }}
-                    >{v.name}</Link>
+                    >{m.name} {m.type ? `(${m.type})` : ''}</Link>
                   </td>
-                  <td style={{ padding: '10px 13px', fontSize: 12, color: 'var(--text-light)' }}>{v.contact_person || '—'}</td>
-                  <td style={{ padding: '10px 13px', fontSize: 12, color: 'var(--text-light)' }}>{v.phone || '—'}</td>
-                  <td style={{ padding: '10px 13px', fontSize: 12, color: 'var(--text-light)' }}>{v.email || '—'}</td>
+                  <td style={{ padding: '10px 13px', fontSize: 12, color: 'var(--text-light)', fontFamily: 'monospace' }}>{m.plate_number || '—'}</td>
+                  <td style={{ padding: '10px 13px', fontSize: 12, color: 'var(--text-light)' }}>—</td>
+                  <td style={{ padding: '10px 13px', fontSize: 12, color: 'var(--text-light)' }}>—</td>
+                  <td style={{ padding: '10px 13px' }}>{machineStatusBadge(m.status)}</td>
                   <td style={{ padding: '10px 13px' }}>
                     <div className="flex items-center gap-1.5">
-                      <Link href={`/vendors/${v.id}`} title="View" style={{
+                      <Link href={`/machines/${m.id}`} title="View / Edit" style={{
                         padding: 5, borderRadius: 7,
                         border: '1px solid var(--border2)', background: 'var(--bg-card)',
                         color: 'var(--text-light)', display: 'flex', alignItems: 'center',

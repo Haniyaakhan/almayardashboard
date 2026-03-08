@@ -17,7 +17,7 @@ const field = (label: string, name: keyof FormData, type = 'text', required = fa
 const fields = [
   field('Full Name',        'full_name',     'text',   true),
   field('Designation',      'designation',   'text',   true),
-  field('Supplier / Company', 'supplier_name'),
+  field('Contractor', 'supplier_name'),
   field('ID / Iqama No.',   'id_number'),
   field('Nationality',      'nationality'),
   field('Phone',            'phone',         'tel'),
@@ -57,8 +57,8 @@ export function LaborerForm({ initial, onSubmit, submitLabel = 'Save' }: Props) 
             onChange={e => set(f.name, f.type === 'number' ? (e.target.value ? Number(e.target.value) : null) : e.target.value)}
             className="w-full px-3 py-2 rounded-lg text-sm outline-none"
             style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
-            onFocus={e => (e.target.style.borderColor = '#e8762b')}
-            onBlur={e => (e.target.style.borderColor = 'var(--border)')}
+            onFocus={e => { e.target.style.borderColor = 'var(--orange)'; e.target.style.boxShadow = '0 0 0 3px rgba(255,107,43,0.1)'; }}
+            onBlur={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; }}
           />
         </div>
       ))}

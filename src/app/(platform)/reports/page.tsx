@@ -35,7 +35,7 @@ export default function ReportsPage() {
       <PageHeader title="Reports" subtitle="Generate monthly summaries" />
 
       <Card>
-        <h3 className="text-sm font-semibold text-white mb-4">Select Report Period</h3>
+        <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">Select Report Period</h3>
         <div className="flex items-end gap-4 flex-wrap">
           <div>
             <label className="block text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>Month</label>
@@ -68,14 +68,14 @@ export default function ReportsPage() {
             ].map(([label, val]) => (
               <div key={label as string} className="rounded-xl p-4" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
                 <div className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>{label}</div>
-                <div className="text-xl font-bold text-white">{val}</div>
+                <div className="text-xl font-bold text-[var(--text-primary)]">{val}</div>
               </div>
             ))}
           </div>
 
           {preview.timesheets.length > 0 && (
             <Card>
-              <h3 className="text-sm font-semibold text-white mb-4">Labor Summary — {MONTHS[month]} {year}</h3>
+              <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">Labor Summary — {MONTHS[month]} {year}</h3>
               <table className="w-full text-sm">
                 <thead><tr style={{ color: 'var(--text-muted)' }}>
                   {['Laborer','Designation','Worked (h)','OT (h)','Total (h)'].map(h => <th key={h} className="text-left pb-2 font-medium">{h}</th>)}
@@ -83,11 +83,11 @@ export default function ReportsPage() {
                 <tbody>
                   {preview.timesheets.map((ts: any) => (
                     <tr key={ts.id} style={{ borderTop: '1px solid var(--border)' }}>
-                      <td className="py-2 text-white">{ts.laborer?.full_name ?? '—'}</td>
+                      <td className="py-2 text-[var(--text-primary)]">{ts.laborer?.full_name ?? '—'}</td>
                       <td className="py-2" style={{ color: 'var(--text-secondary)' }}>{ts.laborer?.designation ?? ts.designation}</td>
-                      <td className="py-2 text-white">{ts.total_worked}</td>
+                      <td className="py-2 text-[var(--text-primary)]">{ts.total_worked}</td>
                       <td className="py-2" style={{ color: ts.total_ot > 0 ? '#e8762b' : 'var(--text-secondary)' }}>{ts.total_ot || '—'}</td>
-                      <td className="py-2 font-semibold text-white">{ts.total_actual}</td>
+                      <td className="py-2 font-semibold text-[var(--text-primary)]">{ts.total_actual}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -97,7 +97,7 @@ export default function ReportsPage() {
 
           {preview.machineLogs.length > 0 && (
             <Card>
-              <h3 className="text-sm font-semibold text-white mb-4">Machine Usage — {MONTHS[month]} {year}</h3>
+              <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">Machine Usage — {MONTHS[month]} {year}</h3>
               <table className="w-full text-sm">
                 <thead><tr style={{ color: 'var(--text-muted)' }}>
                   {['Date','Machine','Type','Operator','Hours','Fuel'].map(h => <th key={h} className="text-left pb-2 font-medium">{h}</th>)}
@@ -106,7 +106,7 @@ export default function ReportsPage() {
                   {preview.machineLogs.map((log: any) => (
                     <tr key={log.id} style={{ borderTop: '1px solid var(--border)' }}>
                       <td className="py-2" style={{ color: 'var(--text-secondary)' }}>{log.log_date}</td>
-                      <td className="py-2 text-white">{log.machine?.name ?? '—'}</td>
+                      <td className="py-2 text-[var(--text-primary)]">{log.machine?.name ?? '—'}</td>
                       <td className="py-2" style={{ color: 'var(--text-secondary)' }}>{log.machine?.type ?? '—'}</td>
                       <td className="py-2" style={{ color: 'var(--text-secondary)' }}>{log.operator_name || '—'}</td>
                       <td className="py-2 font-medium" style={{ color: '#e8762b' }}>{log.hours_used}h</td>
@@ -121,7 +121,7 @@ export default function ReportsPage() {
           <Card>
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-semibold text-white">Email This Report</h3>
+                <h3 className="text-sm font-semibold text-[var(--text-primary)]">Email This Report</h3>
                 <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
                   Add RESEND_API_KEY and REPORT_RECIPIENT_EMAIL to .env.local to enable email sending.
                 </p>

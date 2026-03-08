@@ -8,14 +8,14 @@ interface ThemeContextValue {
   toggleTheme: () => void;
 }
 
-const ThemeContext = createContext<ThemeContextValue>({ theme: 'dark', toggleTheme: () => {} });
+const ThemeContext = createContext<ThemeContextValue>({ theme: 'light', toggleTheme: () => {} });
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('dark');
+  const [theme, setTheme] = useState<Theme>('light');
 
   useEffect(() => {
     const saved = localStorage.getItem('theme') as Theme | null;
-    const initial = saved === 'light' ? 'light' : 'dark';
+    const initial = saved === 'dark' ? 'dark' : 'light';
     setTheme(initial);
     document.documentElement.setAttribute('data-theme', initial);
   }, []);

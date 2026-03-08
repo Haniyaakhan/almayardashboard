@@ -35,7 +35,7 @@ export function MachineForm({ initial, onSubmit, submitLabel = 'Save' }: Props) 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 max-w-lg">
       <div>
-        <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Vendor / Supplier</label>
+        <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Contractor / Supplier</label>
         <select value={form.vendor_id ?? ''} onChange={e => set('vendor_id', e.target.value || null)}
           className={inputClass} style={inputStyle} onFocus={focus} onBlur={blur}>
           <option value="">— No vendor —</option>

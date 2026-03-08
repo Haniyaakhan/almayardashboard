@@ -16,9 +16,9 @@ export default function EditVendorPage() {
   if (!vendor) return <PageSpinner />;
   return (
     <div className="p-6">
-      <PageHeader title="Edit Vendor" subtitle={vendor.name} />
+      <PageHeader title="Edit Contractor" subtitle={vendor.name} />
       <Card>
-        <VendorForm initial={vendor} submitLabel="Update Vendor"
+        <VendorForm initial={vendor} submitLabel="Update Contractor"
           onSubmit={async data => {
             const err = await updateVendor(id, data);
             if (err) throw err;

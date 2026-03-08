@@ -3,19 +3,36 @@ import React from 'react';
 type BadgeColor = 'green' | 'red' | 'amber' | 'blue' | 'orange' | 'gray';
 
 const colors: Record<BadgeColor, React.CSSProperties> = {
-  green:  { background: 'rgba(34,197,94,0.15)',  color: '#22c55e',  border: '1px solid rgba(34,197,94,0.3)' },
-  red:    { background: 'rgba(239,68,68,0.15)',  color: '#ef4444',  border: '1px solid rgba(239,68,68,0.3)' },
-  amber:  { background: 'rgba(245,158,11,0.15)', color: '#f59e0b',  border: '1px solid rgba(245,158,11,0.3)' },
-  blue:   { background: 'rgba(59,130,246,0.15)', color: '#3b82f6',  border: '1px solid rgba(59,130,246,0.3)' },
-  orange: { background: 'rgba(232,118,43,0.15)', color: '#e8762b',  border: '1px solid rgba(232,118,43,0.3)' },
-  gray:   { background: 'rgba(100,116,139,0.15)',color: '#94a3b8',  border: '1px solid rgba(100,116,139,0.3)' },
+  green:  { background: 'var(--green-bg)',  color: 'var(--green-text)',  border: '1px solid var(--green-border)' },
+  red:    { background: 'var(--red-bg)',    color: 'var(--red-text)',    border: '1px solid var(--red-border)' },
+  amber:  { background: 'var(--amber-bg)',  color: 'var(--amber-text)',  border: '1px solid var(--amber-border)' },
+  blue:   { background: 'var(--blue-bg)',   color: 'var(--blue)',        border: '1px solid var(--blue-bg)' },
+  orange: { background: 'var(--orange-lt)', color: 'var(--orange)',      border: '1px solid var(--orange-lt)' },
+  gray:   { background: 'var(--input-bg)',  color: 'var(--text-muted)',  border: '1px solid var(--border)' },
+};
+
+const dotColors: Record<BadgeColor, string> = {
+  green: 'var(--green-text)',
+  red: 'var(--red-text)',
+  amber: 'var(--amber-text)',
+  blue: 'var(--blue)',
+  orange: 'var(--orange)',
+  gray: 'var(--text-muted)',
 };
 
 interface BadgeProps { children: React.ReactNode; color?: BadgeColor; }
 
 export function Badge({ children, color = 'gray' }: BadgeProps) {
   return (
-    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium" style={colors[color]}>
+    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold" style={{
+      ...colors[color],
+      letterSpacing: '0.2px',
+      whiteSpace: 'nowrap',
+    }}>
+      <span style={{
+        width: 5, height: 5, borderRadius: '50%',
+        background: dotColors[color],
+      }} />
       {children}
     </span>
   );

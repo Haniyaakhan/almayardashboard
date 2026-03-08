@@ -22,7 +22,7 @@ export default function MachineDetailPage() {
   if (!machine) return <PageSpinner />;
 
   return (
-    <div className="p-6 space-y-6">
+    <div style={{ padding: '20px 24px' }} className="space-y-5">
       <PageHeader title={machine.name}
         subtitle={`${machine.type}${machine.model ? ' · ' + machine.model : ''}`}
         action={
@@ -35,21 +35,21 @@ export default function MachineDetailPage() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          ['Vendor', (machine.vendor as any)?.name ?? '—'],
+          ['Company', (machine.vendor as any)?.name ?? '—'],
           ['Plate No.', machine.plate_number || '—'],
           ['Daily Rate', machine.daily_rate ? `AED ${machine.daily_rate}` : '—'],
           ['Total Hours Logged', `${totalHours.toFixed(1)}h`],
         ].map(([label, val]) => (
           <div key={label} className="rounded-xl p-4" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
             <div className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>{label}</div>
-            <div className="text-base font-semibold text-white">{val}</div>
+            <div className="text-base font-semibold text-[var(--text-primary)]">{val}</div>
           </div>
         ))}
       </div>
 
       <Card>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-white">Usage Log ({logs.length} entries)</h3>
+          <h3 className="text-sm font-semibold text-[var(--text-primary)]">Usage Log ({logs.length} entries)</h3>
           <Link href={`/machines/${id}/usage/new`}><Button size="sm" icon={<Plus size={13}/>}>Log Usage</Button></Link>
         </div>
         {logsLoading ? <PageSpinner /> : !logs.length ? (
@@ -62,7 +62,7 @@ export default function MachineDetailPage() {
             <tbody>
               {logs.map(log => (
                 <tr key={log.id} style={{ borderTop: '1px solid var(--border)' }}>
-                  <td className="py-2 text-white">{log.log_date}</td>
+                  <td className="py-2 text-[var(--text-primary)]">{log.log_date}</td>
                   <td className="py-2 font-medium" style={{ color: '#e8762b' }}>{log.hours_used}h</td>
                   <td className="py-2" style={{ color: 'var(--text-secondary)' }}>{log.operator_name || '—'}</td>
                   <td className="py-2" style={{ color: 'var(--text-secondary)' }}>{log.task_description || '—'}</td>

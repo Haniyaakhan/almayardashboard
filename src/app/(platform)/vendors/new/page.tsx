@@ -10,9 +10,9 @@ export default function NewVendorPage() {
   const router = useRouter();
   return (
     <div className="p-6">
-      <PageHeader title="Add Vendor" subtitle="Register a new equipment supplier" />
+      <PageHeader title="Add Contractor" subtitle="Register a new vehicle contractor" />
       <Card>
-        <VendorForm submitLabel="Create Vendor"
+        <VendorForm submitLabel="Create Contractor"
           onSubmit={async data => {
             const err = await createVendor(data);
             if (err) throw err;

@@ -2,31 +2,72 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Theme CSS Variables ── */
+/* ── Theme CSS Variables (Warm palette) ── */
 :root {
-  --bg-canvas:      #0f1117;
-  --bg-sidebar:     #1a1f2e;
-  --bg-card:        #1e2336;
-  --border:         #2d3454;
-  --text-primary:   #f1f5f9;
-  --text-secondary: #94a3b8;
-  --text-muted:     #64748b;
-  --input-bg:       #0f1117;
-  --row-alt:        #1a1f2e;
-  --btn-secondary:  #2d3454;
+  --orange: #ff6b2b;
+  --orange-lt: #fff4ef;
+  --orange-hv: #e05c00;
+  --navy: #1a1a2e;
+  --navy2: #16213e;
+  --navy3: #0f3460;
+  --bg-canvas: #f4f2ee;
+  --bg-sidebar: #ffffff;
+  --bg-card: #ffffff;
+  --border: #ece8e2;
+  --border2: #dedad4;
+  --text-primary: #1a1a2e;
+  --text-secondary: #2d2a26;
+  --text-muted: #9e9690;
+  --text-light: #5a5450;
+  --input-bg: #f4f2ee;
+  --row-alt: #fafaf8;
+  --row-hover: #fafaf8;
+  --btn-secondary: #f4f2ee;
+  --thead-bg: #faf8f5;
+  --green-bg: #e8f5e9;
+  --green-text: #2e7d32;
+  --green-border: #c8e6c9;
+  --red-bg: #fce4ec;
+  --red-text: #c62828;
+  --red-border: #ffcdd2;
+  --amber-bg: #fffbeb;
+  --amber-text: #92400e;
+  --amber-border: #fde68a;
+  --blue: #3b82f6;
+  --blue-bg: #eff6ff;
+  --teal: #10b981;
+  --teal-bg: #ecfdf5;
+  --purple: #8b5cf6;
+  --purple-bg: #f5f3ff;
 }
 
-html[data-theme="light"] {
-  --bg-canvas:      #f1f5f9;
-  --bg-sidebar:     #ffffff;
-  --bg-card:        #ffffff;
-  --border:         #e2e8f0;
-  --text-primary:   #0f172a;
-  --text-secondary: #475569;
-  --text-muted:     #94a3b8;
-  --input-bg:       #f8fafc;
-  --row-alt:        #f8fafc;
-  --btn-secondary:  #e2e8f0;
+html[data-theme="dark"] {
+  --bg-canvas: #0f1117;
+  --bg-sidebar: #1a1f2e;
+  --bg-card: #1e2336;
+  --border: #2d3454;
+  --border2: #3d4464;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --text-light: #94a3b8;
+  --input-bg: #0f1117;
+  --row-alt: #1a1f2e;
+  --row-hover: #252b3d;
+  --btn-secondary: #2d3454;
+  --thead-bg: #1a1f2e;
+  --green-bg: rgba(34,197,94,0.15);
+  --green-text: #22c55e;
+  --green-border: rgba(34,197,94,0.3);
+  --red-bg: rgba(239,68,68,0.15);
+  --red-text: #ef4444;
+  --red-border: rgba(239,68,68,0.3);
+  --amber-bg: rgba(245,158,11,0.15);
+  --amber-text: #f59e0b;
+  --amber-border: rgba(245,158,11,0.3);
+  --blue-bg: rgba(59,130,246,0.15);
+  --teal-bg: rgba(16,185,129,0.15);
+  --purple-bg: rgba(139,92,246,0.15);
 }
 
 * {
@@ -36,9 +77,15 @@ html[data-theme="light"] {
 }
 
 body {
-  font-family: Arial, sans-serif;
+  font-family: 'DM Sans', sans-serif;
   background: var(--bg-canvas);
   padding: 0;
+  color: var(--text-secondary);
+}
+
+button, input, select, textarea {
+  font-family: 'DM Sans', sans-serif;
+  outline: none;
 }
 
 /* Print styles */
@@ -62,12 +109,10 @@ body {
     height: 297mm;
   }
 
-  /* Force all platform wrapper elements to white, full width */
   body > *, body > * > *, body > * > * > * {
     background: white !important;
   }
 
-  /* main: must not clip content in print */
   main {
     overflow: visible !important;
     height: auto !important;
@@ -78,13 +123,11 @@ body {
     background: white !important;
   }
 
-  /* A4 sheet: full A4 page, no margin */
   .w-a4 {
     width: 210mm !important;
     margin: 0 !important;
   }
 
-  /* Remove padding from wrapper div around A4 */
   .p-4 {
     padding: 0 !important;
   }
@@ -100,7 +143,6 @@ body {
     margin: 0 !important;
   }
 
-  /* Hide select dropdown arrow in print */
   select {
     -webkit-appearance: none !important;
     appearance: none !important;
@@ -118,13 +160,8 @@ input[type='number'] {
   -moz-appearance: textfield;
 }
 
-/* Light mode: make content text dark (Button uses inline color so is unaffected) */
-html[data-theme="light"] .text-white {
-  color: var(--text-primary) !important;
-}
-
-/* Platform scrollbar */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: var(--bg-sidebar); }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #e8762b; }
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #ccc8c2; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: var(--orange); }

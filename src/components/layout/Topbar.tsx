@@ -1,19 +1,21 @@
 'use client';
 import React from 'react';
 import { usePathname } from 'next/navigation';
-import { Sun, Moon } from 'lucide-react';
+import { Search, Sun, Moon } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useSupabaseUser } from '@/hooks/useSupabaseUser';
 
 const titles: Record<string, string> = {
   '/dashboard': 'Dashboard',
   '/timesheet': 'Timesheet',
-  '/timesheet/history': 'Timesheet History',
-  '/labor': 'Labor Registry',
+  '/timesheet/history': 'Timesheets',
+  '/labor': 'Labour Registry',
   '/labor/new': 'Add Laborer',
-  '/vendors': 'Vendors',
-  '/vendors/new': 'Add Vendor',
-  '/machines': 'Machines',
-  '/machines/new': 'Add Machine',
+  '/vendors': 'Contractors',
+  '/vendors/new': 'Add Contractor',
+  '/machines': 'Vehicle Management',
+  '/machines/new': 'Add Vehicle',
+  '/equipment': 'Equipment Management',
   '/reports': 'Reports',
 };
 
@@ -21,11 +23,11 @@ function getTitle(pathname: string): string {
   if (titles[pathname]) return titles[pathname];
   if (pathname.startsWith('/labor/') && pathname.endsWith('/edit')) return 'Edit Laborer';
   if (pathname.startsWith('/labor/')) return 'Laborer Profile';
-  if (pathname.startsWith('/vendors/') && pathname.endsWith('/edit')) return 'Edit Vendor';
-  if (pathname.startsWith('/vendors/')) return 'Vendor Profile';
-  if (pathname.startsWith('/machines/') && pathname.endsWith('/edit')) return 'Edit Machine';
-  if (pathname.startsWith('/machines/') && pathname.includes('/usage')) return 'Log Machine Usage';
-  if (pathname.startsWith('/machines/')) return 'Machine Detail';
+  if (pathname.startsWith('/vendors/') && pathname.endsWith('/edit')) return 'Edit Contractor';
+  if (pathname.startsWith('/vendors/')) return 'Contractor Profile';
+  if (pathname.startsWith('/machines/') && pathname.endsWith('/edit')) return 'Edit Vehicle';
+  if (pathname.startsWith('/machines/') && pathname.includes('/usage')) return 'Log Vehicle Usage';
+  if (pathname.startsWith('/machines/')) return 'Vehicle Detail';
   if (pathname.startsWith('/timesheet/history/')) return 'View Timesheet';
   return 'Platform';
 }
@@ -34,32 +36,73 @@ export function Topbar() {
   const pathname = usePathname();
   const title = getTitle(pathname);
   const { theme, toggleTheme } = useTheme();
+  const user = useSupabaseUser();
+  const initials = user?.email ? user.email.slice(0, 2).toUpperCase() : 'AM';
 
   return (
-    <header className="flex items-center px-6 print:hidden"
+    <header className="flex items-center justify-between print:hidden"
       style={{
-        height: 56,
-        background: 'var(--bg-sidebar)',
+        padding: '14px 24px',
+        background: 'var(--bg-card)',
         borderBottom: '1px solid var(--border)',
         flexShrink: 0,
       }}>
-      <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{title}</h2>
-      <div className="ml-auto flex items-center gap-3">
-        <div className="text-xs px-2 py-1 rounded" style={{ background: 'rgba(232,118,43,0.12)', color: '#e8762b' }}>
-          UAE Oman Railway · Package 5B
+      <div>
+        <div style={{
+          fontFamily: "'Sora', sans-serif",
+          fontSize: 19, fontWeight: 700,
+          color: 'var(--text-primary)',
+          letterSpacing: '-0.3px',
+        }}>{title}</div>
+        <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: 2 }}>
+          Almayar United Trading LLC
         </div>
+      </div>
+      <div className="flex items-center gap-2.5">
+        {/* Search */}
+        <div className="flex items-center gap-2" style={{
+          background: 'var(--input-bg)',
+          borderRadius: 10,
+          padding: '7px 13px',
+          border: '1px solid var(--border)',
+          color: 'var(--text-light)',
+        }}>
+          <Search size={14} />
+          <input
+            type="text"
+            placeholder="Search..."
+            style={{
+              border: 'none', background: 'transparent',
+              fontSize: 13, color: 'var(--text-light)', width: 150,
+              outline: 'none',
+            }}
+          />
+        </div>
+        {/* Theme toggle */}
         <button
           onClick={toggleTheme}
-          className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+          className="flex items-center justify-center"
           style={{
-            background: 'var(--bg-card)',
+            width: 34, height: 34, borderRadius: 9,
+            background: 'var(--input-bg)',
             border: '1px solid var(--border)',
-            color: 'var(--text-secondary)',
+            color: 'var(--text-muted)',
+            cursor: 'pointer',
           }}
           title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
         >
           {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
         </button>
+        {/* User Avatar */}
+        <div style={{
+          width: 34, height: 34, borderRadius: 9,
+          background: 'linear-gradient(135deg, var(--orange), #ff9a5c)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: '#fff', fontWeight: 700, fontSize: 12,
+          fontFamily: "'Sora', sans-serif",
+        }}>
+          {initials}
+        </div>
       </div>
     </header>
   );

@@ -12,14 +12,14 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const styles: Record<Variant, React.CSSProperties> = {
-  primary:   { background: '#e8762b', color: '#fff' },
-  secondary: { background: 'var(--btn-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border)' },
-  danger:    { background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)' },
-  ghost:     { background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border)' },
+  primary:   { background: 'var(--orange)', color: '#fff', border: 'none' },
+  secondary: { background: 'var(--bg-card)', color: 'var(--text-light)', border: '1px solid var(--border2)' },
+  danger:    { background: 'var(--red-bg)', color: 'var(--red-text)', border: '1px solid var(--red-border)' },
+  ghost:     { background: 'transparent', color: 'var(--text-light)', border: '1px solid var(--border2)' },
 };
 
 const sizes: Record<Size, string> = {
-  sm: 'px-3 py-1.5 text-xs',
+  sm: 'px-3.5 py-2 text-xs',
   md: 'px-4 py-2 text-sm',
   lg: 'px-5 py-2.5 text-base',
 };
@@ -28,8 +28,10 @@ export function Button({ variant = 'primary', size = 'md', loading, icon, childr
   return (
     <button
       disabled={disabled || loading}
-      className={`inline-flex items-center gap-2 rounded-lg font-medium transition-opacity disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed ${sizes[size]} ${className}`}
+      className={`inline-flex items-center gap-1.5 rounded-lg font-semibold transition-all disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed ${sizes[size]} ${className}`}
       style={styles[variant]}
+      onMouseEnter={e => { if (variant === 'primary') e.currentTarget.style.background = 'var(--orange-hv)'; }}
+      onMouseLeave={e => { if (variant === 'primary') e.currentTarget.style.background = 'var(--orange)'; }}
       {...props}
     >
       {loading ? <Spinner size={14} /> : icon}

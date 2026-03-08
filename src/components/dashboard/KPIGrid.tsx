@@ -1,22 +1,79 @@
 'use client';
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import { StatCard } from '@/components/ui/StatCard';
-import { Users, Clock, Settings2, Gauge } from 'lucide-react';
 
 interface Props {
   activeLaborers: number;
-  monthlyHours: number;
-  machinesInUse: number;
-  machineHoursMonth: number;
+  totalLaborers?: number;
+  activeMachines: number;
+  totalMachines?: number;
+  activeEquipment: number;
+  totalEquipment?: number;
+  totalVendors: number;
 }
 
-export function KPIGrid({ activeLaborers, monthlyHours, machinesInUse, machineHoursMonth }: Props) {
+export function KPIGrid({ activeLaborers, totalLaborers, activeMachines, totalMachines, activeEquipment, totalEquipment, totalVendors }: Props) {
+  const router = useRouter();
+  const tl = totalLaborers || activeLaborers;
+  const tm = totalMachines || activeMachines;
+  const te = totalEquipment || activeEquipment;
+
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      <StatCard title="Active Laborers"        value={activeLaborers}               icon={<Users size={18}/>}     iconColor="#3b82f6" subtitle="Registered workers" />
-      <StatCard title="Monthly Labor Hours"    value={`${monthlyHours}h`}           icon={<Clock size={18}/>}     iconColor="#e8762b" subtitle="Current month total" />
-      <StatCard title="Machines In Use"        value={machinesInUse}                icon={<Settings2 size={18}/>} iconColor="#22c55e" subtitle="Active equipment" />
-      <StatCard title="Machine Hours (Month)"  value={`${machineHoursMonth.toFixed(1)}h`} icon={<Gauge size={18}/>} iconColor="#a855f7" subtitle="Current month usage" />
+    <div style={{
+      background: 'var(--bg-card)',
+      borderRadius: 14,
+      border: '1px solid var(--border)',
+      boxShadow: '0 2px 14px rgba(0,0,0,0.05)',
+      padding: '16px 24px',
+      display: 'flex',
+      alignItems: 'stretch',
+      gap: 0,
+    }}>
+      <StatCard
+        title="Active Labour"
+        value={activeLaborers}
+        subtitle={`/ ${tl}`}
+        icon={<span style={{ fontSize: 18 }}>👷</span>}
+        iconBg="var(--orange-lt)"
+        iconColor="var(--orange)"
+        barColor="var(--orange)"
+        barPercent={tl ? Math.round(activeLaborers / tl * 100) : 0}
+        onClick={() => router.push('/labor')}
+      />
+      <StatCard
+        title="Active Vehicles"
+        value={activeMachines}
+        subtitle={`/ ${tm}`}
+        icon={<span style={{ fontSize: 18 }}>🚛</span>}
+        iconBg="var(--blue-bg)"
+        iconColor="var(--blue)"
+        barColor="var(--blue)"
+        barPercent={tm ? Math.round(activeMachines / tm * 100) : 0}
+        onClick={() => router.push('/machines')}
+      />
+      <StatCard
+        title="Active Equipment"
+        value={activeEquipment}
+        subtitle={`/ ${te}`}
+        icon={<span style={{ fontSize: 18 }}>⚙️</span>}
+        iconBg="var(--teal-bg)"
+        iconColor="var(--teal)"
+        barColor="var(--teal)"
+        barPercent={te ? Math.round(activeEquipment / te * 100) : 0}
+        onClick={() => router.push('/equipment')}
+      />
+      <StatCard
+        title="Total Suppliers"
+        value={totalVendors}
+        subtitle="vehicle contractors"
+        icon={<span style={{ fontSize: 18 }}>🏢</span>}
+        iconBg="var(--purple-bg)"
+        iconColor="var(--purple)"
+        barColor="var(--purple)"
+        barPercent={100}
+        onClick={() => router.push('/vendors')}
+      />
     </div>
   );
 }

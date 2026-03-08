@@ -22,23 +22,23 @@ export default function VendorDetailPage() {
   if (!vendor) return <PageSpinner />;
 
   return (
-    <div className="p-6 space-y-6">
-      <PageHeader title={vendor.name} subtitle="Vendor Profile"
+    <div style={{ padding: '20px 24px' }} className="space-y-5">
+      <PageHeader title={vendor.name} subtitle="Contractor Profile"
         action={<Link href={`/vendors/${id}/edit`}><Button size="sm" variant="secondary" icon={<Edit size={13}/>}>Edit</Button></Link>} />
       <Card>
-        <h3 className="text-sm font-semibold text-white mb-4">Contact Details</h3>
+        <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">Contact Details</h3>
         <div className="grid grid-cols-2 gap-4 text-sm">
           {[['Contact Person', vendor.contact_person], ['Phone', vendor.phone], ['Email', vendor.email], ['Address', vendor.address]].map(([l, v]) => (
             <div key={l}>
               <div className="text-xs mb-0.5" style={{ color: 'var(--text-muted)' }}>{l}</div>
-              <div className="text-white">{v || '—'}</div>
+              <div className="text-[var(--text-primary)]">{v || '—'}</div>
             </div>
           ))}
         </div>
       </Card>
       <Card>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-white">Machines ({vendorMachines.length})</h3>
+          <h3 className="text-sm font-semibold text-[var(--text-primary)]">Machines ({vendorMachines.length})</h3>
           <Link href="/machines/new"><Button size="sm" variant="secondary">Add Machine</Button></Link>
         </div>
         {!vendorMachines.length ? <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No machines assigned to this vendor.</p> : (
@@ -49,7 +49,7 @@ export default function VendorDetailPage() {
             <tbody>
               {vendorMachines.map(m => (
                 <tr key={m.id} style={{ borderTop: '1px solid var(--border)' }}>
-                  <td className="py-2 text-white">{m.name}</td>
+                  <td className="py-2 text-[var(--text-primary)]">{m.name}</td>
                   <td className="py-2" style={{ color: 'var(--text-secondary)' }}>{m.type}</td>
                   <td className="py-2" style={{ color: 'var(--text-secondary)' }}>{m.plate_number || '—'}</td>
                   <td className="py-2">{machineStatusBadge(m.status)}</td>
