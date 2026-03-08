@@ -12,10 +12,18 @@ const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov
 export default function TimesheetHistoryPage() {
   const { timesheets, loading } = useTimesheetHistory();
   const [filter, setFilter] = useState<'All' | 'approved' | 'draft'>('All');
+  const [monthFilter, setMonthFilter] = useState('All');
 
-  const filtered = filter === 'All'
-    ? timesheets
-    : timesheets.filter(ts => ts.status === filter);
+  // Build unique month options from timesheets
+  const monthOptions = Array.from(
+    new Set(timesheets.map(ts => `${MONTHS[ts.month]} ${ts.year}`))
+  );
+
+  const filtered = timesheets.filter(ts => {
+    const matchStatus = filter === 'All' || ts.status === filter;
+    const matchMonth = monthFilter === 'All' || `${MONTHS[ts.month]} ${ts.year}` === monthFilter;
+    return matchStatus && matchMonth;
+  });
 
   if (loading) return <PageSpinner />;
 
@@ -47,6 +55,16 @@ export default function TimesheetHistoryPage() {
           ))}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          {monthOptions.length > 0 && (
+            <select value={monthFilter} onChange={e => setMonthFilter(e.target.value)} style={{
+              fontSize: 12, fontWeight: 500, padding: '7px 13px', borderRadius: 9,
+              border: '1px solid var(--border2)', background: 'var(--bg-card)',
+              color: 'var(--text-light)', cursor: 'pointer', outline: 'none',
+            }}>
+              <option value="All">All Months</option>
+              {monthOptions.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+          )}
           <Link href="/timesheet" style={{
             display: 'flex', alignItems: 'center', gap: 6,
             background: 'var(--orange)', color: '#fff',

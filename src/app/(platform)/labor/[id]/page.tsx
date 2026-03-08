@@ -5,11 +5,8 @@ import Link from 'next/link';
 import { getLaborerById } from '@/hooks/useLaborers';
 import { useTimesheetHistory } from '@/hooks/useTimesheetHistory';
 import { PageSpinner } from '@/components/ui/Spinner';
-import { Badge, timesheetStatusBadge } from '@/components/ui/Badge';
-import { PageHeader } from '@/components/ui/PageHeader';
-import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
-import { Edit, Plus, FileEdit } from 'lucide-react';
+import { timesheetStatusBadge } from '@/components/ui/Badge';
+import { ArrowLeft } from 'lucide-react';
 import type { Laborer } from '@/types/database';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -23,90 +20,155 @@ export default function LaborerDetailPage() {
 
   if (!laborer) return <PageSpinner />;
 
+  const initials = laborer.full_name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+
   const info: [string, string][] = [
+    ['Labour ID', laborer.id_number || '—'],
     ['Designation', laborer.designation],
     ['Contractor', laborer.supplier_name || '—'],
-    ['ID / Iqama', laborer.id_number || '—'],
-    ['Nationality', laborer.nationality || '—'],
     ['Phone', laborer.phone || '—'],
+    ['Nationality', laborer.nationality || '—'],
     ['Status', laborer.is_active ? 'Active' : 'Left'],
-    ['Daily Rate', laborer.daily_rate ? `AED ${laborer.daily_rate}` : '—'],
   ];
 
   return (
     <div style={{ padding: '20px 24px' }} className="space-y-5">
-      <PageHeader title={laborer.full_name}
-        subtitle={laborer.designation}
-        action={
-          <div className="flex gap-2">
-            <Badge color={laborer.is_active ? 'green' : 'gray'}>{laborer.is_active ? 'Active' : 'Inactive'}</Badge>
-            <Link href={`/labor/${id}/edit`}><Button size="sm" variant="secondary" icon={<Edit size={13}/>}>Edit</Button></Link>
-          </div>
-        }
-      />
+      {/* Back button */}
+      <Link href="/labor" style={{
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        fontSize: 13, fontWeight: 500, color: 'var(--text-light)',
+        textDecoration: 'none', padding: '7px 14px', borderRadius: 8,
+        border: '1px solid var(--border2)', background: 'var(--bg-card)',
+      }}>
+        <ArrowLeft size={14} /> Back to Labour List
+      </Link>
 
-      <Card>
-        <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">Worker Details</h3>
+      {/* Banner Header */}
+      <div style={{
+        background: 'linear-gradient(135deg, #1a1a2e 0%, #2d2b55 100%)',
+        borderRadius: 14, padding: '28px 32px',
+        display: 'flex', alignItems: 'center', gap: 20,
+      }}>
+        <div style={{
+          width: 64, height: 64, borderRadius: 14,
+          background: 'rgba(255,255,255,0.12)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 22, fontWeight: 700, color: '#fff',
+          fontFamily: "'Sora', sans-serif",
+        }}>{initials}</div>
+        <div>
+          <div style={{
+            fontSize: 20, fontWeight: 700, color: '#fff',
+            fontFamily: "'Sora', sans-serif", letterSpacing: '-0.3px',
+          }}>{laborer.full_name}</div>
+          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+            {laborer.designation} · {laborer.supplier_name || '—'} ·
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              fontSize: 11, fontWeight: 600, padding: '2px 10px', borderRadius: 20,
+              background: laborer.is_active ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)',
+              color: laborer.is_active ? '#4ade80' : '#f87171',
+            }}>
+              <span style={{
+                width: 6, height: 6, borderRadius: '50%',
+                background: laborer.is_active ? '#4ade80' : '#f87171',
+              }} />
+              {laborer.is_active ? 'Active' : 'Left'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Info Grid - 3 column cards */}
+      <div style={{
+        background: 'var(--bg-card)', borderRadius: 14,
+        border: '1px solid var(--border)', padding: '24px',
+      }}>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {info.map(([label, val]) => (
-            <div key={label}>
-              <div className="text-xs mb-0.5" style={{ color: 'var(--text-muted)' }}>{label}</div>
-              <div className="text-sm text-[var(--text-primary)]">{val}</div>
+            <div key={label} style={{
+              padding: '14px 18px', borderRadius: 10,
+              border: '1px solid var(--border)',
+              background: 'var(--input-bg)',
+            }}>
+              <div style={{
+                fontSize: '10.5px', fontWeight: 600, color: 'var(--text-muted)',
+                textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6,
+              }}>{label}</div>
+              <div style={{
+                fontSize: 14, fontWeight: 600, color: label === 'Status'
+                  ? (val === 'Active' ? '#22c55e' : '#ef4444')
+                  : 'var(--text-primary)',
+                display: label === 'Status' ? 'flex' : undefined,
+                alignItems: label === 'Status' ? 'center' : undefined,
+                gap: label === 'Status' ? 5 : undefined,
+              }}>
+                {label === 'Status' && (
+                  <span style={{
+                    width: 7, height: 7, borderRadius: '50%',
+                    background: val === 'Active' ? '#22c55e' : '#ef4444',
+                  }} />
+                )}
+                {val}
+              </div>
             </div>
           ))}
         </div>
         {laborer.notes && <p className="text-sm mt-4" style={{ color: 'var(--text-secondary)' }}>{laborer.notes}</p>}
-      </Card>
+      </div>
 
-      <Card>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-[var(--text-primary)]">Timesheet History</h3>
-          <Link href={`/timesheet?laborer=${id}`}>
-            <Button size="sm" icon={<Plus size={13}/>}>New Timesheet</Button>
-          </Link>
+      {/* Timesheets & History */}
+      <div style={{
+        background: 'var(--bg-card)', borderRadius: 14,
+        border: '1px solid var(--border)', padding: '24px',
+      }}>
+        <div style={{
+          fontSize: 14, fontWeight: 600, color: 'var(--text-primary)',
+          marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8,
+        }}>
+          📋 Timesheets & History
         </div>
         {tsLoading ? <PageSpinner /> : !timesheets.length ? (
           <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No timesheets saved for this worker yet.</p>
         ) : (
-          <table className="w-full text-sm">
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
-              <tr style={{ color: 'var(--text-muted)' }}>
-                <th className="text-left pb-2 font-medium">Period</th>
-                <th className="text-right pb-2 font-medium">Worked</th>
-                <th className="text-right pb-2 font-medium">OT</th>
-                <th className="text-right pb-2 font-medium">Total</th>
-                <th className="text-right pb-2 font-medium">Status</th>
-                <th className="text-right pb-2 font-medium">Actions</th>
+              <tr>
+                {['Month', 'Hours', 'Status'].map(h => (
+                  <th key={h} style={{
+                    padding: '10px 13px', fontSize: '10.5px', fontWeight: 600,
+                    color: 'var(--text-muted)', textAlign: 'left',
+                    letterSpacing: '0.5px', textTransform: 'uppercase',
+                    borderBottom: '1px solid var(--border)',
+                  }}>{h}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
               {timesheets.map(ts => (
-                <tr key={ts.id} style={{ borderTop: '1px solid var(--border)' }}>
-                  <td className="py-2 text-[var(--text-primary)]">{MONTHS[ts.month]} {ts.year}</td>
-                  <td className="py-2 text-right text-[var(--text-primary)]">{ts.total_worked}h</td>
-                  <td className="py-2 text-right" style={{ color: '#e8762b' }}>{ts.total_ot > 0 ? `+${ts.total_ot}h` : '—'}</td>
-                  <td className="py-2 text-right font-medium text-[var(--text-primary)]">{ts.total_actual}h</td>
-                  <td className="py-2 text-right">{timesheetStatusBadge(ts.status)}</td>
-                  <td className="py-2 text-right">
-                    <div className="flex items-center justify-end gap-3">
-                      <Link href={`/timesheet?laborer=${id}&ts=${ts.id}`}
-                        className="text-xs inline-flex items-center gap-1 font-medium"
-                        style={{ color: '#e8762b' }}>
-                        <FileEdit size={11} /> Edit
-                      </Link>
-                      <Link href={`/timesheet/history/${ts.id}`}
-                        className="text-xs"
-                        style={{ color: 'var(--text-secondary)' }}>
-                        View
-                      </Link>
-                    </div>
+                <tr key={ts.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                  <td style={{ padding: '10px 13px', color: 'var(--text-primary)', fontWeight: 500 }}>
+                    <Link href={`/timesheet/history/${ts.id}`} style={{ color: 'var(--text-primary)', textDecoration: 'none' }}>
+                      {MONTHS[ts.month]} {ts.year}
+                    </Link>
                   </td>
+                  <td style={{ padding: '10px 13px', color: 'var(--text-light)' }}>{ts.total_actual} hrs</td>
+                  <td style={{ padding: '10px 13px' }}>{timesheetStatusBadge(ts.status)}</td>
                 </tr>
               ))}
+              {timesheets.length > 0 && (
+                <tr style={{ borderTop: '2px solid var(--border)' }}>
+                  <td style={{ padding: '10px 13px', fontWeight: 700, color: 'var(--text-primary)' }}>Total</td>
+                  <td style={{ padding: '10px 13px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    {timesheets.reduce((sum, ts) => sum + ts.total_actual, 0)} hrs
+                  </td>
+                  <td />
+                </tr>
+              )}
             </tbody>
           </table>
         )}
-      </Card>
+      </div>
     </div>
   );
 }
