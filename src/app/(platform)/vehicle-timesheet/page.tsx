@@ -241,7 +241,7 @@ function VehicleTimesheetPageInner() {
           className="w-a4 min-h-a4 bg-white mx-auto"
           style={{ border: '1px solid black', padding: '10px', overflow: 'visible', marginBottom: '2px' }}
         >
-          <TimesheetHeader title="Vehicle Time Sheet" />
+          <TimesheetHeader title="Time Sheet" />
           <InfoTable
             month={timesheet.month} year={timesheet.year}
             laborName={timesheet.laborName} projectName={timesheet.projectName}
@@ -260,10 +260,12 @@ function VehicleTimesheetPageInner() {
             workData={timesheet.workData}
             totalWorked={timesheet.totalWorked} totalOT={timesheet.totalOT}
             onUpdateDayEntry={timesheet.updateDayEntry}
+            vehicleMode
           />
           <FooterSection
             totalWorked={timesheet.totalWorked} totalOT={timesheet.totalOT}
             totalActual={timesheet.totalActual}
+            vehicleMode
           />
         </div>
       </div>

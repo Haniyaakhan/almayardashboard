@@ -4,9 +4,15 @@ interface FooterSectionProps {
   totalWorked: number;
   totalOT: number;
   totalActual: number;
+  vehicleMode?: boolean;
 }
 
-export default function FooterSection({ totalWorked, totalOT, totalActual }: FooterSectionProps) {
+export default function FooterSection({ totalWorked, totalOT, totalActual, vehicleMode }: FooterSectionProps) {
+  // Vehicle mode: fixed minimum 260, OT = excess over 260, actual = total from table
+  const minHours = vehicleMode ? 260 : (totalWorked || 0);
+  const overTime = vehicleMode ? (totalWorked > 260 ? totalWorked - 260 : 0) : totalOT;
+  const actualHours = vehicleMode ? totalWorked : (totalActual || 0);
+
   return (
     <div style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
       <div className="flex justify-between mt-1 text-sm">
@@ -35,15 +41,15 @@ export default function FooterSection({ totalWorked, totalOT, totalActual }: Foo
         <div className="w-[320px] text-right">
           <div className="flex justify-end mb-1 items-center">
             <div className="mr-2">Minimum Worked Hours</div>
-            <div className="font-bold">= {totalWorked || 0}</div>
+            <div className="font-bold">= {minHours}</div>
           </div>
           <div className="flex justify-end mb-1 items-center">
             <div style={{marginLeft:-20}} className="mr-2">Over Time (+Value)/Less Worked (-Value) =</div>
-            <div className="font-bold">{totalOT !== 0 ? totalOT : 'NIL'}</div>
+            <div className="font-bold">{overTime !== 0 ? overTime : 'NIL'}</div>
           </div>
           <div className="flex justify-end mb-1 items-center">
             <div className="mr-2">TOTAL WORKED HOURS</div>
-            <div className="font-bold">= {totalActual || 0}</div>
+            <div className="font-bold">= {actualHours}</div>
           </div>
         </div>
       </div>

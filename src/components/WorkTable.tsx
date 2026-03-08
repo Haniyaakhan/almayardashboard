@@ -9,6 +9,7 @@ interface WorkTableProps {
   totalWorked: number;
   totalOT: number;
   onUpdateDayEntry: (day: number, field: keyof DayEntry, value: string | number) => void;
+  vehicleMode?: boolean;
 }
 
 export default function WorkTable({
@@ -18,6 +19,7 @@ export default function WorkTable({
   totalWorked,
   totalOT,
   onUpdateDayEntry,
+  vehicleMode,
 }: WorkTableProps) {
   return (
     <table className="w-full border-collapse mb-0">
@@ -162,10 +164,10 @@ export default function WorkTable({
             TOTAL WORKED HOURS = {totalWorked || 0}
           </td>
           <td className="border border-black p-0.5 text-center text-[12px] font-bold">
-            {totalOT || 0}
+            {vehicleMode ? '' : (totalOT || 0)}
           </td>
           <td className="border border-black p-0.5 text-center text-[12px] font-bold">
-            {(totalWorked + totalOT) || 0}
+            {vehicleMode ? '' : ((totalWorked + totalOT) || 0)}
           </td>
           <td className="border border-black p-0.5"></td>
           <td className="border border-black p-0.5"></td>
