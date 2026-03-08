@@ -12,6 +12,7 @@ import FooterSection from '@/components/FooterSection';
 import ExportButtons from '@/components/ExportButtons';
 import { Button } from '@/components/ui/Button';
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { useToast } from '@/components/ui/Toast';
 import { Save, Link as LinkIcon, Eraser, Plus } from 'lucide-react';
 import type { DayEntry } from '@/types/timesheet';
 import { generateDaysInMonth } from '@/lib/dateUtils';
@@ -22,7 +23,7 @@ function VehicleTimesheetPageInner() {
   const { machines } = useMachines();
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>('');
   const [saving, setSaving] = useState(false);
-  const [saveMsg, setSaveMsg] = useState('');
+  const toast = useToast();
   const [clearStartDay, setClearStartDay] = useState(1);
   const [clearEndDay, setClearEndDay] = useState(1);
   const searchParams = useSearchParams();
@@ -54,11 +55,11 @@ function VehicleTimesheetPageInner() {
         timesheet.loadEntries(entries, {
           month: ts.month,
           year: ts.year,
-          laborName: machine?.name ?? (ts as any).laborer?.full_name ?? '',
+          laborName: machine?.operator_name ?? '',
           projectName: ts.project_name ?? '',
           supplierName: ts.supplier_name ?? '',
           siteEngineerName: ts.site_engineer_name ?? '',
-          designation: machine?.plate_number ?? ts.designation ?? '',
+          designation: machine ? `${machine.name}# ${machine.plate_number ?? ''}` : (ts.designation ?? ''),
         });
       });
     }
@@ -71,9 +72,8 @@ function VehicleTimesheetPageInner() {
     if (!vehicleId || !machines.length || tsId) return;
     const machine = machines.find(m => m.id === vehicleId);
     if (!machine) return;
-    timesheet.setLaborName(machine.name);
-    timesheet.setDesignation(machine.plate_number ?? '');
-    timesheet.setSupplierName((machine.vendor as any)?.name ?? '');
+    timesheet.setLaborName(machine.operator_name ?? '');
+    timesheet.setDesignation(`${machine.name}# ${machine.plate_number ?? ''}`);
   }, [machines]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function onVehicleSelect(id: string) {
@@ -100,20 +100,20 @@ function VehicleTimesheetPageInner() {
         timesheet.loadEntries(entries, {
           month: existing.month,
           year: existing.year,
-          laborName: machine.name,
+          laborName: machine.operator_name ?? '',
           projectName: existing.project_name ?? timesheet.projectName,
-          supplierName: existing.supplier_name ?? (machine.vendor as any)?.name ?? '',
+          supplierName: existing.supplier_name ?? '',
           siteEngineerName: existing.site_engineer_name ?? '',
-          designation: machine.plate_number ?? '',
+          designation: `${machine.name}# ${machine.plate_number ?? ''}`,
         });
       } else {
         const days = generateDaysInMonth(timesheet.month, timesheet.year);
         timesheet.loadEntries(days, {
           month: timesheet.month,
           year: timesheet.year,
-          laborName: machine.name,
-          designation: machine.plate_number ?? '',
-          supplierName: (machine.vendor as any)?.name ?? '',
+          laborName: machine.operator_name ?? '',
+          designation: `${machine.name}# ${machine.plate_number ?? ''}`,
+          supplierName: '',
         });
       }
     } catch {
@@ -121,16 +121,15 @@ function VehicleTimesheetPageInner() {
       timesheet.loadEntries(days, {
         month: timesheet.month,
         year: timesheet.year,
-        laborName: machine.name,
-        designation: machine.plate_number ?? '',
-        supplierName: (machine.vendor as any)?.name ?? '',
+        laborName: machine.operator_name ?? '',
+        designation: `${machine.name}# ${machine.plate_number ?? ''}`,
+        supplierName: '',
       });
     }
   }
 
   async function handleSave() {
     setSaving(true);
-    setSaveMsg('');
     const vehicleId = selectedVehicleId || searchParams.get('vehicle') || null;
     const error = await saveTimesheet({
       laborer_id: vehicleId,
@@ -158,8 +157,8 @@ function VehicleTimesheetPageInner() {
       })),
     });
     setSaving(false);
-    setSaveMsg(error ? `Error: ${error.message}` : 'Saved successfully!');
-    setTimeout(() => setSaveMsg(''), 3000);
+    if (error) toast.error(`Error: ${error.message}`);
+    else toast.success('Timesheet saved successfully');
   }
 
   return (
@@ -186,12 +185,6 @@ function VehicleTimesheetPageInner() {
         <Button variant="primary" size="sm" loading={saving} icon={<Save size={13}/>} onClick={handleSave}>
           Save Timesheet
         </Button>
-
-        {saveMsg && (
-          <span className="text-xs" style={{ color: saveMsg.startsWith('Error') ? '#ef4444' : '#22c55e' }}>
-            {saveMsg}
-          </span>
-        )}
 
         {/* Clear date range */}
         <div className="flex items-center gap-1.5 ml-auto" style={{ marginRight: 8 }}>
@@ -268,7 +261,7 @@ function VehicleTimesheetPageInner() {
             onSupplierNameChange={timesheet.setSupplierName}
             onSiteEngineerNameChange={timesheet.setSiteEngineerName}
             onDesignationChange={timesheet.setDesignation}
-            laborNameLabel="Equipment"
+            laborNameLabel="Operator Name"
             designationLabel="Reg No"
           />
           <WorkTable

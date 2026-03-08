@@ -34,6 +34,18 @@ export async function createMachine(data: Omit<Machine, 'id' | 'created_at' | 'u
   return error;
 }
 
+export async function deactivateMachine(id: string) {
+  const supabase = createClient();
+  const { error } = await supabase.from('machines').update({ is_active: false }).eq('id', id);
+  return error;
+}
+
+export async function reactivateMachine(id: string) {
+  const supabase = createClient();
+  const { error } = await supabase.from('machines').update({ is_active: true }).eq('id', id);
+  return error;
+}
+
 export async function updateMachine(id: string, data: Partial<Machine>) {
   const supabase = createClient();
   // Strip joined relations and read-only fields before sending to Supabase

@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/Button';
+import { useToast } from '@/components/ui/Toast';
 import { useVendors } from '@/hooks/useVendors';
 import { createClient } from '@/lib/supabase/client';
 import { Upload, X, Image as ImageIcon } from 'lucide-react';
@@ -94,6 +95,7 @@ function PhotoUpload({ label, value, onChange }: { label: string; value: string 
 }
 
 export function MachineForm({ initial, onSubmit, submitLabel = 'Save' }: Props) {
+  const toast = useToast();
   const { vendors } = useVendors();
   const [form, setForm] = useState<FormData>({
     vendor_id: null, name: '', type: '', plate_number: '', model: '',
@@ -110,7 +112,7 @@ export function MachineForm({ initial, onSubmit, submitLabel = 'Save' }: Props) 
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault(); setLoading(true); setError('');
-    try { await onSubmit(form); } catch (err: any) { setError(err.message); }
+    try { await onSubmit(form); } catch (err: any) { setError(err.message); toast.error(err.message); }
     setLoading(false);
   }
 

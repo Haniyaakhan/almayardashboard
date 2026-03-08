@@ -5,12 +5,14 @@ import { useTimesheetHistory, approveTimesheet } from '@/hooks/useTimesheetHisto
 import { PageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { timesheetStatusBadge } from '@/components/ui/Badge';
+import { useToast } from '@/components/ui/Toast';
 import { ClipboardList, Plus } from 'lucide-react';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 export default function TimesheetHistoryPage() {
   const { timesheets, loading, refetch } = useTimesheetHistory();
+  const toast = useToast();
   const [filter, setFilter] = useState<'All' | 'approved' | 'draft'>('All');
   const [monthFilter, setMonthFilter] = useState('All');
 
@@ -151,7 +153,7 @@ export default function TimesheetHistoryPage() {
                         <button onClick={async () => {
                           if (ts.status === 'approved') return;
                           await approveTimesheet(ts.id);
-                          refetch();
+                          refetch(); toast.success('Timesheet approved');
                         }} style={{
                           fontSize: 11, fontWeight: 600, padding: '4px 9px', borderRadius: 6,
                           border: 'none', cursor: ts.status === 'approved' ? 'default' : 'pointer',

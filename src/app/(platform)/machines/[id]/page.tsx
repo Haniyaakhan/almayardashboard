@@ -2,14 +2,16 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { getMachineById } from '@/hooks/useMachines';
+import { getMachineById, deactivateMachine, reactivateMachine } from '@/hooks/useMachines';
 import { useMachineUsage } from '@/hooks/useMachineUsage';
 import { PageSpinner } from '@/components/ui/Spinner';
 import { machineStatusBadge } from '@/components/ui/Badge';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { Edit, Plus } from 'lucide-react';
+import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { useToast } from '@/components/ui/Toast';
+import { Edit, Plus, Power } from 'lucide-react';
 import type { Machine } from '@/types/database';
 
 export default function MachineDetailPage() {
@@ -18,7 +20,31 @@ export default function MachineDetailPage() {
   const { logs, loading: logsLoading } = useMachineUsage(id);
   const totalHours = logs.reduce((s, l) => s + l.hours_used, 0);
 
+  const { confirm, dialog } = useConfirmDialog();
+  const toast = useToast();
+
   useEffect(() => { getMachineById(id).then(setMachine); }, [id]);
+
+  async function handleToggleActive() {
+    const isActive = machine!.is_active;
+    const ok = await confirm({
+      title: isActive ? 'Deactivate Vehicle' : 'Reactivate Vehicle',
+      message: isActive
+        ? `Are you sure you want to deactivate "${machine!.name}"? It will be hidden from the equipment list.`
+        : `Are you sure you want to reactivate "${machine!.name}"?`,
+      confirmLabel: isActive ? 'Deactivate' : 'Reactivate',
+      variant: isActive ? 'danger' : 'info',
+    });
+    if (!ok) return;
+    const err = isActive ? await deactivateMachine(id) : await reactivateMachine(id);
+    if (!err) {
+      setMachine(prev => prev ? { ...prev, is_active: !isActive } : prev);
+      toast.success(isActive ? 'Vehicle deactivated' : 'Vehicle reactivated');
+    } else {
+      toast.error('Failed to update vehicle status');
+    }
+  }
+
   if (!machine) return <PageSpinner />;
 
   return (
@@ -29,6 +55,9 @@ export default function MachineDetailPage() {
           <div className="flex gap-2 items-center">
             {machineStatusBadge(machine.status)}
             <Link href={`/machines/${id}/edit`}><Button size="sm" variant="secondary" icon={<Edit size={13}/>}>Edit</Button></Link>
+            <Button size="sm" variant={machine.is_active ? 'danger' : 'secondary'} icon={<Power size={13}/>} onClick={handleToggleActive}>
+              {machine.is_active ? 'Deactivate' : 'Reactivate'}
+            </Button>
           </div>
         }
       />
@@ -105,6 +134,7 @@ export default function MachineDetailPage() {
           </table>
         )}
       </Card>
+      {dialog}
     </div>
   );
 }

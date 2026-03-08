@@ -16,6 +16,7 @@ const navItems = [
   { href: '/equipment', icon: <Wrench size={19} />, label: 'Equipment' },
   { href: '/timesheet/history', icon: <ClipboardList size={19} />, label: 'Labor Timesheets' },
   { href: '/vehicle-timesheet/history', icon: <ClipboardList size={19} />, label: 'Vehicle Timesheets' },
+  { href: '/equipment-timesheet/history', icon: <ClipboardList size={19} />, label: 'Equipment Timesheets' },
   { href: '/reports', icon: <FileBarChart size={19} />, label: 'Reports' },
 ];
 

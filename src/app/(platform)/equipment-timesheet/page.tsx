@@ -3,7 +3,7 @@
 import React, { useRef, useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useTimesheet } from '@/hooks/useTimesheet';
-import { useLaborers } from '@/hooks/useLaborers';
+import { useMachines } from '@/hooks/useMachines';
 import { saveTimesheet, getTimesheetWithEntries, getTimesheetByLaborer } from '@/hooks/useTimesheetHistory';
 import TimesheetHeader from '@/components/TimesheetHeader';
 import InfoTable from '@/components/InfoTable';
@@ -17,11 +17,11 @@ import { Save, Link as LinkIcon, Eraser, Plus } from 'lucide-react';
 import type { DayEntry } from '@/types/timesheet';
 import { generateDaysInMonth } from '@/lib/dateUtils';
 
-function TimesheetPageInner() {
+function EquipmentTimesheetPageInner() {
   const timesheetRef = useRef<HTMLDivElement>(null);
   const timesheet = useTimesheet();
-  const { laborers } = useLaborers();
-  const [selectedLaborerId, setSelectedLaborerId] = useState<string>('');
+  const { machines } = useMachines();
+  const [selectedEquipmentId, setSelectedEquipmentId] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const toast = useToast();
   const [clearStartDay, setClearStartDay] = useState(1);
@@ -32,8 +32,8 @@ function TimesheetPageInner() {
   // On mount: load existing timesheet if ?ts= param is present
   useEffect(() => {
     const tsId = searchParams.get('ts');
-    const laborerId = searchParams.get('laborer');
-    if (laborerId) setSelectedLaborerId(laborerId);
+    const equipmentId = searchParams.get('equipment');
+    if (equipmentId) setSelectedEquipmentId(equipmentId);
     if (tsId) {
       getTimesheetWithEntries(tsId).then(ts => {
         if (!ts) return;
@@ -50,37 +50,37 @@ function TimesheetPageInner() {
           approverSig: e.approver_sig ?? '',
           remarks: e.remarks ?? '',
         }));
+        const machine = machines.find(m => m.id === ts.laborer_id);
         timesheet.loadEntries(entries, {
           month: ts.month,
           year: ts.year,
-          laborName: (ts as any).laborer?.full_name ?? ts.supplier_name ?? '',
+          laborName: machine ? `${machine.name}# ${machine.plate_number ?? ''}` : (ts.designation ?? ''),
           projectName: ts.project_name ?? '',
           supplierName: ts.supplier_name ?? '',
           siteEngineerName: ts.site_engineer_name ?? '',
-          designation: ts.designation ?? '',
+          designation: machine?.plate_number ?? (ts.designation ?? ''),
         });
       });
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [machines]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // When laborers load and ?laborer= param exists (no ts param), auto-fill laborer info
+  // When machines load and ?equipment= param exists (no ts param), auto-fill equipment info
   useEffect(() => {
-    const laborerId = searchParams.get('laborer');
+    const equipmentId = searchParams.get('equipment');
     const tsId = searchParams.get('ts');
-    if (!laborerId || !laborers.length || tsId) return;
-    const lab = laborers.find(l => l.id === laborerId);
-    if (!lab) return;
-    timesheet.setLaborName(lab.full_name);
-    timesheet.setDesignation(`${lab.designation}# ${lab.id_number}`);
-  }, [laborers]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!equipmentId || !machines.length || tsId) return;
+    const machine = machines.find(m => m.id === equipmentId);
+    if (!machine) return;
+    timesheet.setLaborName(`${machine.name}# ${machine.plate_number ?? ''}`);
+    timesheet.setDesignation(machine.plate_number ?? '');
+  }, [machines]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function onLaborerSelect(id: string) {
-    setSelectedLaborerId(id);
+  async function onEquipmentSelect(id: string) {
+    setSelectedEquipmentId(id);
     if (!id) return;
-    const lab = laborers.find(l => l.id === id);
-    if (!lab) return;
+    const machine = machines.find(m => m.id === id);
+    if (!machine) return;
     try {
-      // Try to load existing timesheet for this laborer + current month/year
       const existing = await getTimesheetByLaborer(id, timesheet.month, timesheet.year);
       if (existing && (existing as any).entries?.length) {
         const entries: DayEntry[] = ((existing as any).entries ?? []).map((e: any) => ({
@@ -99,39 +99,39 @@ function TimesheetPageInner() {
         timesheet.loadEntries(entries, {
           month: existing.month,
           year: existing.year,
-          laborName: lab.full_name,
+          laborName: `${machine.name}# ${machine.plate_number ?? ''}`,
           projectName: existing.project_name ?? timesheet.projectName,
           supplierName: existing.supplier_name ?? '',
           siteEngineerName: existing.site_engineer_name ?? '',
-          designation: existing.designation ?? `${lab.designation}# ${lab.id_number}`,
+          designation: machine.plate_number ?? '',
         });
       } else {
-        // No existing timesheet — reset to default days and fill header
         const days = generateDaysInMonth(timesheet.month, timesheet.year);
         timesheet.loadEntries(days, {
           month: timesheet.month,
           year: timesheet.year,
-          laborName: lab.full_name,
-          designation: `${lab.designation}# ${lab.id_number}`,
+          laborName: `${machine.name}# ${machine.plate_number ?? ''}`,
+          designation: machine.plate_number ?? '',
+          supplierName: '',
         });
       }
     } catch {
-      // If API fails, still update header info
       const days = generateDaysInMonth(timesheet.month, timesheet.year);
       timesheet.loadEntries(days, {
         month: timesheet.month,
         year: timesheet.year,
-        laborName: lab.full_name,
-        designation: `${lab.designation}# ${lab.id_number}`,
+        laborName: `${machine.name}# ${machine.plate_number ?? ''}`,
+        designation: machine.plate_number ?? '',
+        supplierName: '',
       });
     }
   }
 
   async function handleSave() {
     setSaving(true);
-    const laborerId = selectedLaborerId || searchParams.get('laborer') || null;
+    const equipmentId = selectedEquipmentId || searchParams.get('equipment') || null;
     const error = await saveTimesheet({
-      laborer_id: laborerId,
+      laborer_id: equipmentId,
       month: timesheet.month,
       year: timesheet.year,
       project_name: timesheet.projectName,
@@ -162,26 +162,25 @@ function TimesheetPageInner() {
 
   return (
     <div style={{ background: '#f5f5f5', minHeight: '100%' }}>
-      {/* Actions bar — hidden on print */}
+      {/* Actions bar */}
       <div className="print:hidden flex items-center gap-3 px-6 py-3 flex-wrap"
         style={{ background: 'var(--bg-sidebar)', borderBottom: '1px solid var(--border)' }}>
-        {/* Laborer linker */}
+        {/* Equipment selector */}
         <div className="flex items-center gap-2">
           <LinkIcon size={14} style={{ color: 'var(--text-muted)' }} />
           <select
-            value={selectedLaborerId}
-            onChange={e => onLaborerSelect(e.target.value)}
+            value={selectedEquipmentId}
+            onChange={e => onEquipmentSelect(e.target.value)}
             className="text-sm rounded-lg px-3 py-1.5 outline-none"
             style={{ background: 'var(--input-bg)', color: 'var(--text-primary)', border: '1px solid var(--border)', minWidth: 180 }}
           >
-            <option value="">Select Laborer (optional)</option>
-            {laborers.map(l => (
-              <option key={l.id} value={l.id}>{l.full_name}</option>
+            <option value="">Select Equipment</option>
+            {machines.map(m => (
+              <option key={m.id} value={m.id}>{m.name} ({m.plate_number || m.type})</option>
             ))}
           </select>
         </div>
 
-        {/* Save button */}
         <Button variant="primary" size="sm" loading={saving} icon={<Save size={13}/>} onClick={handleSave}>
           Save Timesheet
         </Button>
@@ -250,7 +249,7 @@ function TimesheetPageInner() {
           className="w-a4 min-h-a4 bg-white mx-auto"
           style={{ border: '1px solid black', padding: '10px', overflow: 'visible', marginBottom: '2px' }}
         >
-          <TimesheetHeader />
+          <TimesheetHeader title="Time Sheet" />
           <InfoTable
             month={timesheet.month} year={timesheet.year}
             laborName={timesheet.laborName} projectName={timesheet.projectName}
@@ -261,16 +260,20 @@ function TimesheetPageInner() {
             onSupplierNameChange={timesheet.setSupplierName}
             onSiteEngineerNameChange={timesheet.setSiteEngineerName}
             onDesignationChange={timesheet.setDesignation}
+            laborNameLabel="Equipment"
+            designationLabel="Reg No"
           />
           <WorkTable
             month={timesheet.month} year={timesheet.year}
             workData={timesheet.workData}
             totalWorked={timesheet.totalWorked} totalOT={timesheet.totalOT}
             onUpdateDayEntry={timesheet.updateDayEntry}
+            vehicleMode
           />
           <FooterSection
             totalWorked={timesheet.totalWorked} totalOT={timesheet.totalOT}
             totalActual={timesheet.totalActual}
+            vehicleMode
           />
         </div>
       </div>
@@ -279,10 +282,10 @@ function TimesheetPageInner() {
   );
 }
 
-export default function TimesheetPage() {
+export default function EquipmentTimesheetPage() {
   return (
     <Suspense>
-      <TimesheetPageInner />
+      <EquipmentTimesheetPageInner />
     </Suspense>
   );
 }

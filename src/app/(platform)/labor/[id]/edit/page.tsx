@@ -6,11 +6,13 @@ import { LaborerForm } from '@/components/labor/LaborerForm';
 import { PageSpinner } from '@/components/ui/Spinner';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card } from '@/components/ui/Card';
+import { useToast } from '@/components/ui/Toast';
 import type { Laborer } from '@/types/database';
 
 export default function EditLaborerPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const toast = useToast();
   const [laborer, setLaborer] = useState<Laborer | null>(null);
 
   useEffect(() => { getLaborerById(id).then(setLaborer); }, [id]);
@@ -24,6 +26,7 @@ export default function EditLaborerPage() {
           onSubmit={async data => {
             const err = await updateLaborer(id, data);
             if (err) throw err;
+            toast.success('Laborer updated successfully');
             router.push(`/labor/${id}`);
           }}
         />

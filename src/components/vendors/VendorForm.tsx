@@ -1,6 +1,7 @@
 'use client';
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/Button';
+import { useToast } from '@/components/ui/Toast';
 import type { Vendor } from '@/types/database';
 
 type FormData = Omit<Vendor, 'id' | 'created_at' | 'updated_at'>;
@@ -8,6 +9,7 @@ type FormData = Omit<Vendor, 'id' | 'created_at' | 'updated_at'>;
 interface Props { initial?: Partial<FormData>; onSubmit: (data: FormData) => Promise<void>; submitLabel?: string; }
 
 export function VendorForm({ initial, onSubmit, submitLabel = 'Save' }: Props) {
+  const toast = useToast();
   const [form, setForm] = useState<FormData>({
     name: '', contact_person: '', phone: '', email: '', address: '', notes: '', is_active: true, ...initial,
   });
@@ -24,7 +26,7 @@ export function VendorForm({ initial, onSubmit, submitLabel = 'Save' }: Props) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault(); setLoading(true); setError('');
-    try { await onSubmit(form); } catch (err: any) { setError(err.message); }
+    try { await onSubmit(form); } catch (err: any) { setError(err.message); toast.error(err.message); }
     setLoading(false);
   }
 

@@ -21,7 +21,7 @@ export default function DashboardPage() {
   if (loading) return <PageSpinner />;
 
   const activeLaborers = laborers.filter(l => l.is_active);
-  const activeMachines = machines.filter(m => m.status === 'in_use');
+  const activeMachines = machines.filter(m => m.status !== 'returned');
   const totalVendors = vendors.length;
 
   return (

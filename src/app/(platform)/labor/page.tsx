@@ -6,6 +6,7 @@ import { PageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Badge } from '@/components/ui/Badge';
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { useToast } from '@/components/ui/Toast';
 import { Users, Plus, Search, Pencil, Trash2, RotateCcw } from 'lucide-react';
 
 const designations = ['All', 'Helper', 'Scaffolder', 'Electrician', 'Rigger', 'Steel Fixer'];
@@ -15,6 +16,7 @@ export default function LaborPage() {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('All');
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
+  const toast = useToast();
 
   const filtered = laborers.filter(l => {
     const matchSearch = l.full_name.toLowerCase().includes(search.toLowerCase()) ||
@@ -151,7 +153,7 @@ export default function LaborPage() {
                           <button onClick={async () => {
                             const ok = await confirm({ title: 'Deactivate Laborer', message: `Are you sure you want to deactivate "${l.full_name}"?`, variant: 'danger', confirmLabel: 'Deactivate' });
                             if (!ok) return;
-                            await deactivateLaborer(l.id); refetch();
+                            await deactivateLaborer(l.id); refetch(); toast.success(`"${l.full_name}" deactivated`);
                           }}
                             title="Deactivate" style={{
                               padding: 5, borderRadius: 7,
@@ -166,7 +168,7 @@ export default function LaborPage() {
                           <button onClick={async () => {
                             const ok = await confirm({ title: 'Re-activate Laborer', message: `Re-activate "${l.full_name}"?`, variant: 'info', confirmLabel: 'Re-activate' });
                             if (!ok) return;
-                            await reactivateLaborer(l.id); refetch();
+                            await reactivateLaborer(l.id); refetch(); toast.success(`"${l.full_name}" reactivated`);
                           }}
                             title="Re-activate" style={{
                               padding: 5, borderRadius: 7,

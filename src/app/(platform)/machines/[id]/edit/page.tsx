@@ -6,11 +6,13 @@ import { MachineForm } from '@/components/machines/MachineForm';
 import { PageSpinner } from '@/components/ui/Spinner';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card } from '@/components/ui/Card';
+import { useToast } from '@/components/ui/Toast';
 import type { Machine } from '@/types/database';
 
 export default function EditMachinePage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const toast = useToast();
   const [machine, setMachine] = useState<Machine | null>(null);
   useEffect(() => { getMachineById(id).then(setMachine); }, [id]);
   if (!machine) return <PageSpinner />;
@@ -22,6 +24,7 @@ export default function EditMachinePage() {
           onSubmit={async data => {
             const err = await updateMachine(id, data);
             if (err) throw err;
+            toast.success('Vehicle updated successfully');
             router.push(`/machines/${id}`);
           }} />
       </Card>

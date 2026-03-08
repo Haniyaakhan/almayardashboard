@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/Button';
+import { useToast } from '@/components/ui/Toast';
 import { createClient } from '@/lib/supabase/client';
 import { Upload, X, Image as ImageIcon } from 'lucide-react';
 import type { Laborer } from '@/types/database';
@@ -113,6 +114,7 @@ function PhotoUpload({ label, value, onChange }: { label: string; value: string 
 }
 
 export function LaborerForm({ initial, onSubmit, submitLabel = 'Save' }: Props) {
+  const toast = useToast();
   const [form, setForm] = useState<FormData>({
     full_name: '', designation: '', supplier_name: '', id_number: '',
     nationality: '', phone: '', daily_rate: null, is_active: true, notes: '',
@@ -129,7 +131,7 @@ export function LaborerForm({ initial, onSubmit, submitLabel = 'Save' }: Props) 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true); setError('');
-    try { await onSubmit(form); } catch (err: any) { setError(err.message); }
+    try { await onSubmit(form); } catch (err: any) { setError(err.message); toast.error(err.message); }
     setLoading(false);
   }
 
