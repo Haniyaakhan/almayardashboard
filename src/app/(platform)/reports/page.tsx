@@ -118,7 +118,7 @@ export default function ReportsPage() {
             </Card>
           )}
 
-          <Card>
+          {/* <Card>
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-semibold text-[var(--text-primary)]">Email This Report</h3>
@@ -129,7 +129,7 @@ export default function ReportsPage() {
               <Button variant="secondary" icon={<Mail size={14}/>} disabled>Send via Email</Button>
             </div>
             {msg && <p className="text-sm mt-2" style={{ color: msg.startsWith('Error') ? '#ef4444' : '#22c55e' }}>{msg}</p>}
-          </Card>
+          </Card> */}
         </>
       )}
     </div>
