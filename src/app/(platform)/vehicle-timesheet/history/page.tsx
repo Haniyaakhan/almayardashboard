@@ -2,16 +2,18 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useMachines } from '@/hooks/useMachines';
-import { useTimesheetHistory } from '@/hooks/useTimesheetHistory';
+import { useTimesheetHistory, approveTimesheet } from '@/hooks/useTimesheetHistory';
 import { PageSpinner } from '@/components/ui/Spinner';
 import { timesheetStatusBadge } from '@/components/ui/Badge';
+import { useToast } from '@/components/ui/Toast';
 import { Plus, Search } from 'lucide-react';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 export default function VehicleTimesheetHistoryPage() {
   const { machines, loading: machinesLoading } = useMachines();
-  const { timesheets, loading: tsLoading } = useTimesheetHistory();
+  const { timesheets, loading: tsLoading, refetch } = useTimesheetHistory();
+  const toast = useToast();
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'All' | 'approved' | 'draft'>('All');
   const [monthFilter, setMonthFilter] = useState('All');
@@ -148,11 +150,24 @@ export default function VehicleTimesheetHistoryPage() {
                     </td>
                     <td style={{ padding: '10px 13px' }}>{timesheetStatusBadge(ts.status)}</td>
                     <td style={{ padding: '10px 13px' }}>
-                      <Link href={`/vehicle-timesheet?vehicle=${ts.laborer_id}&ts=${ts.id}`} style={{
-                        fontSize: 11, fontWeight: 600, padding: '4px 9px', borderRadius: 6,
-                        border: '1px solid var(--border2)', background: 'var(--bg-card)',
-                        color: 'var(--text-light)', textDecoration: 'none',
-                      }}>EDIT</Link>
+                      <div className="flex items-center gap-2">
+                        <Link href={`/vehicle-timesheet?vehicle=${ts.laborer_id}&ts=${ts.id}`} style={{
+                          fontSize: 11, fontWeight: 600, padding: '4px 9px', borderRadius: 6,
+                          border: '1px solid var(--border2)', background: 'var(--bg-card)',
+                          color: 'var(--text-light)', textDecoration: 'none',
+                        }}>EDIT</Link>
+                        <button onClick={async () => {
+                          if (ts.status === 'approved') return;
+                          await approveTimesheet(ts.id);
+                          refetch(); toast.success('Timesheet approved');
+                        }} style={{
+                          fontSize: 11, fontWeight: 600, padding: '4px 9px', borderRadius: 6,
+                          border: 'none', cursor: ts.status === 'approved' ? 'default' : 'pointer',
+                          background: ts.status === 'approved' ? '#d1d5db' : 'var(--orange)',
+                          color: ts.status === 'approved' ? '#6b7280' : '#fff',
+                          opacity: ts.status === 'approved' ? 0.7 : 1,
+                        }}>{ts.status === 'approved' ? 'SAVED' : 'SAVE'}</button>
+                      </div>
                     </td>
                   </tr>
                 );

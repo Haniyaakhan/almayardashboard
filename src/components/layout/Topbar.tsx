@@ -1,7 +1,7 @@
 'use client';
 import React from 'react';
 import { usePathname } from 'next/navigation';
-import { Search, Sun, Moon } from 'lucide-react';
+import { Sun, Moon } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSupabaseUser } from '@/hooks/useSupabaseUser';
 
@@ -62,25 +62,6 @@ export function Topbar() {
         </div>
       </div>
       <div className="flex items-center gap-2.5">
-        {/* Search */}
-        <div className="flex items-center gap-2" style={{
-          background: 'var(--input-bg)',
-          borderRadius: 10,
-          padding: '7px 13px',
-          border: '1px solid var(--border)',
-          color: 'var(--text-light)',
-        }}>
-          <Search size={14} />
-          <input
-            type="text"
-            placeholder="Search..."
-            style={{
-              border: 'none', background: 'transparent',
-              fontSize: 13, color: 'var(--text-light)', width: 150,
-              outline: 'none',
-            }}
-          />
-        </div>
         {/* Theme toggle — hidden for now (light theme only) */}
         {/* <button
           onClick={toggleTheme}

@@ -60,7 +60,7 @@ export default function EquipmentPage() {
                 width: 180, outline: 'none',
               }} />
           </div>
-          <Link href="/machines/new" style={{
+          <Link href="/equipment/new" style={{
             display: 'flex', alignItems: 'center', gap: 6,
             background: 'var(--orange)', color: '#fff',
             border: 'none', padding: '8px 15px', borderRadius: 9,
@@ -75,7 +75,7 @@ export default function EquipmentPage() {
       {!filtered.length ? (
         <EmptyState icon={<Settings2 size={24} />} title="No equipment found"
           description="Register equipment to track usage and maintenance."
-          action={<Link href="/machines/new" style={{
+          action={<Link href="/equipment/new" style={{
             display: 'inline-flex', alignItems: 'center', gap: 6,
             background: 'var(--orange)', color: '#fff', border: 'none',
             padding: '8px 15px', borderRadius: 9, fontSize: '12.5px',

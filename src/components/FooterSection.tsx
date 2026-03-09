@@ -7,11 +7,10 @@ interface FooterSectionProps {
   vehicleMode?: boolean;
 }
 
-export default function FooterSection({ totalWorked, totalOT, totalActual, vehicleMode }: FooterSectionProps) {
-  // Vehicle mode: fixed minimum 260, OT = excess over 260, actual = total from table
-  const minHours = vehicleMode ? 260 : (totalWorked || 0);
-  const overTime = vehicleMode ? (totalWorked > 260 ? totalWorked - 260 : 0) : totalOT;
-  const actualHours = vehicleMode ? totalWorked : (totalActual || 0);
+export default function FooterSection({ totalWorked, totalOT, totalActual }: FooterSectionProps) {
+  const minHours = totalWorked || 0;
+  const overTime = totalOT || 0;
+  const actualHours = totalActual || 0;
 
   return (
     <div style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>

@@ -168,24 +168,24 @@ export function MachineForm({ initial, onSubmit, submitLabel = 'Save' }: Props) 
         </div>
       </div>
 
-      {/* Vehicle Type */}
+      {/* Type */}
       <div>
-        <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Vehicle Type <span style={{ color: '#e8762b' }}>*</span></label>
+        <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>{form.category === 'equipment' ? 'Equipment Type' : 'Vehicle Type'} <span style={{ color: '#e8762b' }}>*</span></label>
         <select required value={form.type} onChange={e => set('type', e.target.value)} className={inputClass} style={inputStyle} onFocus={focus} onBlur={blur}>
           <option value="">Select type…</option>
           {machineTypes.map(t => <option key={t} value={t}>{t}</option>)}
         </select>
       </div>
 
-      {/* Vehicle Name & Number */}
+      {/* Name */}
       <div>
-        <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Vehicle Name <span style={{ color: '#e8762b' }}>*</span></label>
+        <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>{form.category === 'equipment' ? 'Equipment Name' : 'Vehicle Name'} <span style={{ color: '#e8762b' }}>*</span></label>
         <input required value={form.name} onChange={e => set('name', e.target.value)} className={inputClass} style={inputStyle} onFocus={focus} onBlur={blur} />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Vehicle Number</label>
+          <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>{form.category === 'equipment' ? 'Equipment Number' : 'Vehicle Number'}</label>
           <input value={form.plate_number} onChange={e => set('plate_number', e.target.value)}
             className={inputClass} style={inputStyle} onFocus={focus} onBlur={blur} />
         </div>
@@ -222,7 +222,7 @@ export function MachineForm({ initial, onSubmit, submitLabel = 'Save' }: Props) 
             className={inputClass} style={inputStyle} onFocus={focus} onBlur={blur} />
         </div>
         <div>
-          <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Daily Rate (AED)</label>
+          <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Daily Rate (OMR)</label>
           <input type="number" value={form.daily_rate ?? ''}
             onChange={e => set('daily_rate', e.target.value ? Number(e.target.value) : null)}
             className={inputClass} style={inputStyle} onFocus={focus} onBlur={blur} />

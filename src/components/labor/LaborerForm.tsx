@@ -2,6 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
+import { useVendors } from '@/hooks/useVendors';
 import { createClient } from '@/lib/supabase/client';
 import { Upload, X, Image as ImageIcon } from 'lucide-react';
 import type { Laborer } from '@/types/database';
@@ -20,11 +21,10 @@ const field = (label: string, name: keyof FormData, type = 'text', required = fa
 const fields = [
   field('Full Name',        'full_name',     'text',   true),
   field('Designation',      'designation',   'text',   true),
-  field('Contractor', 'supplier_name'),
   field('ID / Iqama No.',   'id_number'),
   field('Nationality',      'nationality'),
   field('Phone',            'phone',         'tel'),
-  field('Daily Rate (AED)', 'daily_rate',    'number'),
+  field('Daily Rate (OMR)', 'daily_rate',    'number'),
 ];
 
 const bankFields = [
@@ -115,6 +115,7 @@ function PhotoUpload({ label, value, onChange }: { label: string; value: string 
 
 export function LaborerForm({ initial, onSubmit, submitLabel = 'Save' }: Props) {
   const toast = useToast();
+  const { vendors } = useVendors();
   const [form, setForm] = useState<FormData>({
     full_name: '', designation: '', supplier_name: '', id_number: '',
     nationality: '', phone: '', daily_rate: null, is_active: true, notes: '',
@@ -135,10 +136,14 @@ export function LaborerForm({ initial, onSubmit, submitLabel = 'Save' }: Props) 
     setLoading(false);
   }
 
+  const inputStyle = { background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' };
+  const onFocus = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => { e.target.style.borderColor = 'var(--orange)'; e.target.style.boxShadow = '0 0 0 3px rgba(255,107,43,0.1)'; };
+  const onBlur = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-5 max-w-lg">
       {/* Basic Fields */}
-      {fields.map(f => (
+      {fields.slice(0, 2).map(f => (
         <div key={f.name}>
           <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>
             {f.label}{f.required && <span style={{ color: '#e8762b' }}> *</span>}
@@ -148,9 +153,37 @@ export function LaborerForm({ initial, onSubmit, submitLabel = 'Save' }: Props) 
             value={(form[f.name] ?? '') as string}
             onChange={e => set(f.name, f.type === 'number' ? (e.target.value ? Number(e.target.value) : null) : e.target.value)}
             className="w-full px-3 py-2 rounded-lg text-sm outline-none"
-            style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
-            onFocus={e => { e.target.style.borderColor = 'var(--orange)'; e.target.style.boxShadow = '0 0 0 3px rgba(255,107,43,0.1)'; }}
-            onBlur={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; }}
+            style={inputStyle} onFocus={onFocus} onBlur={onBlur}
+          />
+        </div>
+      ))}
+
+      {/* Contractor dropdown */}
+      <div>
+        <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Contractor</label>
+        <select
+          value={form.supplier_name ?? ''}
+          onChange={e => set('supplier_name', e.target.value)}
+          className="w-full px-3 py-2 rounded-lg text-sm outline-none"
+          style={inputStyle} onFocus={onFocus} onBlur={onBlur}
+        >
+          <option value="">— No contractor —</option>
+          {vendors.map(v => <option key={v.id} value={v.name}>{v.name}</option>)}
+        </select>
+      </div>
+
+      {/* Remaining fields */}
+      {fields.slice(2).map(f => (
+        <div key={f.name}>
+          <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>
+            {f.label}{f.required && <span style={{ color: '#e8762b' }}> *</span>}
+          </label>
+          <input
+            type={f.type} required={f.required}
+            value={(form[f.name] ?? '') as string}
+            onChange={e => set(f.name, f.type === 'number' ? (e.target.value ? Number(e.target.value) : null) : e.target.value)}
+            className="w-full px-3 py-2 rounded-lg text-sm outline-none"
+            style={inputStyle} onFocus={onFocus} onBlur={onBlur}
           />
         </div>
       ))}

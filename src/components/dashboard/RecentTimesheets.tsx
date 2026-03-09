@@ -2,16 +2,44 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { timesheetStatusBadge } from '@/components/ui/Badge';
-import type { Timesheet } from '@/types/database';
+import type { Timesheet, Laborer, Machine } from '@/types/database';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-export function RecentTimesheets({ timesheets }: { timesheets: Timesheet[] }) {
+interface Props {
+  timesheets: Timesheet[];
+  laborers: Laborer[];
+  machines: Machine[];
+}
+
+export function RecentTimesheets({ timesheets, laborers, machines }: Props) {
   const [filter, setFilter] = useState<'All' | 'approved' | 'draft'>('All');
 
-  const filtered = filter === 'All'
-    ? timesheets
-    : timesheets.filter(ts => ts.status === filter);
+  const laborerMap = new Map(laborers.map(l => [l.id, l]));
+  const machineMap = new Map(machines.map(m => [m.id, m]));
+  const laborerIds = new Set(laborers.map(l => l.id));
+  const vehicleIds = new Set(machines.filter(m => m.category === 'vehicle').map(m => m.id));
+  const equipmentIds = new Set(machines.filter(m => m.category === 'equipment').map(m => m.id));
+
+  function resolveEntry(ts: Timesheet) {
+    const id = ts.laborer_id ?? '';
+    if (laborerIds.has(id)) {
+      const l = laborerMap.get(id);
+      return { name: l?.full_name ?? '—', sub: l?.designation ?? '—', type: 'Labor', color: '#ff6b2b', href: `/timesheet/history/${ts.id}` };
+    }
+    if (vehicleIds.has(id)) {
+      const m = machineMap.get(id);
+      return { name: m?.name ?? '—', sub: m?.plate_number ?? '—', type: 'Vehicle', color: '#3b82f6', href: `/vehicle-timesheet?vehicle=${id}&ts=${ts.id}` };
+    }
+    if (equipmentIds.has(id)) {
+      const m = machineMap.get(id);
+      return { name: m?.name ?? '—', sub: m?.plate_number ?? '—', type: 'Equipment', color: '#14b8a6', href: `/equipment-timesheet?equipment=${id}&ts=${ts.id}` };
+    }
+    return { name: '—', sub: '—', type: 'Unknown', color: '#9ca3af', href: '#' };
+  }
+
+  const filtered = (filter === 'All' ? timesheets : timesheets.filter(ts => ts.status === filter))
+    .slice(0, 10);
 
   const tabs: { label: string; value: 'All' | 'approved' | 'draft' }[] = [
     { label: 'All', value: 'All' },
@@ -32,7 +60,7 @@ export function RecentTimesheets({ timesheets }: { timesheets: Timesheet[] }) {
         borderBottom: '1px solid var(--border)',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       }}>
-        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Timesheets</span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Recent Timesheets</span>
         <div style={{ display: 'flex', gap: 5 }}>
           {tabs.map(t => (
             <button key={t.value} onClick={() => setFilter(t.value)} style={{
@@ -54,10 +82,8 @@ export function RecentTimesheets({ timesheets }: { timesheets: Timesheet[] }) {
         </div>
       ) : (
         <div>
-          {filtered.slice(0, 8).map(ts => {
-            const laborerData = ts.laborer as any;
-            const dailyRate = laborerData?.daily_rate ?? 0;
-            const salary = dailyRate > 0 ? Math.round(dailyRate * (ts.total_actual / 10)) : 0;
+          {filtered.map(ts => {
+            const { name, sub, type, color, href } = resolveEntry(ts);
             return (
               <div key={ts.id} style={{
                 padding: '10px 14px',
@@ -68,18 +94,24 @@ export function RecentTimesheets({ timesheets }: { timesheets: Timesheet[] }) {
               onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>
-                    {laborerData?.full_name ?? '—'}
-                  </span>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--orange)' }}>
-                    {salary > 0 ? `${salary} AED` : `${ts.total_actual}h`}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
+                    <span style={{
+                      fontSize: 9.5, fontWeight: 700, padding: '2px 6px', borderRadius: 4,
+                      background: `${color}18`, color, flexShrink: 0,
+                    }}>{type}</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {name}
+                    </span>
+                  </div>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--orange)', flexShrink: 0, marginLeft: 8 }}>
+                    {ts.total_actual}h
                   </span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 3 }}>
                   <span style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>
-                    {laborerData?.designation ?? '—'} · {ts.total_actual}hrs · {MONTHS[ts.month]} {ts.year}
+                    {sub} · {MONTHS[ts.month]} {ts.year}
                   </span>
-                  <Link href={`/timesheet/history/${ts.id}`} className="inline-flex">
+                  <Link href={href} className="inline-flex">
                     {timesheetStatusBadge(ts.status)}
                   </Link>
                 </div>

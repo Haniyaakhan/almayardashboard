@@ -148,7 +148,7 @@ export default function TimesheetHistoryPage() {
                       {ts.total_actual} hrs
                     </td>
                     <td style={{ padding: '10px 13px', fontSize: 12, fontWeight: 700, color: 'var(--orange)' }}>
-                      {salary > 0 ? `${salary} AED` : '—'}
+                      {salary > 0 ? `${salary} OMR` : '—'}
                     </td>
                     <td style={{ padding: '10px 13px' }}>{timesheetStatusBadge(ts.status)}</td>
                     <td style={{ padding: '10px 13px' }}>

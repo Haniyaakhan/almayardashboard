@@ -70,7 +70,7 @@ export default function MachineDetailPage() {
           ['Vehicle Number', machine.plate_number || '—'],
           ['Operator Name', machine.operator_name || '—'],
           ['Operator ID', machine.operator_id || '—'],
-          ['Daily Rate', machine.daily_rate ? `AED ${machine.daily_rate}` : '—'],
+          ['Daily Rate', machine.daily_rate ? `OMR ${machine.daily_rate}` : '—'],
           ['Total Hours Logged', `${totalHours.toFixed(1)}h`],
         ].map(([label, val]) => (
           <div key={label} className="rounded-xl p-4" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>

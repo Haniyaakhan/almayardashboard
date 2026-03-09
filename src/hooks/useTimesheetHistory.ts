@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { Timesheet } from '@/types/database';
 
-export function useTimesheetHistory(laborerId?: string) {
+export function useTimesheetHistory(laborerId?: string, limit?: number) {
   const [timesheets, setTimesheets] = useState<Timesheet[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -12,10 +12,11 @@ export function useTimesheetHistory(laborerId?: string) {
     const supabase = createClient();
     let q = supabase.from('timesheets').select('*').order('year', { ascending: false }).order('month', { ascending: false });
     if (laborerId) q = q.eq('laborer_id', laborerId);
+    if (limit) q = q.limit(limit);
     const { data } = await q;
     setTimesheets((data ?? []) as Timesheet[]);
     setLoading(false);
-  }, [laborerId]);
+  }, [laborerId, limit]);
 
   useEffect(() => { fetch(); }, [fetch]);
   return { timesheets, loading, refetch: fetch };
