@@ -10,7 +10,7 @@ export function useTimesheetHistory(laborerId?: string) {
   const fetch = useCallback(async () => {
     setLoading(true);
     const supabase = createClient();
-    let q = supabase.from('timesheets').select('*, laborer:laborers(full_name, designation)').order('year', { ascending: false }).order('month', { ascending: false });
+    let q = supabase.from('timesheets').select('*').order('year', { ascending: false }).order('month', { ascending: false });
     if (laborerId) q = q.eq('laborer_id', laborerId);
     const { data } = await q;
     setTimesheets((data ?? []) as Timesheet[]);
@@ -25,7 +25,7 @@ export async function getTimesheetWithEntries(id: string): Promise<Timesheet | n
   const supabase = createClient();
   const { data } = await supabase
     .from('timesheets')
-    .select('*, laborer:laborers(*), entries:timesheet_entries(*)')
+    .select('*, entries:timesheet_entries(*)')
     .eq('id', id).single();
   return data as Timesheet | null;
 }
@@ -34,7 +34,7 @@ export async function getTimesheetByLaborer(laborerId: string, month: number, ye
   const supabase = createClient();
   const { data } = await supabase
     .from('timesheets')
-    .select('*, laborer:laborers(*), entries:timesheet_entries(*)')
+    .select('*, entries:timesheet_entries(*)')
     .eq('laborer_id', laborerId)
     .eq('month', month)
     .eq('year', year)
