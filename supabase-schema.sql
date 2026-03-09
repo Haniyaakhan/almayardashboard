@@ -29,9 +29,10 @@ create table public.laborers (
 create table public.vendors (
   id             uuid primary key default uuid_generate_v4(),
   name           text not null,
-  contact_person text not null default '',
-  phone          text not null default '',
-  email          text not null default '',
+  contact_person       text not null default '',
+  contact_person_phone text not null default '',
+  company_phone        text not null default '',
+  email                text not null default '',
   address        text not null default '',
   notes          text,
   is_active      boolean not null default true,
@@ -82,7 +83,7 @@ create unique index machine_usage_logs_machine_day_idx on public.machine_usage_l
 -- TIMESHEETS
 create table public.timesheets (
   id                  uuid primary key default uuid_generate_v4(),
-  laborer_id          uuid references public.laborers(id) on delete set null,
+  laborer_id          uuid, -- no FK: stores laborer OR machine UUID
   month               int not null check (month between 0 and 11),
   year                int not null,
   project_name        text not null default '',

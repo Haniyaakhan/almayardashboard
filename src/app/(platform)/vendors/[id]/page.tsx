@@ -28,7 +28,7 @@ export default function VendorDetailPage() {
       <Card>
         <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">Contact Details</h3>
         <div className="grid grid-cols-2 gap-4 text-sm">
-          {[['Contact Person', vendor.contact_person], ['Phone', vendor.phone], ['Email', vendor.email], ['Address', vendor.address]].map(([l, v]) => (
+          {[['Contact Person', vendor.contact_person], ['Contact Person Phone', vendor.contact_person_phone], ['Company Phone', vendor.company_phone], ['Email', vendor.email], ['Address', vendor.address]].map(([l, v]) => (
             <div key={l}>
               <div className="text-xs mb-0.5" style={{ color: 'var(--text-muted)' }}>{l}</div>
               <div className="text-[var(--text-primary)]">{v || '—'}</div>

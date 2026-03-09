@@ -75,7 +75,7 @@ export default function VendorsPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: 'var(--thead-bg)' }}>
-                {['Company', 'Contact', 'Phone', 'Email', 'Actions'].map(h => (
+                {['Company', 'Contact', 'Contact Phone', 'Company Phone', 'Email', 'Actions'].map(h => (
                   <th key={h} style={{
                     padding: '10px 13px', fontSize: '10.5px', fontWeight: 600,
                     color: 'var(--text-muted)', textAlign: 'left',
@@ -103,7 +103,8 @@ export default function VendorsPage() {
                     >{v.name}</Link>
                   </td>
                   <td style={{ padding: '10px 13px', fontSize: 12, color: 'var(--text-light)' }}>{v.contact_person || '—'}</td>
-                  <td style={{ padding: '10px 13px', fontSize: 12, color: 'var(--text-light)' }}>{v.phone || '—'}</td>
+                  <td style={{ padding: '10px 13px', fontSize: 12, color: 'var(--text-light)' }}>{v.contact_person_phone || '—'}</td>
+                  <td style={{ padding: '10px 13px', fontSize: 12, color: 'var(--text-light)' }}>{v.company_phone || '—'}</td>
                   <td style={{ padding: '10px 13px', fontSize: 12, color: 'var(--text-light)' }}>{v.email || '—'}</td>
                   <td style={{ padding: '10px 13px' }}>
                     <div className="flex items-center gap-1.5">

@@ -11,7 +11,7 @@ interface Props { initial?: Partial<FormData>; onSubmit: (data: FormData) => Pro
 export function VendorForm({ initial, onSubmit, submitLabel = 'Save' }: Props) {
   const toast = useToast();
   const [form, setForm] = useState<FormData>({
-    name: '', contact_person: '', phone: '', email: '', address: '', notes: '', is_active: true, ...initial,
+    name: '', contact_person: '', contact_person_phone: '', company_phone: '', email: '', address: '', notes: '', is_active: true, ...initial,
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -19,7 +19,8 @@ export function VendorForm({ initial, onSubmit, submitLabel = 'Save' }: Props) {
   const fields = [
     { label: 'Company Name', name: 'name' as const, required: true },
     { label: 'Contact Person', name: 'contact_person' as const },
-    { label: 'Phone', name: 'phone' as const, type: 'tel' },
+    { label: 'Contact Person Phone', name: 'contact_person_phone' as const, type: 'tel' },
+    { label: 'Company Phone', name: 'company_phone' as const, type: 'tel' },
     { label: 'Email', name: 'email' as const, type: 'email' },
     { label: 'Address', name: 'address' as const },
   ];

@@ -21,7 +21,8 @@ export interface Vendor {
   id: string;
   name: string;
   contact_person: string;
-  phone: string;
+  contact_person_phone: string;
+  company_phone: string;
   email: string;
   address: string;
   notes: string | null;

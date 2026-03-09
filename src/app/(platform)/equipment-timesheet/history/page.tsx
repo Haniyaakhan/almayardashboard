@@ -4,9 +4,8 @@ import Link from 'next/link';
 import { useMachines } from '@/hooks/useMachines';
 import { useTimesheetHistory } from '@/hooks/useTimesheetHistory';
 import { PageSpinner } from '@/components/ui/Spinner';
-import { EmptyState } from '@/components/ui/EmptyState';
 import { timesheetStatusBadge } from '@/components/ui/Badge';
-import { ClipboardList, Plus, Search } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -17,7 +16,6 @@ export default function EquipmentTimesheetHistoryPage() {
   const [filter, setFilter] = useState<'All' | 'approved' | 'draft'>('All');
   const [monthFilter, setMonthFilter] = useState('All');
 
-  // Filter timesheets that belong to equipment (laborer_id matches a machine id)
   const machineIds = new Set(machines.map(m => m.id));
   const equipmentTimesheets = timesheets.filter(ts => ts.laborer_id && machineIds.has(ts.laborer_id));
 
@@ -99,64 +97,20 @@ export default function EquipmentTimesheetHistoryPage() {
         </div>
       </div>
 
-      {/* Equipment list - show all equipment with option to create timesheet */}
+      {/* Saved Timesheets */}
       <div style={{
         background: 'var(--bg-card)', borderRadius: 13,
         border: '1px solid var(--border)', overflow: 'hidden',
-        boxShadow: '0 2px 10px rgba(0,0,0,0.04)', marginBottom: 20,
+        boxShadow: '0 2px 10px rgba(0,0,0,0.04)',
       }}>
         <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
-          Equipment
+          Equipment Timesheets
         </div>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ background: 'var(--thead-bg)' }}>
-              {['Equipment Name', 'Type', 'Reg No', 'Status', 'Actions'].map(h => (
-                <th key={h} style={{
-                  padding: '10px 13px', fontSize: '10.5px', fontWeight: 600,
-                  color: 'var(--text-muted)', textAlign: 'left',
-                  letterSpacing: '0.5px', textTransform: 'uppercase',
-                }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {machines.length === 0 ? (
-              <tr><td colSpan={5} style={{ padding: 20, textAlign: 'center', fontSize: 13, color: 'var(--text-muted)' }}>No equipment found.</td></tr>
-            ) : machines.map(m => (
-              <tr key={m.id} style={{ borderBottom: '1px solid #f4f1ed', transition: 'background 0.1s' }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'var(--row-hover)'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
-              >
-                <td style={{ padding: '10px 13px', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                  {m.name}
-                </td>
-                <td style={{ padding: '10px 13px', fontSize: 12, color: 'var(--text-light)' }}>{m.type || '—'}</td>
-                <td style={{ padding: '10px 13px', fontSize: 12, color: 'var(--text-light)', fontFamily: 'monospace', fontWeight: 700 }}>{m.plate_number || '—'}</td>
-                <td style={{ padding: '10px 13px', fontSize: 12, color: 'var(--text-light)' }}>{m.status}</td>
-                <td style={{ padding: '10px 13px' }}>
-                  <Link href={`/equipment-timesheet?equipment=${m.id}`} style={{
-                    fontSize: 11, fontWeight: 600, padding: '4px 12px', borderRadius: 6,
-                    background: 'var(--orange)', color: '#fff', textDecoration: 'none',
-                    display: 'inline-block',
-                  }}>TIMESHEET</Link>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Equipment Timesheets History */}
-      {filtered.length > 0 && (
-        <div style={{
-          background: 'var(--bg-card)', borderRadius: 13,
-          border: '1px solid var(--border)', overflow: 'hidden',
-          boxShadow: '0 2px 10px rgba(0,0,0,0.04)',
-        }}>
-          <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
-            Saved Timesheets
+        {filtered.length === 0 ? (
+          <div style={{ padding: 32, textAlign: 'center', fontSize: 13, color: 'var(--text-muted)' }}>
+            No saved timesheets yet. Click <strong>ADD NEW SHEET</strong> to create one.
           </div>
+        ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: 'var(--thead-bg)' }}>
@@ -181,7 +135,7 @@ export default function EquipmentTimesheetHistoryPage() {
                       {machine?.name ?? '—'}
                     </td>
                     <td style={{ padding: '10px 13px', fontSize: 12, color: 'var(--text-light)', fontFamily: 'monospace', fontWeight: 700 }}>
-                      {machine?.plate_number ?? ts.designation ?? '—'}
+                      {machine?.plate_number ?? '—'}
                     </td>
                     <td style={{ padding: '10px 13px', fontSize: 12, color: 'var(--text-light)' }}>
                       {MONTHS[ts.month]} {ts.year}
@@ -191,21 +145,19 @@ export default function EquipmentTimesheetHistoryPage() {
                     </td>
                     <td style={{ padding: '10px 13px' }}>{timesheetStatusBadge(ts.status)}</td>
                     <td style={{ padding: '10px 13px' }}>
-                      <div className="flex items-center gap-2">
-                        <Link href={`/equipment-timesheet?equipment=${ts.laborer_id}&ts=${ts.id}`} style={{
-                          fontSize: 11, fontWeight: 600, padding: '4px 9px', borderRadius: 6,
-                          border: '1px solid var(--border2)', background: 'var(--bg-card)',
-                          color: 'var(--text-light)', textDecoration: 'none',
-                        }}>EDIT</Link>
-                      </div>
+                      <Link href={`/equipment-timesheet?equipment=${ts.laborer_id}&ts=${ts.id}`} style={{
+                        fontSize: 11, fontWeight: 600, padding: '4px 9px', borderRadius: 6,
+                        border: '1px solid var(--border2)', background: 'var(--bg-card)',
+                        color: 'var(--text-light)', textDecoration: 'none',
+                      }}>EDIT</Link>
                     </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
