@@ -73,6 +73,7 @@ export interface MachineUsageLog {
 export interface Timesheet {
   id: string;
   laborer_id: string | null;
+  sheet_type: 'labor' | 'vehicle' | 'equipment' | null;
   month: number;
   year: number;
   project_name: string;

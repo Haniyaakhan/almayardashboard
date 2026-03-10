@@ -134,6 +134,7 @@ function VehicleTimesheetPageInner() {
     const vehicleId = selectedVehicleId || searchParams.get('vehicle') || null;
     const error = await saveTimesheet({
       laborer_id: vehicleId,
+      sheet_type: 'vehicle',
       month: timesheet.month,
       year: timesheet.year,
       project_name: timesheet.projectName,

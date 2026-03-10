@@ -5,7 +5,7 @@ import { useSupabaseUser } from '@/hooks/useSupabaseUser';
 import { createClient } from '@/lib/supabase/client';
 import {
   LayoutDashboard, ClipboardList, Users, Truck,
-  Settings2, Wrench, FileBarChart, LogOut,
+  Settings2, Wrench, FileBarChart, LogOut, FilePlus,
 } from 'lucide-react';
 
 const navItems = [
@@ -17,6 +17,7 @@ const navItems = [
   { href: '/timesheet/history', icon: <ClipboardList size={19} />, label: 'Labor Timesheets' },
   { href: '/vehicle-timesheet/history', icon: <ClipboardList size={19} />, label: 'Vehicle Timesheets' },
   { href: '/equipment-timesheet/history', icon: <ClipboardList size={19} />, label: 'Equipment Timesheets' },
+  { href: '/manual-timesheets', icon: <FilePlus size={19} />, label: 'Manual Timesheets' },
   { href: '/reports', icon: <FileBarChart size={19} />, label: 'Reports' },
 ];
 

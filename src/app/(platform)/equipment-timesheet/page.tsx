@@ -133,6 +133,7 @@ function EquipmentTimesheetPageInner() {
     const equipmentId = selectedEquipmentId || searchParams.get('equipment') || null;
     const error = await saveTimesheet({
       laborer_id: equipmentId,
+      sheet_type: 'equipment',
       month: timesheet.month,
       year: timesheet.year,
       project_name: timesheet.projectName,

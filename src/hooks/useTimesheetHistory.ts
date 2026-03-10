@@ -52,6 +52,7 @@ export async function approveTimesheet(id: string): Promise<Error | null> {
 
 export async function saveTimesheet(payload: {
   laborer_id: string | null;
+  sheet_type?: 'labor' | 'vehicle' | 'equipment';
   month: number; year: number;
   project_name: string; supplier_name: string;
   site_engineer_name: string; designation: string;
