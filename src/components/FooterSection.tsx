@@ -8,10 +8,9 @@ interface FooterSectionProps {
 }
 
 export default function FooterSection({ totalWorked, totalOT, totalActual, vehicleMode }: FooterSectionProps) {
-  // Vehicle/Equipment: minimum is always 260 hrs fixed; anything above 260 = overtime
-  const minHours   = vehicleMode ? 260 : (totalWorked || 0);
-  const overTime   = vehicleMode ? Math.max(0, (totalWorked || 0) - 260) : (totalOT || 0);
-  const actualHours = vehicleMode ? (totalWorked || 0) : (totalActual || 0);
+  const minHours    = totalWorked || 0;
+  const overTime    = totalOT || 0;
+  const actualHours = totalActual || 0;
 
   return (
     <div style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
@@ -39,15 +38,23 @@ export default function FooterSection({ totalWorked, totalOT, totalActual, vehic
 
         {/* Summary Section */}
         <div className="text-right" style={{ whiteSpace: 'nowrap' }}>
-          <div className="mb-1">
-            Minimum Worked Hours <span className="font-bold">= {minHours}</span>
-          </div>
-          <div className="mb-1">
-            Over Time (+Value)/Less Worked (-Value) = <span className="font-bold">{overTime !== 0 ? overTime : 'NIL'}</span>
-          </div>
-          <div className="mb-1">
-            TOTAL WORKED HOURS <span className="font-bold">= {actualHours}</span>
-          </div>
+          {vehicleMode ? (
+            <div className="mb-1">
+              TOTAL WORKED HOURS <span className="font-bold">= {minHours}</span>
+            </div>
+          ) : (
+            <>
+              <div className="mb-1">
+                Minimum Worked Hours <span className="font-bold">= {minHours}</span>
+              </div>
+              <div className="mb-1">
+                Over Time (+Value)/Less Worked (-Value) = <span className="font-bold">{overTime !== 0 ? overTime : 'NIL'}</span>
+              </div>
+              <div className="mb-1">
+                TOTAL WORKED HOURS <span className="font-bold">= {actualHours}</span>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
