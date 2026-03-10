@@ -128,7 +128,7 @@ export default function TimesheetHistoryPage() {
                           fontSize: 10, fontWeight: 700, flexShrink: 0,
                           background: 'rgba(59,130,246,0.08)', color: 'var(--blue)',
                         }}>
-                          {(laborerData?.full_name ?? '—').split(' ').map((w: string) => w[0] ?? '').join('').slice(0, 2).toUpperCase()}
+                          {(laborerData?.full_name ?? ts.labor_name ?? '—').split(' ').map((w: string) => w[0] ?? '').join('').slice(0, 2).toUpperCase()}
                         </div>
                         <Link href={`/timesheet/history/${ts.id}`} style={{
                           fontSize: '12.5px', fontWeight: 600, color: 'var(--text-secondary)',
@@ -137,7 +137,7 @@ export default function TimesheetHistoryPage() {
                         onMouseEnter={e => { e.currentTarget.style.color = 'var(--orange)'; }}
                         onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-secondary)'; }}
                         >
-                          {laborerData?.full_name ?? '—'}
+                          {laborerData?.full_name ?? ts.labor_name ?? '—'}
                         </Link>
                       </div>
                     </td>

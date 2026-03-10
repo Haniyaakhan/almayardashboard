@@ -134,6 +134,7 @@ function EquipmentTimesheetPageInner() {
     const error = await saveTimesheet({
       laborer_id: equipmentId,
       sheet_type: 'equipment',
+      labor_name: timesheet.laborName || undefined,
       month: timesheet.month,
       year: timesheet.year,
       project_name: timesheet.projectName,

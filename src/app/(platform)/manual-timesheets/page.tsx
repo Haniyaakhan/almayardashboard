@@ -47,9 +47,9 @@ export default function ManualTimesheetsPage() {
 
   function resolveName(ts: (typeof timesheets)[0], type: SheetType): string {
     const id = ts.laborer_id ?? '';
-    if (type === 'labor')     return laborerMap.get(id)?.full_name ?? ts.designation ?? '—';
-    if (type === 'vehicle')   return vehicleMap.get(id)?.name ?? ts.designation ?? '—';
-    if (type === 'equipment') return equipMap.get(id)?.name ?? ts.designation ?? '—';
+    if (type === 'labor')     return laborerMap.get(id)?.full_name ?? ts.labor_name ?? ts.designation ?? '—';
+    if (type === 'vehicle')   return vehicleMap.get(id)?.name ?? ts.labor_name ?? ts.designation ?? '—';
+    if (type === 'equipment') return equipMap.get(id)?.name ?? ts.labor_name ?? ts.designation ?? '—';
     return '—';
   }
 

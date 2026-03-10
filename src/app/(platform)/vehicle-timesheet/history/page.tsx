@@ -31,8 +31,9 @@ export default function VehicleTimesheetHistoryPage() {
     const matchStatus = filter === 'All' || ts.status === filter;
     const matchMonth = monthFilter === 'All' || `${MONTHS[ts.month]} ${ts.year}` === monthFilter;
     const machine = machines.find(m => m.id === ts.laborer_id);
-    const matchSearch = !search || (machine?.name ?? '').toLowerCase().includes(search.toLowerCase()) ||
-      (machine?.plate_number ?? '').toLowerCase().includes(search.toLowerCase());
+    const displayName = machine?.name ?? ts.labor_name ?? '';
+    const matchSearch = !search || displayName.toLowerCase().includes(search.toLowerCase()) ||
+      (machine?.plate_number ?? ts.designation ?? '').toLowerCase().includes(search.toLowerCase());
     return matchStatus && matchMonth && matchSearch;
   });
 
@@ -136,13 +137,13 @@ export default function VehicleTimesheetHistoryPage() {
                     onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                   >
                     <td style={{ padding: '10px 13px', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                      {machine?.name ?? '—'}
+                      {machine?.name ?? ts.labor_name ?? '—'}
                     </td>
                     <td style={{ padding: '10px 13px', fontSize: 12, color: 'var(--text-light)', fontFamily: 'monospace', fontWeight: 700 }}>
-                      {machine?.plate_number ?? '—'}
+                      {machine?.plate_number ?? ts.designation ?? '—'}
                     </td>
                     <td style={{ padding: '10px 13px', fontSize: 12, color: 'var(--text-light)' }}>
-                      {machine?.operator_name ?? ts.designation ?? '—'}
+                      {machine?.operator_name ?? ts.labor_name ?? ts.designation ?? '—'}
                     </td>
                     <td style={{ padding: '10px 13px', fontSize: 12, color: 'var(--text-light)' }}>
                       {MONTHS[ts.month]} {ts.year}

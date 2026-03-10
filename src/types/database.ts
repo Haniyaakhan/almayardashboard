@@ -74,6 +74,7 @@ export interface Timesheet {
   id: string;
   laborer_id: string | null;
   sheet_type: 'labor' | 'vehicle' | 'equipment' | null;
+  labor_name: string | null;
   month: number;
   year: number;
   project_name: string;

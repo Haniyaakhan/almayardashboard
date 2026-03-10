@@ -10,7 +10,9 @@ export function useTimesheetHistory(laborerId?: string, limit?: number) {
   const fetch = useCallback(async () => {
     setLoading(true);
     const supabase = createClient();
-    let q = supabase.from('timesheets').select('*').order('year', { ascending: false }).order('month', { ascending: false });
+    let q = supabase.from('timesheets')
+      .select('id, laborer_id, sheet_type, labor_name, month, year, project_name, supplier_name, site_engineer_name, designation, total_worked, total_ot, total_actual, status, created_at, updated_at')
+      .order('year', { ascending: false }).order('month', { ascending: false });
     if (laborerId) q = q.eq('laborer_id', laborerId);
     if (limit) q = q.limit(limit);
     const { data } = await q;
@@ -53,6 +55,7 @@ export async function approveTimesheet(id: string): Promise<Error | null> {
 export async function saveTimesheet(payload: {
   laborer_id: string | null;
   sheet_type?: 'labor' | 'vehicle' | 'equipment';
+  labor_name?: string;
   month: number; year: number;
   project_name: string; supplier_name: string;
   site_engineer_name: string; designation: string;
