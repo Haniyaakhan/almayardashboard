@@ -127,8 +127,8 @@ button, input, select, textarea {
   .w-a4 {
     width: 205mm !important;
     min-height: auto !important;
-    margin: 2mm 2.5mm 0 2.5mm !important;
-    transform: scaleY(0.95);
+    margin: 1mm 2.5mm 1mm 2.5mm !important;
+    transform: scaleY(0.935);
     transform-origin: top left;
     border: 1px solid black !important;
   }

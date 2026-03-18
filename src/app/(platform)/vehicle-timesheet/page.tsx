@@ -10,6 +10,7 @@ import InfoTable from '@/components/InfoTable';
 import WorkTable from '@/components/WorkTable';
 import FooterSection from '@/components/FooterSection';
 import ExportButtons from '@/components/ExportButtons';
+import TemplateRow from '@/components/TemplateRow';
 import { Button } from '@/components/ui/Button';
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/Toast';
@@ -250,6 +251,7 @@ function VehicleTimesheetPageInner() {
             totalActual={timesheet.totalActual}
           />
         </div>
+        <TemplateRow sheetType="vehicle" month={timesheet.month} year={timesheet.year} workData={timesheet.workData} onUpdateDayEntry={timesheet.updateDayEntry} />
       </div>
 
       {/* A4 Timesheet */}

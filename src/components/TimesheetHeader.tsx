@@ -6,7 +6,7 @@ export default function TimesheetHeader({ title = 'Labor Time Sheet' }: { title?
       {/* 2-column layout: Logo | Content */}
       <div style={{ display: 'flex', gap: '35px', alignItems: 'stretch' }}>
         {/* Logo */}
-        <div style={{ width: '144px', flexShrink: 0, alignItems: 'center',marginTop:'17px' }}>
+        <div style={{ width: '144px', flexShrink: 0, alignItems: 'center',marginTop:'6px' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/npclogo.png"
@@ -32,13 +32,13 @@ export default function TimesheetHeader({ title = 'Labor Time Sheet' }: { title?
           </div>
 
           {/* Below title: center text on left, SITE USE on right */}
-          <div style={{ display: 'flex', marginTop: '6px' }}>
+          <div style={{ display: 'flex', marginTop: '1px' }}>
             {/* Center text area */}
             <div style={{ flex: 1, textAlign: 'right' }}>
-              <div style={{ fontSize: '16px', fontStyle: 'normal', fontWeight: 'normal', marginRight: '100px',marginTop:'11px', }}>
+              <div style={{ fontSize: '16px', fontStyle: 'normal', fontWeight: 'normal', marginRight: '100px',marginTop:'4px', }}>
                 Labor Working At Site
               </div>
-              <div style={{ fontSize: '16px', fontWeight: 'normal', fontStyle: 'normal', marginTop: '6px', marginRight: '70px' }}>
+              <div style={{ fontSize: '16px', fontWeight: 'normal', fontStyle: 'normal', marginTop: '2px', marginRight: '70px' }}>
                 LPO
               </div>
             </div>
@@ -52,7 +52,7 @@ export default function TimesheetHeader({ title = 'Labor Time Sheet' }: { title?
                 fontStyle: 'normal',
                 flexShrink: 0,
                 width: '180px',
-                marginTop:'17px',
+                marginTop:'6px',
                 tableLayout: 'fixed',
               }}
             >
@@ -84,7 +84,7 @@ export default function TimesheetHeader({ title = 'Labor Time Sheet' }: { title?
                   <td
                     className="border border-black"
                     colSpan={2}
-                    style={{ height: '18px' }}
+                    style={{ height: '14px' }}
                   >
                   </td>
                 </tr>
