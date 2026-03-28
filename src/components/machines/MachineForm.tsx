@@ -112,8 +112,38 @@ export function MachineForm({ initial, onSubmit, submitLabel = 'Save' }: Props) 
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showContactEditor, setShowContactEditor] = useState(false);
 
   function set(key: keyof FormData, value: unknown) { setForm(p => ({ ...p, [key]: value })); }
+
+  const selectedVendor = vendors.find((v) => v.id === form.vendor_id);
+  const selectedVendorContactPerson = selectedVendor?.contact_person?.trim() ?? '';
+  const selectedVendorContactNumber = (selectedVendor?.contact_person_phone || selectedVendor?.company_phone || '').trim();
+  const hasVendorContactInfo = Boolean(selectedVendorContactPerson || selectedVendorContactNumber);
+
+  function handleVendorChange(vendorId: string) {
+    if (!vendorId) {
+      set('vendor_id', null);
+      setShowContactEditor(true);
+      return;
+    }
+
+    const vendor = vendors.find((v) => v.id === vendorId);
+    set('vendor_id', vendorId);
+
+    const contactPerson = vendor?.contact_person?.trim() || null;
+    const contactNumber = (vendor?.contact_person_phone || vendor?.company_phone || '').trim() || null;
+
+    if (contactPerson || contactNumber) {
+      set('contact_person', contactPerson);
+      set('contact_number', contactNumber);
+      setShowContactEditor(false);
+    } else {
+      set('contact_person', null);
+      set('contact_number', null);
+      setShowContactEditor(false);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault(); setLoading(true); setError('');
@@ -133,11 +163,20 @@ export function MachineForm({ initial, onSubmit, submitLabel = 'Save' }: Props) 
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 max-w-lg">
+    <form onSubmit={handleSubmit} className="space-y-5 w-full">
+      <div style={{
+        border: '1px solid var(--border)',
+        borderRadius: 12,
+        padding: '14px 14px 10px',
+        background: 'var(--bg-card)',
+      }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 10 }}>
+          Vehicle Basics
+        </div>
       {/* Company / Vendor */}
       <div>
         <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Company Name</label>
-        <select value={form.vendor_id ?? ''} onChange={e => set('vendor_id', e.target.value || null)}
+        <select value={form.vendor_id ?? ''} onChange={e => handleVendorChange(e.target.value)}
           className={inputClass} style={inputStyle} onFocus={focus} onBlur={blur}>
           <option value="">— No vendor —</option>
           {vendors.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
@@ -155,18 +194,82 @@ export function MachineForm({ initial, onSubmit, submitLabel = 'Save' }: Props) 
       </div>
 
       {/* Contact Person & Number */}
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Contact Person</label>
-          <input value={form.contact_person ?? ''} onChange={e => set('contact_person', e.target.value || null)}
-            className={inputClass} style={inputStyle} onFocus={focus} onBlur={blur} />
+      {selectedVendor && hasVendorContactInfo && !showContactEditor ? (
+        <div style={{
+          border: '1px solid var(--border)',
+          borderRadius: 10,
+          padding: '10px 12px',
+          background: 'var(--input-bg)',
+          marginBottom: 2,
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <div>
+              <p style={{ fontSize: 11.5, color: 'var(--text-muted)', margin: 0 }}>Contact Person</p>
+              <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', margin: '2px 0 0' }}>{selectedVendorContactPerson || '—'}</p>
+            </div>
+            <div>
+              <p style={{ fontSize: 11.5, color: 'var(--text-muted)', margin: 0 }}>Contact Number</p>
+              <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', margin: '2px 0 0' }}>{selectedVendorContactNumber || '—'}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowContactEditor(true)}
+              style={{
+                fontSize: 11.5,
+                fontWeight: 600,
+                padding: '5px 10px',
+                borderRadius: 7,
+                border: '1px solid var(--border2)',
+                background: 'var(--bg-card)',
+                color: 'var(--text-light)',
+                cursor: 'pointer',
+              }}
+            >
+              Edit Contact
+            </button>
+          </div>
         </div>
-        <div>
-          <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Contact Number</label>
-          <input type="tel" value={form.contact_number ?? ''} onChange={e => set('contact_number', e.target.value || null)}
-            className={inputClass} style={inputStyle} onFocus={focus} onBlur={blur} />
+      ) : selectedVendor && !hasVendorContactInfo && !showContactEditor ? (
+        <div style={{
+          border: '1px dashed var(--border2)',
+          borderRadius: 10,
+          padding: '10px 12px',
+          background: 'var(--bg-card)',
+          marginBottom: 2,
+        }}>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>No contact person info found for this company.</p>
+          <button
+            type="button"
+            onClick={() => setShowContactEditor(true)}
+            style={{
+              marginTop: 8,
+              fontSize: 11.5,
+              fontWeight: 600,
+              padding: '6px 10px',
+              borderRadius: 7,
+              border: '1px solid var(--orange)',
+              background: 'var(--orange-lt)',
+              color: 'var(--orange)',
+              cursor: 'pointer',
+            }}
+          >
+            Add Contact Person
+          </button>
         </div>
-      </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Contact Person</label>
+            <input value={form.contact_person ?? ''} onChange={e => set('contact_person', e.target.value || null)}
+              className={inputClass} style={inputStyle} onFocus={focus} onBlur={blur} />
+          </div>
+          <div>
+            <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Contact Number</label>
+            <input type="tel" value={form.contact_number ?? ''} onChange={e => set('contact_number', e.target.value || null)}
+              className={inputClass} style={inputStyle} onFocus={focus} onBlur={blur} />
+          </div>
+        </div>
+      )}
 
       {/* Type */}
       <div>
@@ -183,7 +286,9 @@ export function MachineForm({ initial, onSubmit, submitLabel = 'Save' }: Props) 
         <input required value={form.name} onChange={e => set('name', e.target.value)} className={inputClass} style={inputStyle} onFocus={focus} onBlur={blur} />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>{form.category === 'equipment' ? 'Equipment Number' : 'Vehicle Number'}</label>
           <input value={form.plate_number} onChange={e => set('plate_number', e.target.value)}
@@ -199,7 +304,7 @@ export function MachineForm({ initial, onSubmit, submitLabel = 'Save' }: Props) 
       {/* Operator Info */}
       <div>
         <div className="text-sm font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Operator Details</div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Operator Name</label>
             <input value={form.operator_name ?? ''} onChange={e => set('operator_name', e.target.value || null)}
@@ -214,7 +319,7 @@ export function MachineForm({ initial, onSubmit, submitLabel = 'Save' }: Props) 
       </div>
 
       {/* Year, Rate, Status */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Year</label>
           <input type="number" min="1990" max="2030" value={form.year ?? ''}

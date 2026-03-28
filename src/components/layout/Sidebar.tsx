@@ -5,18 +5,15 @@ import { useSupabaseUser } from '@/hooks/useSupabaseUser';
 import { createClient } from '@/lib/supabase/client';
 import {
   LayoutDashboard, ClipboardList, Users, Truck,
-  Settings2, Wrench, FileBarChart, LogOut, FilePlus,
+  Wrench, FileBarChart, LogOut, FilePlus, Briefcase,
 } from 'lucide-react';
 
 const navItems = [
   { href: '/dashboard', icon: <LayoutDashboard size={19} />, label: 'Dashboard' },
-  { href: '/labor', icon: <Users size={19} />, label: 'Labour' },
-  { href: '/vendors', icon: <Truck size={19} />, label: 'Contractors' },
-  { href: '/machines', icon: <Settings2 size={19} />, label: 'Vehicles' },
+  { href: '/operations', icon: <Briefcase size={19} />, label: 'Operations' },
+  { href: '/vehicle-operations', icon: <Truck size={19} />, label: 'Vehicle Ops' },
   { href: '/equipment', icon: <Wrench size={19} />, label: 'Equipment' },
-  { href: '/timesheet/history', icon: <ClipboardList size={19} />, label: 'Labor Timesheets' },
-  { href: '/vehicle-timesheet/history', icon: <ClipboardList size={19} />, label: 'Vehicle Timesheets' },
-  { href: '/equipment-timesheet/history', icon: <ClipboardList size={19} />, label: 'Equipment Timesheets' },
+  { href: '/timesheets', icon: <ClipboardList size={19} />, label: 'Timesheets' },
   { href: '/manual-timesheets', icon: <FilePlus size={19} />, label: 'Manual Timesheets' },
   { href: '/reports', icon: <FileBarChart size={19} />, label: 'Reports' },
 ];

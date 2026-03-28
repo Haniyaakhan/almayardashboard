@@ -7,6 +7,12 @@ export interface Laborer {
   nationality: string;
   phone: string;
   daily_rate: number | null;
+  foreman_id?: string | null;
+  site_number?: string | null;
+  room_number?: string | null;
+  start_date?: string | null;
+  monthly_salary?: number | null;
+  foreman_commission?: number | null;
   is_active: boolean;
   notes: string | null;
   front_photo: string | null;
@@ -105,5 +111,78 @@ export interface TimesheetEntry {
   actual_worked: number;
   approver_sig: string;
   remarks: string;
+  created_at: string;
+}
+
+export interface Foreman {
+  id: string;
+  full_name: string;
+  id_number: string;
+  phone: string;
+  email: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LaborAdvance {
+  id: string;
+  laborer_id: string;
+  advance_date: string;
+  amount: number;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  laborer?: Laborer;
+}
+
+export type SalaryStatus = 'draft' | 'approved';
+
+export interface SalaryRecord {
+  id: string;
+  laborer_id: string;
+  timesheet_id: string;
+  month: number;
+  year: number;
+  regular_hours: number;
+  overtime_hours: number;
+  total_worked_hours: number;
+  hourly_rate: number;
+  basic_salary: number;
+  advances_amount: number;
+  foreman_commission: number;
+  net_salary: number;
+  status: SalaryStatus;
+  approved_at: string | null;
+  created_at: string;
+  updated_at: string;
+  laborer?: Laborer;
+  timesheet?: Timesheet;
+}
+
+export interface NPCInvoice {
+  id: string;
+  invoice_number: string;
+  invoice_date: string;
+  bill_to: string;
+  project: string;
+  service_description: string;
+  vat_percent: number;
+  subtotal: number;
+  vat_amount: number;
+  total_amount: number;
+  currency: string;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface NPCInvoiceItem {
+  id: string;
+  invoice_id: string;
+  description: string;
+  working_hours: number;
+  hourly_rate: number;
+  amount: number;
   created_at: string;
 }

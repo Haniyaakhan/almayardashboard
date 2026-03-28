@@ -1,6 +1,12 @@
 import React from 'react';
 
-export default function TimesheetHeader({ title = 'Labor Time Sheet' }: { title?: string }) {
+export default function TimesheetHeader({ 
+  title = 'Labor Time Sheet',
+  timesheetType = 'labor'
+}: { 
+  title?: string;
+  timesheetType?: 'labor' | 'vehicle' | 'equipment';
+}) {
   return (
     <div className="mb-0" style={{ fontStyle: 'normal' }}>
       {/* 2-column layout: Logo | Content */}
@@ -36,7 +42,7 @@ export default function TimesheetHeader({ title = 'Labor Time Sheet' }: { title?
             {/* Center text area */}
             <div style={{ flex: 1, textAlign: 'right' }}>
               <div style={{ fontSize: '16px', fontStyle: 'normal', fontWeight: 'normal', marginRight: '100px',marginTop:'4px', }}>
-                Labor Working At Site
+                {timesheetType === 'labor' ? 'Labor Working At Site' : 'Working At Site'}
               </div>
               <div style={{ fontSize: '16px', fontWeight: 'normal', fontStyle: 'normal', marginTop: '2px', marginRight: '70px' }}>
                 LPO

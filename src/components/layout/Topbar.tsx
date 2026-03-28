@@ -18,6 +18,15 @@ const titles: Record<string, string> = {
   '/machines': 'Vehicle Management',
   '/machines/new': 'Add Vehicle',
   '/equipment': 'Equipment Management',
+  '/operations': 'Operations',
+  '/operations/foreman': 'Operations Foreman',
+  '/operations/labor': 'Operations Labor',
+  '/operations/vehicle': 'Operations Vehicle',
+  '/vehicle-operations': 'Vehicle Operations',
+  '/operations/advances': 'Operations Advances',
+  '/operations/timesheet': 'Operations Timesheet',
+  '/operations/salary': 'Operations Salary',
+  '/operations/npc-invoice': 'NPC Invoice',
   '/reports': 'Reports',
 };
 
@@ -32,6 +41,7 @@ function getTitle(pathname: string): string {
   if (pathname.startsWith('/machines/')) return 'Vehicle Detail';
   if (pathname.startsWith('/timesheet/history/')) return 'View Labor Timesheet';
   if (pathname.startsWith('/vehicle-timesheet/history/')) return 'View Vehicle Timesheet';
+  if (pathname.startsWith('/operations/foreman/')) return 'Foreman Profile';
   return 'Platform';
 }
 

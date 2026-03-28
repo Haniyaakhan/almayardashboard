@@ -260,7 +260,7 @@ function EquipmentTimesheetPageInner() {
           className="w-a4 min-h-a4 bg-white mx-auto"
           style={{ border: '1px solid black', padding: '10px', overflow: 'visible', marginBottom: '2px' }}
         >
-          <TimesheetHeader title="Time Sheet" />
+          <TimesheetHeader title="Time Sheet" timesheetType="equipment" />
           <InfoTable
             month={timesheet.month} year={timesheet.year}
             laborName={timesheet.laborName} projectName={timesheet.projectName}

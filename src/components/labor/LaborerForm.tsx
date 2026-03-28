@@ -2,10 +2,11 @@
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
-import { useVendors } from '@/hooks/useVendors';
+import { useForemen } from '@/hooks/useForemen';
 import { createClient } from '@/lib/supabase/client';
-import { Upload, X, Image as ImageIcon } from 'lucide-react';
+import { Upload, X, Image as ImageIcon, Plus } from 'lucide-react';
 import type { Laborer } from '@/types/database';
+import { createForeman } from '@/hooks/useForemen';
 
 type FormData = Omit<Laborer, 'id' | 'created_at' | 'updated_at'>;
 
@@ -24,7 +25,12 @@ const fields = [
   field('ID / Iqama No.',   'id_number'),
   field('Nationality',      'nationality'),
   field('Phone',            'phone',         'tel'),
-  field('Daily Rate (OMR)', 'daily_rate',    'number'),
+  field('Site Number',      'site_number'),
+  field('Room Number',      'room_number'),
+  field('Starting Date',    'start_date',    'date'),
+  field('Monthly Salary (OMR)', 'monthly_salary', 'number'),
+  field('Foreman Commission (OMR)', 'foreman_commission', 'number'),
+  field('Daily Rate (Legacy OMR)', 'daily_rate', 'number'),
 ];
 
 const bankFields = [
@@ -115,10 +121,15 @@ function PhotoUpload({ label, value, onChange }: { label: string; value: string 
 
 export function LaborerForm({ initial, onSubmit, submitLabel = 'Save' }: Props) {
   const toast = useToast();
-  const { vendors } = useVendors();
+  const { foremen, refetch: refetchForemen } = useForemen(true);
+  const [showAddForeman, setShowAddForeman] = useState(false);
+  const [newForemanName, setNewForemanName] = useState('');
+  const [addingForeman, setAddingForeman] = useState(false);
   const [form, setForm] = useState<FormData>({
     full_name: '', designation: '', supplier_name: '', id_number: '',
     nationality: '', phone: '', daily_rate: null, is_active: true, notes: '',
+    foreman_id: null, site_number: null, room_number: null, start_date: null,
+    monthly_salary: null, foreman_commission: 0,
     front_photo: null, back_photo: null, bank_name: null, bank_account_number: null,
     ...initial,
   });
@@ -141,91 +152,183 @@ export function LaborerForm({ initial, onSubmit, submitLabel = 'Save' }: Props) 
   const onBlur = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5 max-w-lg">
-      {/* Basic Fields */}
-      {fields.slice(0, 2).map(f => (
-        <div key={f.name}>
-          <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>
-            {f.label}{f.required && <span style={{ color: '#e8762b' }}> *</span>}
-          </label>
-          <input
-            type={f.type} required={f.required}
-            value={(form[f.name] ?? '') as string}
-            onChange={e => set(f.name, f.type === 'number' ? (e.target.value ? Number(e.target.value) : null) : e.target.value)}
-            className="w-full px-3 py-2 rounded-lg text-sm outline-none"
-            style={inputStyle} onFocus={onFocus} onBlur={onBlur}
-          />
-        </div>
-      ))}
+    <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
 
-      {/* Contractor dropdown */}
-      <div>
-        <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Contractor</label>
-        <select
-          value={form.supplier_name ?? ''}
-          onChange={e => set('supplier_name', e.target.value)}
-          className="w-full px-3 py-2 rounded-lg text-sm outline-none"
-          style={inputStyle} onFocus={onFocus} onBlur={onBlur}
-        >
-          <option value="">— No contractor —</option>
-          {vendors.map(v => <option key={v.id} value={v.name}>{v.name}</option>)}
-        </select>
-      </div>
-
-      {/* Remaining fields */}
-      {fields.slice(2).map(f => (
-        <div key={f.name}>
-          <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>
-            {f.label}{f.required && <span style={{ color: '#e8762b' }}> *</span>}
-          </label>
-          <input
-            type={f.type} required={f.required}
-            value={(form[f.name] ?? '') as string}
-            onChange={e => set(f.name, f.type === 'number' ? (e.target.value ? Number(e.target.value) : null) : e.target.value)}
-            className="w-full px-3 py-2 rounded-lg text-sm outline-none"
-            style={inputStyle} onFocus={onFocus} onBlur={onBlur}
-          />
+      {/* ── Personal Info ── */}
+      <section>
+        <h3 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 14, paddingBottom: 6, borderBottom: '1px solid var(--border)' }}>
+          Personal Info
+        </h3>
+        <div className="space-y-4">
+          {/* Full Name */}
+          <div>
+            <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Full Name <span style={{ color: '#e8762b' }}>*</span></label>
+            <input type="text" required value={form.full_name} onChange={e => set('full_name', e.target.value)}
+              className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+          </div>
+          {/* ID | Nationality */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>ID / Iqama No.</label>
+              <input type="text" value={form.id_number ?? ''} onChange={e => set('id_number', e.target.value || null)}
+                className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+            </div>
+            <div>
+              <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Nationality</label>
+              <input type="text" value={form.nationality ?? ''} onChange={e => set('nationality', e.target.value || null)}
+                className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+            </div>
+          </div>
+          {/* Phone | Monthly Salary */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Phone</label>
+              <input type="tel" value={form.phone ?? ''} onChange={e => set('phone', e.target.value || null)}
+                className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+            </div>
+            <div>
+              <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Monthly Salary (OMR)</label>
+              <input type="number" value={form.monthly_salary ?? ''} onChange={e => set('monthly_salary', e.target.value ? Number(e.target.value) : null)}
+                className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+              <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Hourly rate = Monthly Salary / 260</p>
+            </div>
+          </div>
+          {/* Designation | Start Date */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Designation <span style={{ color: '#e8762b' }}>*</span></label>
+              <select required value={form.designation ?? ''} onChange={e => set('designation', e.target.value)}
+                className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={inputStyle} onFocus={onFocus} onBlur={onBlur}>
+                <option value="">— Select —</option>
+                {['Mason', 'Carpenter', 'Rigger', 'Helper', 'Electrician', 'Scaffolder', 'Steel Fixer', 'Other'].map(d => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Start Date</label>
+              <input type="date" value={form.start_date ?? ''} onChange={e => set('start_date', e.target.value || null)}
+                className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+            </div>
+          </div>
         </div>
-      ))}
+      </section>
 
-      {/* Photos Section */}
-      <div>
-        <div className="text-sm font-semibold mb-2 flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
-          <ImageIcon size={14} /> ID Photos
+      {/* ── Site Info ── */}
+      <section>
+        <h3 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 14, paddingBottom: 6, borderBottom: '1px solid var(--border)' }}>
+          Site Info
+        </h3>
+        <div className="space-y-4">
+          {/* Foreman */}
+          <div>
+            <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Foreman</label>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <select value={form.foreman_id ?? ''} onChange={e => set('foreman_id', e.target.value || null)}
+                className="px-3 py-2 rounded-lg text-sm outline-none" style={{ ...inputStyle, flex: 1 }} onFocus={onFocus} onBlur={onBlur}>
+                <option value="">— Select Foreman —</option>
+                {foremen.map(f => <option key={f.id} value={f.id}>{f.full_name}</option>)}
+              </select>
+              <button type="button" onClick={() => setShowAddForeman(v => !v)} style={{
+                display: 'flex', alignItems: 'center', gap: 4,
+                fontSize: 12, fontWeight: 600, padding: '7px 12px', borderRadius: 8,
+                background: showAddForeman ? 'var(--orange-lt)' : 'var(--bg-card)',
+                color: 'var(--orange)', border: '1px solid var(--orange)',
+                cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+              }}>
+                <Plus size={13} /> Add Foreman
+              </button>
+            </div>
+            {showAddForeman && (
+              <div style={{ marginTop: 8, padding: '10px 12px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--input-bg)' }}>
+                <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>New Foreman</p>
+                <input type="text" placeholder="Foreman full name *" value={newForemanName}
+                  onChange={e => setNewForemanName(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                  <button type="button" disabled={addingForeman} onClick={async () => {
+                    if (!newForemanName.trim()) { toast.error('Foreman name is required'); return; }
+                    setAddingForeman(true);
+                    const err = await createForeman({ full_name: newForemanName.trim(), id_number: '', phone: '', email: '' });
+                    setAddingForeman(false);
+                    if (err) { toast.error(err.message); return; }
+                    await refetchForemen();
+                    toast.success(`Foreman "${newForemanName.trim()}" added`);
+                    setNewForemanName(''); setShowAddForeman(false);
+                  }} style={{
+                    fontSize: 12, fontWeight: 600, padding: '5px 14px', borderRadius: 7,
+                    background: 'var(--orange)', color: '#fff', border: 'none', cursor: 'pointer',
+                    opacity: addingForeman ? 0.6 : 1,
+                  }}>
+                    {addingForeman ? 'Saving...' : 'Save'}
+                  </button>
+                  <button type="button" onClick={() => { setShowAddForeman(false); setNewForemanName(''); }} style={{
+                    fontSize: 12, fontWeight: 500, padding: '5px 14px', borderRadius: 7,
+                    background: 'var(--bg-card)', color: 'var(--text-light)',
+                    border: '1px solid var(--border)', cursor: 'pointer',
+                  }}>Cancel</button>
+                </div>
+              </div>
+            )}
+          </div>
+          {/* Foreman Commission | Site No. */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Foreman Commission (OMR)</label>
+              <input type="number" value={form.foreman_commission ?? ''} onChange={e => set('foreman_commission', e.target.value ? Number(e.target.value) : 0)}
+                className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+            </div>
+            <div>
+              <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Site No.</label>
+              <input type="text" value={form.site_number ?? ''} onChange={e => set('site_number', e.target.value || null)}
+                className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+            </div>
+          </div>
+          {/* Room No. */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Room No.</label>
+              <input type="text" value={form.room_number ?? ''} onChange={e => set('room_number', e.target.value || null)}
+                className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+            </div>
+          </div>
         </div>
-        <div className="flex gap-4">
+      </section>
+
+      {/* ── Bank Details ── */}
+      <section>
+        <h3 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 14, paddingBottom: 6, borderBottom: '1px solid var(--border)' }}>
+          Bank Details
+        </h3>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div>
+            <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Bank Name</label>
+            <input type="text" value={form.bank_name ?? ''} onChange={e => set('bank_name', e.target.value || null)}
+              className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+          </div>
+          <div>
+            <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Account No.</label>
+            <input type="text" value={form.bank_account_number ?? ''} onChange={e => set('bank_account_number', e.target.value || null)}
+              className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+          </div>
+        </div>
+      </section>
+
+      {/* ── ID Photos ── */}
+      <section>
+        <h3 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 14, paddingBottom: 6, borderBottom: '1px solid var(--border)' }}>
+          ID Photos
+        </h3>
+        <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
           <PhotoUpload label="Front Photo" value={form.front_photo} onChange={url => set('front_photo', url)} />
           <PhotoUpload label="Back Photo" value={form.back_photo} onChange={url => set('back_photo', url)} />
         </div>
-      </div>
+      </section>
 
-      {/* Bank Details */}
-      <div>
-        <div className="text-sm font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
-          Bank Details
-        </div>
-        {bankFields.map(f => (
-          <div key={f.name} className="mb-3">
-            <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>{f.label}</label>
-            <input
-              type="text"
-              value={(form[f.name] ?? '') as string}
-              onChange={e => set(f.name, e.target.value || null)}
-              className="w-full px-3 py-2 rounded-lg text-sm outline-none"
-              style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
-              onFocus={e => { e.target.style.borderColor = 'var(--orange)'; e.target.style.boxShadow = '0 0 0 3px rgba(255,107,43,0.1)'; }}
-              onBlur={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; }}
-            />
-          </div>
-        ))}
-      </div>
-
-      {/* Notes */}
+      {/* ── Notes ── */}
       <div>
         <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Notes</label>
-        <textarea
-          value={form.notes ?? ''} rows={3}
-          onChange={e => set('notes', e.target.value)}
+        <textarea value={form.notes ?? ''} rows={3} onChange={e => set('notes', e.target.value)}
           className="w-full px-3 py-2 rounded-lg text-sm outline-none resize-none"
           style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
           onFocus={e => (e.target.style.borderColor = '#e8762b')}
@@ -233,26 +336,20 @@ export function LaborerForm({ initial, onSubmit, submitLabel = 'Save' }: Props) 
         />
       </div>
 
-      {/* Active Toggle */}
+      {/* ── Active Toggle ── */}
       <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => set('is_active', !form.is_active)}
-          style={{
-            width: 40, height: 22, borderRadius: 11, border: 'none', cursor: 'pointer',
-            background: form.is_active ? '#16a34a' : 'var(--border)',
-            position: 'relative', transition: 'background 0.2s', flexShrink: 0,
-          }}
-        >
+        <button type="button" onClick={() => set('is_active', !form.is_active)} style={{
+          width: 40, height: 22, borderRadius: 11, border: 'none', cursor: 'pointer',
+          background: form.is_active ? '#16a34a' : 'var(--border)',
+          position: 'relative', transition: 'background 0.2s', flexShrink: 0,
+        }}>
           <span style={{
             position: 'absolute', top: 3, left: form.is_active ? 21 : 3,
             width: 16, height: 16, borderRadius: '50%', background: '#fff',
             transition: 'left 0.2s',
           }} />
         </button>
-        <span className="text-sm" style={{ color: 'var(--text-muted)' }}>
-          {form.is_active ? 'Active' : 'Inactive'}
-        </span>
+        <span className="text-sm" style={{ color: 'var(--text-muted)' }}>{form.is_active ? 'Active' : 'Inactive'}</span>
       </div>
 
       {error && <p className="text-sm" style={{ color: '#ef4444' }}>{error}</p>}

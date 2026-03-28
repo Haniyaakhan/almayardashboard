@@ -15,6 +15,12 @@ create table public.laborers (
   nationality   text not null default '',
   phone         text not null default '',
   daily_rate    numeric(10,2),
+  foreman_id    uuid,
+  site_number   text,
+  room_number   text,
+  start_date    date,
+  monthly_salary numeric(10,2),
+  foreman_commission numeric(10,2) not null default 0,
   is_active     boolean not null default true,
   notes         text,
   front_photo   text,
@@ -24,6 +30,22 @@ create table public.laborers (
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now()
 );
+
+-- FOREMEN
+create table public.foremen (
+  id            uuid primary key default uuid_generate_v4(),
+  full_name     text not null,
+  id_number     text not null default '',
+  phone         text not null default '',
+  email         text not null default '',
+  is_active     boolean not null default true,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now()
+);
+
+alter table public.laborers
+  add constraint laborers_foreman_id_fkey
+  foreign key (foreman_id) references public.foremen(id) on delete set null;
 
 -- VENDORS
 create table public.vendors (
@@ -84,6 +106,9 @@ create unique index machine_usage_logs_machine_day_idx on public.machine_usage_l
 create table public.timesheets (
   id                  uuid primary key default uuid_generate_v4(),
   laborer_id          uuid, -- no FK: stores laborer OR machine UUID
+  sheet_type          text not null default 'labor'
+                        check (sheet_type in ('labor','vehicle','equipment')),
+  labor_name          text,
   month               int not null check (month between 0 and 11),
   year                int not null,
   project_name        text not null default '',
@@ -118,27 +143,105 @@ create table public.timesheet_entries (
 );
 create unique index timesheet_entries_sheet_day_idx on public.timesheet_entries(timesheet_id, day);
 
+-- LABOR ADVANCES
+create table public.labor_advances (
+  id             uuid primary key default uuid_generate_v4(),
+  laborer_id     uuid not null references public.laborers(id) on delete cascade,
+  advance_date   date not null,
+  amount         numeric(10,2) not null check (amount >= 0),
+  notes          text,
+  created_at     timestamptz not null default now(),
+  updated_at     timestamptz not null default now()
+);
+create index labor_advances_laborer_date_idx on public.labor_advances(laborer_id, advance_date);
+
+-- SALARY RECORDS
+create table public.salary_records (
+  id                 uuid primary key default uuid_generate_v4(),
+  laborer_id         uuid not null references public.laborers(id) on delete cascade,
+  timesheet_id       uuid not null references public.timesheets(id) on delete cascade,
+  month              int not null check (month between 0 and 11),
+  year               int not null,
+  regular_hours      numeric(8,2) not null default 0,
+  overtime_hours     numeric(8,2) not null default 0,
+  total_worked_hours numeric(8,2) not null default 0,
+  hourly_rate        numeric(10,4) not null default 0,
+  basic_salary       numeric(10,2) not null default 0,
+  advances_amount    numeric(10,2) not null default 0,
+  foreman_commission numeric(10,2) not null default 0,
+  net_salary         numeric(10,2) not null default 0,
+  status             text not null default 'draft' check (status in ('draft','approved')),
+  approved_at        timestamptz,
+  created_at         timestamptz not null default now(),
+  updated_at         timestamptz not null default now(),
+  unique (timesheet_id)
+);
+create index salary_records_month_year_idx on public.salary_records(month, year);
+create index salary_records_laborer_month_year_idx on public.salary_records(laborer_id, month, year);
+
+-- NPC INVOICES
+create table public.npc_invoices (
+  id                  uuid primary key default uuid_generate_v4(),
+  invoice_number      text not null unique,
+  invoice_date        date not null,
+  bill_to             text not null,
+  project             text not null default '',
+  service_description text not null default '',
+  vat_percent         numeric(5,2) not null default 5,
+  subtotal            numeric(12,3) not null default 0,
+  vat_amount          numeric(12,3) not null default 0,
+  total_amount        numeric(12,3) not null default 0,
+  currency            text not null default 'OMR',
+  notes               text,
+  created_at          timestamptz not null default now(),
+  updated_at          timestamptz not null default now()
+);
+
+create table public.npc_invoice_items (
+  id            uuid primary key default uuid_generate_v4(),
+  invoice_id    uuid not null references public.npc_invoices(id) on delete cascade,
+  description   text not null,
+  working_hours numeric(10,2) not null default 0,
+  hourly_rate   numeric(10,3) not null default 0,
+  amount        numeric(12,3) not null default 0,
+  created_at    timestamptz not null default now()
+);
+
 -- AUTO updated_at TRIGGERS
 create or replace function public.handle_updated_at()
 returns trigger language plpgsql as $$
 begin new.updated_at = now(); return new; end; $$;
 
 create trigger laborers_updated_at   before update on public.laborers   for each row execute procedure public.handle_updated_at();
+create trigger foremen_updated_at    before update on public.foremen    for each row execute procedure public.handle_updated_at();
 create trigger vendors_updated_at    before update on public.vendors    for each row execute procedure public.handle_updated_at();
 create trigger machines_updated_at   before update on public.machines   for each row execute procedure public.handle_updated_at();
 create trigger timesheets_updated_at before update on public.timesheets for each row execute procedure public.handle_updated_at();
+create trigger labor_advances_updated_at before update on public.labor_advances for each row execute procedure public.handle_updated_at();
+create trigger salary_records_updated_at before update on public.salary_records for each row execute procedure public.handle_updated_at();
+create trigger npc_invoices_updated_at before update on public.npc_invoices for each row execute procedure public.handle_updated_at();
 
 -- ROW LEVEL SECURITY
 alter table public.laborers          enable row level security;
+alter table public.foremen           enable row level security;
 alter table public.vendors           enable row level security;
 alter table public.machines          enable row level security;
 alter table public.machine_usage_logs enable row level security;
 alter table public.timesheets        enable row level security;
 alter table public.timesheet_entries enable row level security;
+alter table public.labor_advances    enable row level security;
+alter table public.salary_records    enable row level security;
+alter table public.npc_invoices      enable row level security;
+alter table public.npc_invoice_items enable row level security;
 
 create policy "auth_all" on public.laborers           for all to authenticated using (true) with check (true);
+create policy "auth_all" on public.foremen            for all to authenticated using (true) with check (true);
 create policy "auth_all" on public.vendors            for all to authenticated using (true) with check (true);
 create policy "auth_all" on public.machines           for all to authenticated using (true) with check (true);
 create policy "auth_all" on public.machine_usage_logs for all to authenticated using (true) with check (true);
 create policy "auth_all" on public.timesheets         for all to authenticated using (true) with check (true);
 create policy "auth_all" on public.timesheet_entries  for all to authenticated using (true) with check (true);
+create policy "auth_all" on public.labor_advances     for all to authenticated using (true) with check (true);
+create policy "auth_all" on public.salary_records     for all to authenticated using (true) with check (true);
+create policy "auth_all" on public.npc_invoices       for all to authenticated using (true) with check (true);
+create policy "auth_all" on public.npc_invoice_items  for all to authenticated using (true) with check (true);
