@@ -2,11 +2,28 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const isAuthPage = pathname.startsWith('/login');
+  const isPublicFile = /\.(svg|png|jpg|jpeg|gif|webp|ico)$/.test(pathname);
+
+  // If Supabase env vars are missing, avoid throwing in middleware and route users safely.
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !supabaseAnonKey) {
+    if (!isAuthPage && !isPublicFile) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/login';
+      return NextResponse.redirect(url);
+    }
+
+    return NextResponse.next({ request });
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseAnonKey,
     {
       cookies: {
         getAll() {
@@ -25,11 +42,21 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
 
-  const { pathname } = request.nextUrl;
-  const isAuthPage = pathname.startsWith('/login');
-  const isPublicFile = /\.(svg|png|jpg|jpeg|gif|webp|ico)$/.test(pathname);
+  // If auth lookup fails, continue with a safe unauthenticated path.
+  if (error) {
+    if (!isAuthPage && !isPublicFile) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/login';
+      return NextResponse.redirect(url);
+    }
+
+    return supabaseResponse;
+  }
 
   if (!user && !isAuthPage && !isPublicFile) {
     const url = request.nextUrl.clone();
