@@ -66,6 +66,7 @@ create table public.vendors (
 create table public.machines (
   id           uuid primary key default uuid_generate_v4(),
   vendor_id    uuid references public.vendors(id) on delete set null,
+  category     text not null default 'vehicle',
   name         text not null,
   type         text not null default '',
   plate_number text not null default '',
