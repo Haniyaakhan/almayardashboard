@@ -86,6 +86,30 @@ npm start
 
 ## Deployment to Vercel
 
+### Required Environment Variables
+
+Set these in Vercel Project Settings -> Environment Variables (for Production, Preview, and Development as needed):
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://<your-project-ref>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
+```
+
+### Supabase Auth URL Configuration
+
+In Supabase Dashboard -> Authentication -> URL Configuration:
+
+1. Site URL: set to your Vercel production URL (for example `https://your-app.vercel.app`)
+2. Add Redirect URLs for all environments you use:
+
+```bash
+http://localhost:3000
+https://your-app.vercel.app
+https://your-app-git-*.vercel.app
+```
+
+If these values are missing or incorrect, login/session behavior may fail after deployment.
+
 ### Option 1: Deploy via GitHub
 
 1. Push your code to GitHub:

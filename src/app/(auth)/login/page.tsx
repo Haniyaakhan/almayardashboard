@@ -10,19 +10,33 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const hasSupabaseConfig =
+    Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL) &&
+    Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
     setLoading(true);
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      setError(error.message);
-      setLoading(false);
-    } else {
+    try {
+      if (!hasSupabaseConfig) {
+        throw new Error('Supabase environment variables are missing. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in Vercel project settings.');
+      }
+
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+      if (error) {
+        setError(error.message);
+        return;
+      }
+
       router.push('/dashboard');
       router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to sign in. Please try again.');
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -80,7 +94,7 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !hasSupabaseConfig}
               className="w-full py-2.5 rounded-lg text-sm font-semibold text-white transition-colors disabled:opacity-60"
               style={{ background: loading ? '#e05c00' : '#ff6b2b' }}
               onMouseEnter={e => { if (!loading) (e.target as HTMLElement).style.background = '#e05c00'; }}
