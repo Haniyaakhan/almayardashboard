@@ -101,13 +101,13 @@ candidate_matches AS (
 	)
 ),
 unique_per_foreman AS (
-	SELECT foreman_id, min(laborer_id) AS laborer_id
+	SELECT foreman_id, min(laborer_id::text)::uuid AS laborer_id
 	FROM candidate_matches
 	GROUP BY foreman_id
 	HAVING count(*) = 1
 ),
 unique_per_laborer AS (
-	SELECT laborer_id, min(foreman_id) AS foreman_id
+	SELECT laborer_id, min(foreman_id::text)::uuid AS foreman_id
 	FROM candidate_matches
 	GROUP BY laborer_id
 	HAVING count(*) = 1
