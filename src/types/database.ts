@@ -116,6 +116,7 @@ export interface TimesheetEntry {
 
 export interface Foreman {
   id: string;
+  laborer_id?: string | null;
   full_name: string;
   id_number: string;
   phone: string;

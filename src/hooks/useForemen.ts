@@ -25,8 +25,12 @@ export function useForemen(activeOnly = true) {
 
 export async function createForeman(data: Omit<Foreman, 'id' | 'is_active' | 'created_at' | 'updated_at'>) {
   const supabase = createClient();
-  const { error } = await supabase.from('foremen').insert({ ...data, is_active: true });
-  return error;
+  const { data: created, error } = await supabase
+    .from('foremen')
+    .insert({ ...data, is_active: true })
+    .select('id')
+    .single();
+  return { error, id: created?.id ?? null };
 }
 
 export async function getForemanById(id: string): Promise<Foreman | null> {

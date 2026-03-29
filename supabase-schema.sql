@@ -34,6 +34,7 @@ create table public.laborers (
 -- FOREMEN
 create table public.foremen (
   id            uuid primary key default uuid_generate_v4(),
+  laborer_id    uuid unique references public.laborers(id) on delete set null,
   full_name     text not null,
   id_number     text not null default '',
   phone         text not null default '',

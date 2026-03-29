@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { Upload, X, Image as ImageIcon, Plus } from 'lucide-react';
 import type { Laborer } from '@/types/database';
 import { createForeman } from '@/hooks/useForemen';
+import { useLaborers } from '@/hooks/useLaborers';
 
 type FormData = Omit<Laborer, 'id' | 'created_at' | 'updated_at'>;
 
@@ -122,8 +123,13 @@ function PhotoUpload({ label, value, onChange }: { label: string; value: string 
 export function LaborerForm({ initial, onSubmit, submitLabel = 'Save' }: Props) {
   const toast = useToast();
   const { foremen, refetch: refetchForemen } = useForemen(true);
+  const { laborers } = useLaborers(false);
   const [showAddForeman, setShowAddForeman] = useState(false);
+  const [newForemanLaborerId, setNewForemanLaborerId] = useState('');
   const [newForemanName, setNewForemanName] = useState('');
+  const [newForemanIdNumber, setNewForemanIdNumber] = useState('');
+  const [newForemanPhone, setNewForemanPhone] = useState('');
+  const [newForemanEmail, setNewForemanEmail] = useState('');
   const [addingForeman, setAddingForeman] = useState(false);
   const [form, setForm] = useState<FormData>({
     full_name: '', designation: '', supplier_name: '', id_number: '',
@@ -223,6 +229,9 @@ export function LaborerForm({ initial, onSubmit, submitLabel = 'Save' }: Props) 
           {/* Foreman */}
           <div>
             <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Foreman</label>
+            <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>
+              Select an existing foreman, or add a new foreman here.
+            </p>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <select value={form.foreman_id ?? ''} onChange={e => set('foreman_id', e.target.value || null)}
                 className="px-3 py-2 rounded-lg text-sm outline-none" style={{ ...inputStyle, flex: 1 }} onFocus={onFocus} onBlur={onBlur}>
@@ -242,19 +251,71 @@ export function LaborerForm({ initial, onSubmit, submitLabel = 'Save' }: Props) 
             {showAddForeman && (
               <div style={{ marginTop: 8, padding: '10px 12px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--input-bg)' }}>
                 <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>New Foreman</p>
-                <input type="text" placeholder="Foreman full name *" value={newForemanName}
-                  onChange={e => setNewForemanName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                <select
+                  value={newForemanLaborerId}
+                  onChange={e => {
+                    const nextId = e.target.value;
+                    setNewForemanLaborerId(nextId);
+                    if (!nextId) return;
+                    const laborer = laborers.find(l => l.id === nextId);
+                    if (!laborer) return;
+                    setNewForemanName(laborer.full_name || '');
+                    setNewForemanIdNumber(laborer.id_number || '');
+                    setNewForemanPhone(laborer.phone || '');
+                  }}
+                  className="w-full px-3 py-2 rounded-lg text-sm outline-none"
+                  style={{ ...inputStyle, marginBottom: 8 }}
+                  onFocus={onFocus}
+                  onBlur={onBlur}
+                >
+                  <option value="">Link existing labourer (optional)</option>
+                  {laborers
+                    .filter(l => l.is_active)
+                    .filter(l => !foremen.some(f => f.laborer_id === l.id))
+                    .map(l => (
+                      <option key={l.id} value={l.id}>{l.full_name} ({l.id_number || 'No ID'})</option>
+                    ))}
+                </select>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <input type="text" placeholder="Foreman full name *" value={newForemanName}
+                    onChange={e => setNewForemanName(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                  <input type="text" placeholder="ID Number" value={newForemanIdNumber}
+                    onChange={e => setNewForemanIdNumber(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                  <input type="tel" placeholder="Phone" value={newForemanPhone}
+                    onChange={e => setNewForemanPhone(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                  <input type="email" placeholder="Email" value={newForemanEmail}
+                    onChange={e => setNewForemanEmail(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                </div>
                 <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
                   <button type="button" disabled={addingForeman} onClick={async () => {
                     if (!newForemanName.trim()) { toast.error('Foreman name is required'); return; }
+                    if (newForemanLaborerId && foremen.some(f => f.laborer_id === newForemanLaborerId)) {
+                      toast.error('This labourer is already linked to a foreman');
+                      return;
+                    }
                     setAddingForeman(true);
-                    const err = await createForeman({ full_name: newForemanName.trim(), id_number: '', phone: '', email: '' });
+                    const { error: err, id } = await createForeman({
+                      laborer_id: newForemanLaborerId || null,
+                      full_name: newForemanName.trim(),
+                      id_number: newForemanIdNumber.trim(),
+                      phone: newForemanPhone.trim(),
+                      email: newForemanEmail.trim(),
+                    });
                     setAddingForeman(false);
                     if (err) { toast.error(err.message); return; }
                     await refetchForemen();
+                    if (id) set('foreman_id', id);
                     toast.success(`Foreman "${newForemanName.trim()}" added`);
-                    setNewForemanName(''); setShowAddForeman(false);
+                    setNewForemanLaborerId('');
+                    setNewForemanName('');
+                    setNewForemanIdNumber('');
+                    setNewForemanPhone('');
+                    setNewForemanEmail('');
+                    setShowAddForeman(false);
                   }} style={{
                     fontSize: 12, fontWeight: 600, padding: '5px 14px', borderRadius: 7,
                     background: 'var(--orange)', color: '#fff', border: 'none', cursor: 'pointer',
@@ -262,7 +323,14 @@ export function LaborerForm({ initial, onSubmit, submitLabel = 'Save' }: Props) 
                   }}>
                     {addingForeman ? 'Saving...' : 'Save'}
                   </button>
-                  <button type="button" onClick={() => { setShowAddForeman(false); setNewForemanName(''); }} style={{
+                  <button type="button" onClick={() => {
+                    setShowAddForeman(false);
+                    setNewForemanLaborerId('');
+                    setNewForemanName('');
+                    setNewForemanIdNumber('');
+                    setNewForemanPhone('');
+                    setNewForemanEmail('');
+                  }} style={{
                     fontSize: 12, fontWeight: 500, padding: '5px 14px', borderRadius: 7,
                     background: 'var(--bg-card)', color: 'var(--text-light)',
                     border: '1px solid var(--border)', cursor: 'pointer',

@@ -20,6 +20,7 @@ export default function OperationsForemanPage() {
   const [idNumber, setIdNumber] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
+  const [linkedLaborerId, setLinkedLaborerId] = useState('');
   const [saving, setSaving] = useState(false);
 
   const laborByForeman = useMemo(() => {
@@ -37,8 +38,15 @@ export default function OperationsForemanPage() {
       toast.error('Foreman name is required');
       return;
     }
+
+    if (linkedLaborerId && foremen.some((f) => f.laborer_id === linkedLaborerId)) {
+      toast.error('This labourer is already linked to a foreman');
+      return;
+    }
+
     setSaving(true);
-    const error = await createForeman({
+    const { error } = await createForeman({
+      laborer_id: linkedLaborerId || null,
       full_name: fullName.trim(),
       id_number: idNumber.trim(),
       phone: phone.trim(),
@@ -55,6 +63,7 @@ export default function OperationsForemanPage() {
     setIdNumber('');
     setPhone('');
     setEmail('');
+    setLinkedLaborerId('');
     refetch();
     toast.success('Foreman created');
   }
@@ -67,6 +76,28 @@ export default function OperationsForemanPage() {
 
       <Card className="mb-4" padding="p-4">
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 10 }}>
+          <select
+            value={linkedLaborerId}
+            onChange={(e) => {
+              const nextId = e.target.value;
+              setLinkedLaborerId(nextId);
+              if (!nextId) return;
+              const laborer = laborers.find((l) => l.id === nextId);
+              if (!laborer) return;
+              setFullName(laborer.full_name || '');
+              setIdNumber(laborer.id_number || '');
+              setPhone(laborer.phone || '');
+            }}
+            style={inputStyle}
+          >
+            <option value="">Link existing labourer (optional)</option>
+            {laborers
+              .filter((l) => l.is_active)
+              .filter((l) => !foremen.some((f) => f.laborer_id === l.id))
+              .map((l) => (
+                <option key={l.id} value={l.id}>{l.full_name} ({l.id_number || 'No ID'})</option>
+              ))}
+          </select>
           <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Name" style={inputStyle} />
           <input value={idNumber} onChange={(e) => setIdNumber(e.target.value)} placeholder="ID Number" style={inputStyle} />
           <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone" style={inputStyle} />
@@ -84,7 +115,7 @@ export default function OperationsForemanPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: 'var(--thead-bg)' }}>
-                {['Name', 'ID', 'Phone', 'Email', 'Assigned Laborers', 'Status', 'Action'].map((h) => (
+                {['Name', 'Linked Labourer', 'ID', 'Phone', 'Email', 'Assigned Laborers', 'Status', 'Action'].map((h) => (
                   <th key={h} style={thStyle}>{h}</th>
                 ))}
               </tr>
@@ -93,6 +124,7 @@ export default function OperationsForemanPage() {
               {foremen.map((f) => (
                 <tr key={f.id} style={{ borderBottom: '1px solid #f4f1ed' }}>
                   <td style={tdStyle}><Link href={`/operations/foreman/${f.id}`} style={linkTextStyle}>{f.full_name}</Link></td>
+                  <td style={tdStyle}>{f.laborer_id ? (laborers.find((l) => l.id === f.laborer_id)?.full_name ?? '—') : '—'}</td>
                   <td style={tdStyle}>{f.id_number || '—'}</td>
                   <td style={tdStyle}>{f.phone || '—'}</td>
                   <td style={tdStyle}>{f.email || '—'}</td>

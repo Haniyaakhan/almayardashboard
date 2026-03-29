@@ -4,7 +4,7 @@ import React, { useRef, useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useTimesheet } from '@/hooks/useTimesheet';
 import { useMachines } from '@/hooks/useMachines';
-import { saveTimesheet, getTimesheetWithEntries, getTimesheetByLaborer } from '@/hooks/useTimesheetHistory';
+import { saveTimesheet, getTimesheetWithEntries, getTimesheetByLaborer, countTimesheetsForEntity } from '@/hooks/useTimesheetHistory';
 import TimesheetHeader from '@/components/TimesheetHeader';
 import InfoTable from '@/components/InfoTable';
 import WorkTable from '@/components/WorkTable';
@@ -23,6 +23,7 @@ function EquipmentTimesheetPageInner() {
   const timesheet = useTimesheet();
   const { machines } = useMachines();
   const [selectedEquipmentId, setSelectedEquipmentId] = useState<string>('');
+  const [loadedTsId, setLoadedTsId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const toast = useToast();
   const [clearStartDay, setClearStartDay] = useState(1);
@@ -37,6 +38,7 @@ function EquipmentTimesheetPageInner() {
     const equipmentId = searchParams.get('equipment');
     if (equipmentId) setSelectedEquipmentId(equipmentId);
     if (tsId) {
+      setLoadedTsId(tsId);
       getTimesheetWithEntries(tsId).then(ts => {
         if (!ts) return;
         const entries: DayEntry[] = ((ts as any).entries ?? []).map((e: any) => ({
@@ -84,6 +86,7 @@ function EquipmentTimesheetPageInner() {
     if (!machine) return;
     try {
       const existing = await getTimesheetByLaborer(id, timesheet.month, timesheet.year);
+      setLoadedTsId(existing?.id ?? null);
       if (existing && (existing as any).entries?.length) {
         const entries: DayEntry[] = ((existing as any).entries ?? []).map((e: any) => ({
           day: e.day,
@@ -130,9 +133,20 @@ function EquipmentTimesheetPageInner() {
   }
 
   async function handleSave() {
-    setSaving(true);
     const equipmentId = selectedEquipmentId || searchParams.get('equipment') || null;
+
+    // Enforce max 2 timesheets per equipment per month
+    if (equipmentId && !loadedTsId) {
+      const existing = await countTimesheetsForEntity(equipmentId, timesheet.month, timesheet.year);
+      if (existing >= 2) {
+        toast.error('Max 2 timesheets per equipment per month');
+        return;
+      }
+    }
+
+    setSaving(true);
     const error = await saveTimesheet({
+      timesheetId: loadedTsId,
       laborer_id: equipmentId,
       sheet_type: 'equipment',
       labor_name: timesheet.laborName || undefined,

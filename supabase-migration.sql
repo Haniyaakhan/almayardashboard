@@ -43,6 +43,7 @@ ALTER TABLE public.laborers ADD COLUMN IF NOT EXISTS foreman_commission numeric(
 -- 7. Foremen table
 CREATE TABLE IF NOT EXISTS public.foremen (
 	id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+	laborer_id uuid,
 	full_name text NOT NULL,
 	id_number text NOT NULL DEFAULT '',
 	phone text NOT NULL DEFAULT '',
@@ -51,6 +52,78 @@ CREATE TABLE IF NOT EXISTS public.foremen (
 	created_at timestamptz NOT NULL DEFAULT now(),
 	updated_at timestamptz NOT NULL DEFAULT now()
 );
+
+ALTER TABLE public.foremen ADD COLUMN IF NOT EXISTS laborer_id uuid;
+
+DO $$
+BEGIN
+	IF NOT EXISTS (
+		SELECT 1
+		FROM pg_constraint
+		WHERE conname = 'foremen_laborer_id_fkey'
+			AND conrelid = 'public.foremen'::regclass
+	) THEN
+		ALTER TABLE public.foremen
+			ADD CONSTRAINT foremen_laborer_id_fkey
+			FOREIGN KEY (laborer_id) REFERENCES public.laborers(id) ON DELETE SET NULL;
+	END IF;
+END $$;
+
+CREATE UNIQUE INDEX IF NOT EXISTS foremen_laborer_id_unique_idx
+	ON public.foremen(laborer_id)
+	WHERE laborer_id IS NOT NULL;
+
+-- 7b. One-time backfill: link existing foremen to laborers by ID number.
+-- Safe behavior:
+-- - only links records where foremen.laborer_id is currently null
+-- - only links non-empty ID numbers
+-- - only links when match is 1 foreman <-> 1 laborer (unambiguous)
+WITH normalized_foremen AS (
+	SELECT id, upper(trim(id_number)) AS id_number_norm
+	FROM public.foremen
+	WHERE laborer_id IS NULL
+		AND coalesce(trim(id_number), '') <> ''
+),
+normalized_laborers AS (
+	SELECT id, upper(trim(id_number)) AS id_number_norm
+	FROM public.laborers
+	WHERE coalesce(trim(id_number), '') <> ''
+),
+candidate_matches AS (
+	SELECT f.id AS foreman_id, l.id AS laborer_id
+	FROM normalized_foremen f
+	JOIN normalized_laborers l
+		ON l.id_number_norm = f.id_number_norm
+	WHERE NOT EXISTS (
+		SELECT 1
+		FROM public.foremen fx
+		WHERE fx.laborer_id = l.id
+	)
+),
+unique_per_foreman AS (
+	SELECT foreman_id, min(laborer_id) AS laborer_id
+	FROM candidate_matches
+	GROUP BY foreman_id
+	HAVING count(*) = 1
+),
+unique_per_laborer AS (
+	SELECT laborer_id, min(foreman_id) AS foreman_id
+	FROM candidate_matches
+	GROUP BY laborer_id
+	HAVING count(*) = 1
+),
+final_matches AS (
+	SELECT uf.foreman_id, uf.laborer_id
+	FROM unique_per_foreman uf
+	JOIN unique_per_laborer ul
+		ON ul.foreman_id = uf.foreman_id
+		AND ul.laborer_id = uf.laborer_id
+)
+UPDATE public.foremen f
+SET laborer_id = m.laborer_id
+FROM final_matches m
+WHERE f.id = m.foreman_id
+	AND f.laborer_id IS NULL;
 
 -- 8. Add laborers.foreman_id FK after foremen exists
 DO $$

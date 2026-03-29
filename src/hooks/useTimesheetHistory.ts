@@ -52,7 +52,19 @@ export async function approveTimesheet(id: string): Promise<Error | null> {
   return error;
 }
 
+export async function countTimesheetsForEntity(entityId: string, month: number, year: number): Promise<number> {
+  const supabase = createClient();
+  const { count } = await supabase
+    .from('timesheets')
+    .select('*', { count: 'exact', head: true })
+    .eq('laborer_id', entityId)
+    .eq('month', month)
+    .eq('year', year);
+  return count ?? 0;
+}
+
 export async function saveTimesheet(payload: {
+  timesheetId?: string | null;   // pass to update a specific existing record (vehicle/equipment edits)
   laborer_id: string | null;
   sheet_type?: 'labor' | 'vehicle' | 'equipment';
   labor_name?: string;
@@ -67,16 +79,25 @@ export async function saveTimesheet(payload: {
   }>;
 }) {
   const supabase = createClient();
-  const { entries, ...header } = payload;
+  const { entries, timesheetId, ...header } = payload;
 
-  // Check if a timesheet already exists for this laborer/month/year
   let tsId: string;
-  if (payload.laborer_id) {
+
+  if (timesheetId) {
+    // Edit a specific existing timesheet (used by vehicle/equipment edits)
+    const { data: ts, error: tsErr } = await supabase
+      .from('timesheets').update(header).eq('id', timesheetId).select().single();
+    if (tsErr || !ts) return tsErr ?? new Error('Failed to update timesheet');
+    tsId = ts.id;
+  } else if (payload.sheet_type === 'labor' && payload.laborer_id) {
+    // Labour: 1 per person per month — find existing and update, or insert
     const { data: existing } = await supabase
       .from('timesheets').select('id')
       .eq('laborer_id', payload.laborer_id)
       .eq('month', payload.month)
       .eq('year', payload.year)
+      .order('created_at', { ascending: false })
+      .limit(1)
       .maybeSingle();
 
     if (existing) {
@@ -91,6 +112,7 @@ export async function saveTimesheet(payload: {
       tsId = ts.id;
     }
   } else {
+    // Vehicle/equipment new insert (count-limit already validated by caller)
     const { data: ts, error: tsErr } = await supabase
       .from('timesheets').insert(header).select().single();
     if (tsErr || !ts) return tsErr ?? new Error('Failed to save timesheet');

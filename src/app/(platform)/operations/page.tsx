@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
 
 export default function OperationsHomePage() {
-  redirect('/operations/foreman');
+  redirect('/operations/labor');
 }
