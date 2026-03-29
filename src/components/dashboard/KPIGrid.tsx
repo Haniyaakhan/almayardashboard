@@ -39,7 +39,7 @@ export function KPIGrid({ activeLaborers, totalLaborers, activeMachines, totalMa
         iconColor="var(--orange)"
         barColor="var(--orange)"
         barPercent={tl ? Math.round(activeLaborers / tl * 100) : 0}
-        onClick={() => router.push('/labor')}
+        onClick={() => router.push('/operations/labor')}
       />
       <StatCard
         title="Active Vehicles"

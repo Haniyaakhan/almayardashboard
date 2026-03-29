@@ -14,7 +14,7 @@ import { useTimesheetHistory } from '@/hooks/useTimesheetHistory';
 import { Users, Truck, Settings2, Wrench, ClipboardList, FileBarChart } from 'lucide-react';
 
 const modules = [
-  { href: '/labor',                      icon: <Users size={22} />,        label: 'Labour',              sub: 'Manage workers',           color: '#ff6b2b', bg: 'rgba(255,107,43,0.08)' },
+  { href: '/operations/labor',           icon: <Users size={22} />,        label: 'Labour',              sub: 'Manage workers',           color: '#ff6b2b', bg: 'rgba(255,107,43,0.08)' },
   { href: '/vehicle-operations',         icon: <Truck size={22} />,        label: 'Contractors',         sub: 'Suppliers & vendors',      color: '#3b82f6', bg: 'rgba(59,130,246,0.08)' },
   { href: '/vehicle-operations',         icon: <Settings2 size={22} />,    label: 'Vehicles',            sub: 'Fleet management',         color: '#0ea5e9', bg: 'rgba(14,165,233,0.08)' },
   { href: '/equipment',                  icon: <Wrench size={22} />,       label: 'Equipment',           sub: 'Tools & machinery',        color: '#14b8a6', bg: 'rgba(20,184,166,0.08)' },
@@ -113,7 +113,7 @@ export default function DashboardPage() {
           <DashDataCard
             title="Labour"
             icon="👷"
-            viewAllHref="/labor"
+            viewAllHref="/operations/labor"
             btnBg="var(--orange-lt)"
             btnColor="var(--orange)"
             items={activeLaborers.slice(0, 5).map(l => ({

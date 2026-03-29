@@ -36,7 +36,7 @@ export default function LaborerDetailPage() {
   return (
     <div style={{ padding: '20px 24px' }} className="space-y-5">
       {/* Back button */}
-      <Link href="/labor" style={{
+      <Link href="/operations/labor" style={{
         display: 'inline-flex', alignItems: 'center', gap: 6,
         fontSize: 13, fontWeight: 500, color: 'var(--text-light)',
         textDecoration: 'none', padding: '7px 14px', borderRadius: 8,

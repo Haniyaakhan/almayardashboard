@@ -19,7 +19,7 @@ export default function NewLaborerPage() {
             const err = await createLaborer(data);
             if (err) throw err;
             toast.success('Laborer created successfully');
-            router.push('/labor');
+            router.push('/operations/labor');
           }}
         />
       </Card>
