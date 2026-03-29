@@ -1,12 +1,11 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isAuthPage = pathname.startsWith('/login');
   const isPublicFile = /\.(svg|png|jpg|jpeg|gif|webp|ico)$/.test(pathname);
 
-  // If Supabase env vars are missing, avoid throwing in middleware and route users safely.
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!supabaseUrl || !supabaseAnonKey) {
@@ -47,7 +46,6 @@ export async function middleware(request: NextRequest) {
     error,
   } = await supabase.auth.getUser();
 
-  // If auth lookup fails, continue with a safe unauthenticated path.
   if (error) {
     if (!isAuthPage && !isPublicFile) {
       const url = request.nextUrl.clone();

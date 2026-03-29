@@ -38,12 +38,12 @@ export default function ExportButtons({
     window.print();
   };
 
-  const handleExcelExport = () => {
+  const handleExcelExport = async () => {
     if (isExporting) return;
 
     setIsExporting(true);
     try {
-      exportToExcel(month, year, laborName, projectName, workData, totalWorked, totalOT, totalActual);
+      await exportToExcel(month, year, laborName, projectName, workData, totalWorked, totalOT, totalActual);
     } catch (error) {
       alert('Failed to export Excel file. Please try again.');
     } finally {

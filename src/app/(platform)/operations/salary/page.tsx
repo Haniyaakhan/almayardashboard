@@ -78,8 +78,12 @@ export default function OperationsSalaryPage() {
     toast.success('Salary approved');
   }
 
-  function onExport() {
-    exportSalaryReportToExcel(month, year, salaryRecords);
+  async function onExport() {
+    try {
+      await exportSalaryReportToExcel(month, year, salaryRecords);
+    } catch {
+      toast.error('Failed to export salary report');
+    }
   }
 
   if (loadingTs || loadingLabor || loadingSalary) return <PageSpinner />;

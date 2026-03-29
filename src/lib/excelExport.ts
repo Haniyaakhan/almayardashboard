@@ -1,9 +1,27 @@
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { DayEntry } from '@/types/timesheet';
 import { formatDate, MONTH_NAMES } from '@/lib/dateUtils';
 import type { SalaryRecord } from '@/types/database';
 
-export function exportToExcel(
+async function downloadWorkbook(workbook: ExcelJS.Workbook, filename: string): Promise<void> {
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([
+    buffer instanceof ArrayBuffer ? buffer : new Uint8Array(buffer),
+  ], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+export async function exportToExcel(
   month: number,
   year: number,
   laborName: string,
@@ -12,22 +30,21 @@ export function exportToExcel(
   totalWorked: number,
   totalOT: number,
   totalActual: number
-): void {
+): Promise<void> {
   try {
     const monthName = MONTH_NAMES[month];
-    const wsData: any[][] = [];
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('TimeSheet');
 
-    // Title
-    wsData.push(['Labor Time Sheet']);
-    wsData.push([]);
-    wsData.push(['ALMYAR UNITED TRADING LLC']);
-    wsData.push([]);
-    wsData.push(['PROJECT NAME:', projectName]);
-    wsData.push(['Labor Name:', laborName, '', 'Month:', monthName, 'Year:', year]);
-    wsData.push([]);
+    worksheet.addRow(['Labor Time Sheet']);
+    worksheet.addRow([]);
+    worksheet.addRow(['ALMYAR UNITED TRADING LLC']);
+    worksheet.addRow([]);
+    worksheet.addRow(['PROJECT NAME:', projectName]);
+    worksheet.addRow(['Labor Name:', laborName, '', 'Month:', monthName, 'Year:', year]);
+    worksheet.addRow([]);
 
-    // Headers
-    wsData.push([
+    worksheet.addRow([
       'Date',
       'Time In',
       'Time Out (Lunch)',
@@ -41,11 +58,9 @@ export function exportToExcel(
       'Remarks',
     ]);
 
-    // Data rows
     workData.forEach((entry) => {
-      const dateStr = formatDate(year, month, entry.day);
-      wsData.push([
-        dateStr,
+      worksheet.addRow([
+        formatDate(year, month, entry.day),
         entry.timeIn,
         entry.timeOutLunch,
         entry.lunchBreak,
@@ -59,9 +74,8 @@ export function exportToExcel(
       ]);
     });
 
-    // Totals
-    wsData.push([]);
-    wsData.push([
+    worksheet.addRow([]);
+    worksheet.addRow([
       '',
       '',
       '',
@@ -73,48 +87,43 @@ export function exportToExcel(
       totalActual || 0,
     ]);
 
-    // Create workbook and worksheet
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-
-    // Set column widths
-    ws['!cols'] = [
-      { wch: 18 }, // Date
-      { wch: 8 },  // Time In
-      { wch: 10 }, // Time Out (Lunch)
-      { wch: 10 }, // Lunch Break
-      { wch: 8 },  // Time In
-      { wch: 8 },  // Time Out
-      { wch: 15 }, // Total Worked Done
-      { wch: 8 },  // Over Time
-      { wch: 12 }, // Actual Worked
-      { wch: 12 }, // Approver Signature
-      { wch: 10 }, // Remarks
+    worksheet.columns = [
+      { width: 18 },
+      { width: 8 },
+      { width: 16 },
+      { width: 12 },
+      { width: 8 },
+      { width: 8 },
+      { width: 18 },
+      { width: 12 },
+      { width: 16 },
+      { width: 18 },
+      { width: 18 },
     ];
 
-    // Add worksheet to workbook
-    XLSX.utils.book_append_sheet(wb, ws, 'TimeSheet');
+    const headerRow = worksheet.getRow(8);
+    headerRow.font = { bold: true };
 
-    // Save file
     const filename = `TimeSheet_${laborName || 'Labor'}_${monthName}_${year}.xlsx`;
-    XLSX.writeFile(wb, filename);
+    await downloadWorkbook(workbook, filename);
   } catch (error) {
     console.error('Excel export error:', error);
     throw new Error('Failed to export Excel file');
   }
 }
 
-export function exportSalaryReportToExcel(month: number, year: number, records: SalaryRecord[]): void {
+export async function exportSalaryReportToExcel(month: number, year: number, records: SalaryRecord[]): Promise<void> {
   try {
     const monthName = MONTH_NAMES[month] ?? String(month + 1);
-    const wsData: Array<Array<string | number>> = [];
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Salary');
 
-    wsData.push(['Salary Report']);
-    wsData.push(['ALMYAR UNITED TRADING LLC']);
-    wsData.push([`Month: ${monthName}`, `Year: ${year}`]);
-    wsData.push([]);
+    worksheet.addRow(['Salary Report']);
+    worksheet.addRow(['ALMYAR UNITED TRADING LLC']);
+    worksheet.addRow([`Month: ${monthName}`, `Year: ${year}`]);
+    worksheet.addRow([]);
 
-    wsData.push([
+    worksheet.addRow([
       'Labor Name',
       'Labor ID',
       'Bank Name',
@@ -129,7 +138,7 @@ export function exportSalaryReportToExcel(month: number, year: number, records: 
     ]);
 
     records.forEach((row) => {
-      wsData.push([
+      worksheet.addRow([
         row.laborer?.full_name ?? '',
         row.laborer?.id_number ?? '',
         row.laborer?.bank_name ?? '',
@@ -145,27 +154,27 @@ export function exportSalaryReportToExcel(month: number, year: number, records: 
     });
 
     const totalNet = records.reduce((sum, row) => sum + Number(row.net_salary ?? 0), 0);
-    wsData.push([]);
-    wsData.push(['', '', '', '', '', '', '', '', 'Total Net Salary', totalNet, '']);
+    worksheet.addRow([]);
+    worksheet.addRow(['', '', '', '', '', '', '', '', 'Total Net Salary', totalNet, '']);
 
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-    ws['!cols'] = [
-      { wch: 24 },
-      { wch: 16 },
-      { wch: 18 },
-      { wch: 22 },
-      { wch: 14 },
-      { wch: 12 },
-      { wch: 14 },
-      { wch: 12 },
-      { wch: 18 },
-      { wch: 14 },
-      { wch: 12 },
+    worksheet.columns = [
+      { width: 24 },
+      { width: 16 },
+      { width: 18 },
+      { width: 22 },
+      { width: 14 },
+      { width: 12 },
+      { width: 14 },
+      { width: 12 },
+      { width: 18 },
+      { width: 14 },
+      { width: 12 },
     ];
 
-    XLSX.utils.book_append_sheet(wb, ws, 'Salary');
-    XLSX.writeFile(wb, `Salary_${monthName}_${year}.xlsx`);
+    const headerRow = worksheet.getRow(5);
+    headerRow.font = { bold: true };
+
+    await downloadWorkbook(workbook, `Salary_${monthName}_${year}.xlsx`);
   } catch (error) {
     console.error('Salary Excel export error:', error);
     throw new Error('Failed to export salary report');
