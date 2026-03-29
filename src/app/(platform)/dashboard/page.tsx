@@ -60,7 +60,7 @@ export default function DashboardPage() {
         marginTop: 16,
       }}>
         {modules.map(m => (
-          <Link key={m.href} href={m.href} style={{ textDecoration: 'none', display: 'flex' }}>
+          <Link key={`${m.href}-${m.label}`} href={m.href} style={{ textDecoration: 'none', display: 'flex' }}>
             <div style={{
               background: 'var(--bg-card)',
               border: '1px solid var(--border)',
