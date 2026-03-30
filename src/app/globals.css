@@ -151,6 +151,20 @@ button, input, select, textarea {
     -webkit-appearance: none !important;
     appearance: none !important;
   }
+
+  /* NPC Invoice: hide everything except the A4 invoice area */
+  .npc-no-print {
+    display: none !important;
+  }
+
+  .npc-invoice-area {
+    box-shadow: none !important;
+    width: 210mm !important;
+    max-width: 210mm !important;
+    min-height: 297mm !important;
+    margin: 0 !important;
+    padding: 0 14mm 14mm !important;
+  }
 }
 
 /* Custom styles for inputs in tables */
