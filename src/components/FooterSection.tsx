@@ -8,9 +8,8 @@ interface FooterSectionProps {
 }
 
 export default function FooterSection({ totalWorked, totalOT, totalActual, vehicleMode }: FooterSectionProps) {
-  const minHours    = totalWorked || 0;
-  const overTime    = totalOT || 0;
   const actualHours = totalActual || 0;
+  const computedOT = actualHours > 260 ? Number((actualHours - 260).toFixed(2)) : 0;
 
   return (
     <div style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
@@ -42,7 +41,7 @@ export default function FooterSection({ totalWorked, totalOT, totalActual, vehic
             Minimum Worked Hours <span className="font-bold">= 260</span>
           </div>
           <div className="mb-1">
-            Over Time (+Value)/Less Worked (-Value) = <span className="font-bold">{overTime !== 0 ? overTime : 'NIL'}</span>
+            Over Time (+Value)/Less Worked (-Value) = <span className="font-bold">{computedOT !== 0 ? computedOT : 'NIL'}</span>
           </div>
           <div className="mb-1">
             TOTAL WORKED HOURS <span className="font-bold">= {actualHours}</span>
