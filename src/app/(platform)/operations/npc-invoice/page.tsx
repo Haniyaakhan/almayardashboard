@@ -3,11 +3,26 @@ import React, { useMemo, useState } from 'react';
 import { FileText } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { useApprovedLaborTimesheets } from '@/hooks/useOperationsTimesheets';
 
 interface LineItem {
   description: string;
   workingHours: number;
   hourlyRate: number;
+}
+
+interface HoursByDesignation {
+  designation: string;
+  totalHours: number;
+  workers: number;
+}
+
+function parseDesignation(raw: string | null | undefined) {
+  const value = (raw ?? '').trim();
+  if (!value) return 'Unspecified';
+  const [base] = value.split('#');
+  const clean = base.trim();
+  return clean || 'Unspecified';
 }
 
 export default function OperationsNpcInvoicePage() {
@@ -19,6 +34,31 @@ export default function OperationsNpcInvoicePage() {
   const [vatPercent, setVatPercent] = useState(5);
   const [items, setItems] = useState<LineItem[]>([{ description: 'Labor Supply - 8 Workers', workingHours: 0, hourlyRate: 0 }]);
 
+  const today = new Date();
+  const [summaryMonth, setSummaryMonth] = useState(today.getMonth());
+  const [summaryYear, setSummaryYear] = useState(today.getFullYear());
+  const { timesheets: approvedLaborTs, loading: loadingSummary } = useApprovedLaborTimesheets(summaryMonth, summaryYear);
+
+  const designationSummary = useMemo<HoursByDesignation[]>(() => {
+    const map = new Map<string, { hours: number; ids: Set<string> }>();
+
+    approvedLaborTs.forEach((ts) => {
+      const key = parseDesignation(ts.designation);
+      if (!map.has(key)) map.set(key, { hours: 0, ids: new Set<string>() });
+      const bucket = map.get(key)!;
+      bucket.hours += Number(ts.total_actual ?? 0);
+      if (ts.laborer_id) bucket.ids.add(ts.laborer_id);
+    });
+
+    return Array.from(map.entries())
+      .map(([designation, payload]) => ({
+        designation,
+        totalHours: payload.hours,
+        workers: payload.ids.size,
+      }))
+      .sort((a, b) => b.totalHours - a.totalHours);
+  }, [approvedLaborTs]);
+
   const subtotal = useMemo(() => items.reduce((sum, i) => sum + (Number(i.workingHours) * Number(i.hourlyRate)), 0), [items]);
   const vatAmount = useMemo(() => (subtotal * vatPercent) / 100, [subtotal, vatPercent]);
   const total = subtotal + vatAmount;
@@ -29,6 +69,17 @@ export default function OperationsNpcInvoicePage() {
 
   function addItem() {
     setItems((prev) => [...prev, { description: '', workingHours: 0, hourlyRate: 0 }]);
+  }
+
+  function applyDesignationSummaryToItems() {
+    if (!designationSummary.length) return;
+    setItems(
+      designationSummary.map((row) => ({
+        description: `${row.designation} Labour (${row.workers} workers)`,
+        workingHours: Number(row.totalHours.toFixed(2)),
+        hourlyRate: 0,
+      }))
+    );
   }
 
   return (
@@ -44,6 +95,57 @@ export default function OperationsNpcInvoicePage() {
             <input type="date" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} style={inputStyle} />
             <input value={serviceDescription} onChange={(e) => setServiceDescription(e.target.value)} placeholder="Service Description" style={{ ...inputStyle, gridColumn: '1 / -1' }} />
             <input value={String(vatPercent)} onChange={(e) => setVatPercent(Number(e.target.value) || 0)} placeholder="VAT %" style={inputStyle} />
+          </div>
+
+          <div style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 10, marginBottom: 10, background: 'var(--bg-canvas)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>
+                Labour Hours by Designation (Approved Timesheets)
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <input
+                  type="number"
+                  min={2000}
+                  max={2100}
+                  value={summaryYear}
+                  onChange={(e) => setSummaryYear(Number(e.target.value) || today.getFullYear())}
+                  style={{ ...inputStyle, width: 90 }}
+                />
+                <select value={summaryMonth} onChange={(e) => setSummaryMonth(Number(e.target.value))} style={{ ...inputStyle, width: 130 }}>
+                  {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map((m, idx) => (
+                    <option key={m} value={idx}>{m}</option>
+                  ))}
+                </select>
+                <Button variant="secondary" onClick={applyDesignationSummaryToItems} disabled={!designationSummary.length || loadingSummary}>
+                  Use in Invoice Lines
+                </Button>
+              </div>
+            </div>
+
+            {loadingSummary ? (
+              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Loading approved timesheets...</div>
+            ) : !designationSummary.length ? (
+              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>No approved labour timesheets for selected month.</div>
+            ) : (
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ background: 'var(--thead-bg)' }}>
+                    <th style={thStyle}>Designation</th>
+                    <th style={thStyle}>Workers</th>
+                    <th style={thStyle}>Total Hours</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {designationSummary.map((row) => (
+                    <tr key={row.designation} style={{ borderBottom: '1px solid #f4f1ed' }}>
+                      <td style={tdStyle}>{row.designation}</td>
+                      <td style={tdStyle}>{row.workers}</td>
+                      <td style={{ ...tdStyle, fontWeight: 700, color: 'var(--orange)' }}>{row.totalHours.toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
 
           <div style={{ border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>

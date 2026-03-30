@@ -93,7 +93,7 @@ export default function TimesheetsPage() {
           Timesheets
         </h2>
         <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-          Create and manage timesheets for Labor, Vehicles, and Equipment.
+          Create and manage timesheets for Labor, Vehicles, and Equipment — no pre-registration required.
         </p>
       </div>
 

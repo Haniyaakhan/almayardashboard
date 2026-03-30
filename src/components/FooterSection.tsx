@@ -38,31 +38,15 @@ export default function FooterSection({ totalWorked, totalOT, totalActual, vehic
 
         {/* Summary Section */}
         <div className="text-right" style={{ whiteSpace: 'nowrap' }}>
-          {vehicleMode ? (
-            <>
-              <div className="mb-1">
-                Minimum Worked Hours <span className="font-bold">= 260</span>
-              </div>
-              <div className="mb-1">
-                Over Time (+Value)/Less Worked (-Value) = <span className="font-bold">{Math.max(0, minHours - 260) !== 0 ? Math.max(0, minHours - 260) : 'NIL'}</span>
-              </div>
-              <div className="mb-1">
-                TOTAL WORKED HOURS <span className="font-bold">= {minHours}</span>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="mb-1">
-                Minimum Worked Hours <span className="font-bold">= {minHours}</span>
-              </div>
-              <div className="mb-1">
-                Over Time (+Value)/Less Worked (-Value) = <span className="font-bold">{overTime !== 0 ? overTime : 'NIL'}</span>
-              </div>
-              <div className="mb-1">
-                TOTAL WORKED HOURS <span className="font-bold">= {actualHours}</span>
-              </div>
-            </>
-          )}
+          <div className="mb-1">
+            Minimum Worked Hours <span className="font-bold">= 260</span>
+          </div>
+          <div className="mb-1">
+            Over Time (+Value)/Less Worked (-Value) = <span className="font-bold">{overTime !== 0 ? overTime : 'NIL'}</span>
+          </div>
+          <div className="mb-1">
+            TOTAL WORKED HOURS <span className="font-bold">= {actualHours}</span>
+          </div>
         </div>
       </div>
 

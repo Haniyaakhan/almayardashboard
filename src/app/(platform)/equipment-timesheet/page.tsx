@@ -264,7 +264,7 @@ function EquipmentTimesheetPageInner() {
             totalActual={timesheet.totalActual}
           />
         </div>
-        <TemplateRow sheetType="equipment" month={timesheet.month} year={timesheet.year} workData={timesheet.workData} onUpdateDayEntry={timesheet.updateDayEntry} />
+        <TemplateRow sheetType="equipment" month={timesheet.month} year={timesheet.year} workData={timesheet.workData} onUpdateDayEntry={timesheet.updateDayEntry} onMonthChange={timesheet.setMonth} />
       </div>
 
       {/* A4 Timesheet */}
@@ -292,6 +292,7 @@ function EquipmentTimesheetPageInner() {
             month={timesheet.month} year={timesheet.year}
             workData={timesheet.workData}
             totalWorked={timesheet.totalWorked} totalOT={timesheet.totalOT}
+            totalActual={timesheet.totalActual}
             onUpdateDayEntry={timesheet.updateDayEntry}
             vehicleMode
           />

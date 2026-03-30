@@ -42,9 +42,12 @@ interface TemplateRowProps {
   year: number;
   workData: DayEntry[];
   onUpdateDayEntry: (day: number, field: keyof DayEntry, value: string | number) => void;
+  onMonthChange: (month: number) => void;
 }
 
-export default function TemplateRow({ sheetType, month, year, workData, onUpdateDayEntry }: TemplateRowProps) {
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+export default function TemplateRow({ sheetType, month, year, workData, onUpdateDayEntry, onMonthChange }: TemplateRowProps) {
   const storageKey = `timesheet-template-${sheetType}`;
   const [template, setTemplate] = useState<TemplateData>(emptyTemplate);
   const [fromDay, setFromDay] = useState(1);
@@ -114,6 +117,21 @@ export default function TemplateRow({ sheetType, month, year, workData, onUpdate
             />
           </div>
         ))}
+
+        {/* Month selector */}
+        <div className="flex flex-col items-center gap-0.5" style={{ marginLeft: 8 }}>
+          <label className="text-[10px]" style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Month</label>
+          <select
+            value={month}
+            onChange={e => onMonthChange(Number(e.target.value))}
+            className="text-xs rounded px-1.5 py-1 outline-none"
+            style={{ ...inputStyle, width: 70 }}
+          >
+            {MONTHS.map((m, i) => (
+              <option key={i} value={i}>{m}</option>
+            ))}
+          </select>
+        </div>
 
         {/* Day range */}
         <div className="flex items-center gap-1.5 ml-2" style={{ marginTop: 12 }}>

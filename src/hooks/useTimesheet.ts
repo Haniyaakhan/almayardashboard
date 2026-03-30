@@ -50,7 +50,9 @@ export function useTimesheet(): UseTimesheetReturn & {
       const updated = prev.map((entry) => {
         if (entry.day === day) {
           const newEntry = { ...entry, [field]: value };
-          newEntry.actualWorked = (newEntry.totalDuration || 0) + (newEntry.overTime || 0);
+          if (field !== 'actualWorked') {
+            newEntry.actualWorked = (newEntry.totalDuration || 0) + (newEntry.overTime || 0);
+          }
           return newEntry;
         }
         return entry;
@@ -108,7 +110,8 @@ export function useTimesheet(): UseTimesheetReturn & {
   const { totalWorked, totalOT, totalActual } = useMemo(() => {
     const worked = workData.reduce((sum, entry) => sum + (entry.totalDuration || 0), 0);
     const ot = workData.reduce((sum, entry) => sum + (entry.overTime || 0), 0);
-    return { totalWorked: worked, totalOT: ot, totalActual: worked + ot };
+    const actual = workData.reduce((sum, entry) => sum + (entry.actualWorked || 0), 0);
+    return { totalWorked: worked, totalOT: ot, totalActual: actual };
   }, [workData]);
 
   return {

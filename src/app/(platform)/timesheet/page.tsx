@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { useTimesheet } from '@/hooks/useTimesheet';
 import { useLaborers } from '@/hooks/useLaborers';
 import { saveTimesheet, getTimesheetWithEntries, getTimesheetByLaborer } from '@/hooks/useTimesheetHistory';
+import { createClient } from '@/lib/supabase/client';
 import TimesheetHeader from '@/components/TimesheetHeader';
 import InfoTable from '@/components/InfoTable';
 import WorkTable from '@/components/WorkTable';
@@ -23,6 +24,7 @@ function TimesheetPageInner() {
   const timesheet = useTimesheet();
   const { laborers } = useLaborers();
   const [selectedLaborerId, setSelectedLaborerId] = useState<string>('');
+  const [takenLaborerIds, setTakenLaborerIds] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
   const toast = useToast();
   const [clearStartDay, setClearStartDay] = useState(1);
@@ -30,6 +32,21 @@ function TimesheetPageInner() {
   const [fillHours, setFillHours] = useState(10);
   const searchParams = useSearchParams();
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
+
+  // Fetch laborer IDs that already have a timesheet for the current month/year
+  useEffect(() => {
+    const supabase = createClient();
+    supabase
+      .from('timesheets')
+      .select('laborer_id')
+      .eq('sheet_type', 'labor')
+      .eq('month', timesheet.month)
+      .eq('year', timesheet.year)
+      .then(({ data }) => {
+        const ids = new Set<string>((data ?? []).map((r: any) => r.laborer_id).filter(Boolean));
+        setTakenLaborerIds(ids);
+      });
+  }, [timesheet.month, timesheet.year]);
 
   // On mount: load existing timesheet if ?ts= param is present
   useEffect(() => {
@@ -179,9 +196,11 @@ function TimesheetPageInner() {
             style={{ background: 'var(--input-bg)', color: 'var(--text-primary)', border: '1px solid var(--border)', minWidth: 180 }}
           >
             <option value="">Select Laborer (optional)</option>
-            {laborers.map(l => (
-              <option key={l.id} value={l.id}>{l.full_name}</option>
-            ))}
+            {laborers.map(l => {
+              const isTaken = takenLaborerIds.has(l.id) && l.id !== selectedLaborerId;
+              if (isTaken) return null;
+              return <option key={l.id} value={l.id}>{l.full_name}</option>;
+            })}
           </select>
         </div>
 
@@ -251,7 +270,7 @@ function TimesheetPageInner() {
             totalActual={timesheet.totalActual}
           />
         </div>
-        <TemplateRow sheetType="labor" month={timesheet.month} year={timesheet.year} workData={timesheet.workData} onUpdateDayEntry={timesheet.updateDayEntry} />
+        <TemplateRow sheetType="labor" month={timesheet.month} year={timesheet.year} workData={timesheet.workData} onUpdateDayEntry={timesheet.updateDayEntry} onMonthChange={timesheet.setMonth} />
       </div>
 
       {/* A4 Timesheet */}
@@ -277,6 +296,7 @@ function TimesheetPageInner() {
             month={timesheet.month} year={timesheet.year}
             workData={timesheet.workData}
             totalWorked={timesheet.totalWorked} totalOT={timesheet.totalOT}
+            totalActual={timesheet.totalActual}
             onUpdateDayEntry={timesheet.updateDayEntry}
             vehicleMode
           />
