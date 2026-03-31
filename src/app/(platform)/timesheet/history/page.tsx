@@ -113,6 +113,8 @@ export default function TimesheetHistoryPage() {
                 const laborerData = laborerMap.get(ts.laborer_id ?? '');
                 const dailyRate = laborerData?.daily_rate ?? 0;
                 const salary = dailyRate > 0 ? Math.round(dailyRate * (ts.total_actual / 10)) : 0;
+                const normalizedStatus = (ts.status ?? '').toLowerCase();
+                const isLocked = normalizedStatus === 'approved' || normalizedStatus === 'saved';
                 return (
                   <tr key={ts.id} style={{
                     borderBottom: '1px solid #f4f1ed', transition: 'background 0.1s',
@@ -156,19 +158,23 @@ export default function TimesheetHistoryPage() {
                         <Link href={`/timesheet?laborer=${ts.laborer_id}&ts=${ts.id}`} style={{
                           fontSize: 11, fontWeight: 600, padding: '4px 9px', borderRadius: 6,
                           border: '1px solid var(--border2)', background: 'var(--bg-card)',
-                          color: 'var(--text-light)', textDecoration: 'none',
+                          color: isLocked ? 'var(--text-muted)' : 'var(--text-light)',
+                          textDecoration: 'none',
+                          cursor: isLocked ? 'not-allowed' : 'pointer',
+                          opacity: isLocked ? 0.5 : 1,
+                          pointerEvents: isLocked ? 'none' : 'auto',
                         }}>EDIT</Link>
                         <button onClick={async () => {
-                          if (ts.status === 'approved') return;
+                          if (isLocked) return;
                           await approveTimesheet(ts.id);
                           refetch(); toast.success('Timesheet approved');
                         }} style={{
                           fontSize: 11, fontWeight: 600, padding: '4px 9px', borderRadius: 6,
-                          border: 'none', cursor: ts.status === 'approved' ? 'default' : 'pointer',
-                          background: ts.status === 'approved' ? '#d1d5db' : 'var(--orange)',
-                          color: ts.status === 'approved' ? '#6b7280' : '#fff',
-                          opacity: ts.status === 'approved' ? 0.7 : 1,
-                        }}>{ts.status === 'approved' ? 'SAVED' : 'SAVE'}</button>
+                          border: 'none', cursor: isLocked ? 'default' : 'pointer',
+                          background: isLocked ? '#d1d5db' : 'var(--orange)',
+                          color: isLocked ? '#6b7280' : '#fff',
+                          opacity: isLocked ? 0.7 : 1,
+                        }}>{isLocked ? 'SAVED' : 'SAVE'}</button>
                       </div>
                     </td>
                   </tr>

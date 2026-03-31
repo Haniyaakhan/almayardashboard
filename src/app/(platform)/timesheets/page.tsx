@@ -28,6 +28,7 @@ export default function TimesheetsPage() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [typeFilter, setTypeFilter] = useState<'All' | SheetType>('All');
   const [statusFilter, setStatusFilter] = useState<'All' | 'approved' | 'draft'>('All');
+  const [monthFilter, setMonthFilter] = useState('All');
   const [search, setSearch] = useState('');
 
   const laborerMap  = new Map(laborers.map(l => [l.id, l]));
@@ -62,14 +63,22 @@ export default function TimesheetsPage() {
     return `/timesheet?ts=${ts.id}`;
   }
 
+  const monthOptions = Array.from(
+    new Set(timesheets.map(ts => `${MONTHS[ts.month]} ${ts.year}`))
+  );
+  const visibleMonthOptions = monthOptions.length > 0 ? monthOptions : MONTHS;
+
   const filtered = timesheets.filter(ts => {
     const type = resolveType(ts);
     const name = resolveName(ts, type).toLowerCase();
+    const normalizedStatus = (ts.status ?? '').toLowerCase();
+    const fullMonthLabel = `${MONTHS[ts.month]} ${ts.year}`;
     const matchType   = typeFilter === 'All' || type === typeFilter;
-    const matchStatus = statusFilter === 'All' || ts.status === statusFilter;
+    const matchStatus = statusFilter === 'All' || normalizedStatus === statusFilter;
+    const matchMonth = monthFilter === 'All' || fullMonthLabel === monthFilter || MONTHS[ts.month] === monthFilter;
     const matchSearch = !search || name.includes(search.toLowerCase()) ||
-      `${MONTHS[ts.month]} ${ts.year}`.toLowerCase().includes(search.toLowerCase());
-    return matchType && matchStatus && matchSearch;
+      fullMonthLabel.toLowerCase().includes(search.toLowerCase());
+    return matchType && matchStatus && matchMonth && matchSearch;
   });
 
   if (tsLoading || labLoading || machLoading) return <PageSpinner />;
@@ -137,14 +146,24 @@ export default function TimesheetsPage() {
             }}>{t.label}</button>
           ))}
         </div>
-        <div className="flex items-center gap-2" style={{
-          background: 'var(--bg-card)', borderRadius: 9,
-          padding: '7px 13px', border: '1px solid var(--border2)',
-        }}>
-          <Search size={14} style={{ color: 'var(--text-muted)' }} />
-          <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Search by name or month..."
-            style={{ border: 'none', background: 'transparent', fontSize: '12.5px', color: 'var(--text-light)', width: 190, outline: 'none' }} />
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2" style={{
+            background: 'var(--bg-card)', borderRadius: 9,
+            padding: '7px 13px', border: '1px solid var(--border2)',
+          }}>
+            <Search size={14} style={{ color: 'var(--text-muted)' }} />
+            <input value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Search by name or month..."
+              style={{ border: 'none', background: 'transparent', fontSize: '12.5px', color: 'var(--text-light)', width: 190, outline: 'none' }} />
+          </div>
+          <select value={monthFilter} onChange={e => setMonthFilter(e.target.value)} style={{
+            fontSize: 12, fontWeight: 500, padding: '7px 13px', borderRadius: 9,
+            border: '1px solid var(--border2)', background: 'var(--bg-card)',
+            color: 'var(--text-light)', cursor: 'pointer', outline: 'none',
+          }}>
+            <option value="All">All Months</option>
+            {visibleMonthOptions.map(m => <option key={m} value={m}>{m}</option>)}
+          </select>
         </div>
       </div>
 
@@ -171,6 +190,8 @@ export default function TimesheetsPage() {
                   const type = resolveType(ts);
                   const name = resolveName(ts, type);
                   const colors = TYPE_COLORS[type];
+                  const normalizedStatus = (ts.status ?? '').toLowerCase();
+                  const isLocked = normalizedStatus === 'approved' || normalizedStatus === 'saved';
                   return (
                     <tr key={ts.id}
                       style={{ borderBottom: '1px solid #f4f1ed', transition: 'background 0.1s' }}
@@ -202,25 +223,31 @@ export default function TimesheetsPage() {
                           <Link href={editLink(ts, type)} style={{
                             fontSize: 11, fontWeight: 600, padding: '4px 9px', borderRadius: 6,
                             border: '1px solid var(--border2)', background: 'var(--bg-card)',
-                            color: 'var(--text-light)', textDecoration: 'none',
+                            color: isLocked ? 'var(--text-muted)' : 'var(--text-light)',
+                            textDecoration: 'none',
+                            cursor: isLocked ? 'not-allowed' : 'pointer',
+                            opacity: isLocked ? 0.5 : 1,
+                            pointerEvents: isLocked ? 'none' : 'auto',
                           }}>EDIT</Link>
-                          <button onClick={() => setConfirmDeleteId(ts.id)} style={{
-                            fontSize: 11, fontWeight: 600, padding: '4px 9px', borderRadius: 6,
-                            border: 'none', cursor: 'pointer',
-                            background: 'rgba(239,68,68,0.1)', color: '#ef4444',
-                            display: 'flex', alignItems: 'center', gap: 4,
-                          }}><Trash2 size={11} /> DEL</button>
+                          {!isLocked && (
+                            <button onClick={() => setConfirmDeleteId(ts.id)} style={{
+                              fontSize: 11, fontWeight: 600, padding: '4px 9px', borderRadius: 6,
+                              border: 'none', cursor: 'pointer',
+                              background: 'rgba(239,68,68,0.1)', color: '#ef4444',
+                              display: 'flex', alignItems: 'center', gap: 4,
+                            }}><Trash2 size={11} /> DEL</button>
+                          )}
                           <button onClick={async () => {
-                            if (ts.status === 'approved') return;
+                            if (isLocked) return;
                             await approveTimesheet(ts.id);
                             refetch(); toast.success('Timesheet approved');
                           }} style={{
                             fontSize: 11, fontWeight: 600, padding: '4px 9px', borderRadius: 6,
-                            border: 'none', cursor: ts.status === 'approved' ? 'default' : 'pointer',
-                            background: ts.status === 'approved' ? '#d1d5db' : 'var(--orange)',
-                            color: ts.status === 'approved' ? '#6b7280' : '#fff',
-                            opacity: ts.status === 'approved' ? 0.7 : 1,
-                          }}>{ts.status === 'approved' ? 'SAVED' : 'SAVE'}</button>
+                            border: 'none', cursor: isLocked ? 'default' : 'pointer',
+                            background: isLocked ? '#d1d5db' : 'var(--orange)',
+                            color: isLocked ? '#6b7280' : '#fff',
+                            opacity: isLocked ? 0.7 : 1,
+                          }}>{isLocked ? 'SAVED' : 'SAVE'}</button>
                         </div>
                       </td>
                     </tr>
@@ -249,6 +276,13 @@ export default function TimesheetsPage() {
                 border: '1px solid var(--border2)', background: 'var(--bg-card)', color: 'var(--text-light)',
               }}>Cancel</button>
               <button onClick={async () => {
+                const selected = timesheets.find(ts => ts.id === confirmDeleteId);
+                const selectedStatus = (selected?.status ?? '').toLowerCase();
+                if (selectedStatus === 'approved' || selectedStatus === 'saved') {
+                  setConfirmDeleteId(null);
+                  toast.error('Approved timesheets cannot be deleted');
+                  return;
+                }
                 const err = await deleteTimesheet(confirmDeleteId);
                 setConfirmDeleteId(null);
                 if (err) { toast.error('Failed to delete timesheet'); return; }

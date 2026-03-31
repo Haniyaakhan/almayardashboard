@@ -15,7 +15,7 @@ export default function EquipmentTimesheetPage() {
   const { timesheets, loading: tsLoading, refetch } = useTimesheetHistory();
   const toast = useToast();
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState<'All' | 'approved' | 'draft'>('All');
+  const [filter, setFilter] = useState<'All' | 'approved' | 'draft' | 'submitted'>('All');
   const [monthFilter, setMonthFilter] = useState('All');
 
   const equipmentMachineIds = new Set(machines.filter(m => m.category === 'equipment').map(m => m.id));
@@ -26,10 +26,12 @@ export default function EquipmentTimesheetPage() {
   const monthOptions = Array.from(
     new Set(equipmentTimesheets.map(ts => `${MONTHS[ts.month]} ${ts.year}`))
   );
+  const visibleMonthOptions = monthOptions.length > 0 ? monthOptions : MONTHS;
 
   const filtered = equipmentTimesheets.filter(ts => {
-    const matchStatus = filter === 'All' || ts.status === filter;
-    const matchMonth = monthFilter === 'All' || `${MONTHS[ts.month]} ${ts.year}` === monthFilter;
+    const normalizedStatus = (ts.status ?? '').toLowerCase();
+    const matchStatus = filter === 'All' || normalizedStatus === filter;
+    const matchMonth = monthFilter === 'All' || `${MONTHS[ts.month]} ${ts.year}` === monthFilter || MONTHS[ts.month] === monthFilter;
     const machine = machines.find(m => m.id === ts.laborer_id);
     const displayName = machine?.name ?? ts.labor_name ?? '';
     const matchSearch = !search || displayName.toLowerCase().includes(search.toLowerCase()) ||
@@ -39,8 +41,9 @@ export default function EquipmentTimesheetPage() {
 
   if (machinesLoading || tsLoading) return <PageSpinner />;
 
-  const tabs: { label: string; value: 'All' | 'approved' | 'draft' }[] = [
+  const tabs: { label: string; value: 'All' | 'approved' | 'draft' | 'submitted' }[] = [
     { label: 'All', value: 'All' },
+    { label: 'Submitted', value: 'submitted' },
     { label: 'Approved', value: 'approved' },
     { label: 'Draft', value: 'draft' },
   ];
@@ -86,14 +89,7 @@ export default function EquipmentTimesheetPage() {
             color: 'var(--text-light)', cursor: 'pointer', outline: 'none',
           }}>
             <option value="All">All Months</option>
-            {monthOptions.length > 0 ? (
-              monthOptions.map(m => <option key={m} value={m}>{m}</option>)
-            ) : (
-              MONTHS.map((m, i) => {
-                const year = new Date().getFullYear();
-                return <option key={`${m}-${year}`} value={`${m} ${year}`}>{m} {year}</option>;
-              })
-            )}
+            {visibleMonthOptions.map(m => <option key={m} value={m}>{m}</option>)}
           </select>
           <Link href="/equipment-timesheet" style={{
             display: 'flex', alignItems: 'center', gap: 6,
@@ -132,6 +128,7 @@ export default function EquipmentTimesheetPage() {
             <tbody>
               {filtered.map(ts => {
                 const machine = machines.find(m => m.id === ts.laborer_id);
+                const isApproved = (ts.status ?? '').toLowerCase() === 'approved';
                 return (
                   <tr key={ts.id} style={{ borderBottom: '1px solid #f4f1ed', transition: 'background 0.1s' }}
                     onMouseEnter={e => { e.currentTarget.style.background = 'var(--row-hover)'; }}
@@ -155,23 +152,23 @@ export default function EquipmentTimesheetPage() {
                         <Link href={`/equipment-timesheet?equipment=${ts.laborer_id}&ts=${ts.id}`} style={{
                           fontSize: 11, fontWeight: 600, padding: '4px 9px', borderRadius: 6,
                           border: '1px solid var(--border2)', background: 'var(--bg-card)',
-                          color: ts.status === 'approved' ? 'var(--text-muted)' : 'var(--text-light)',
-                          textDecoration: 'none', cursor: ts.status === 'approved' ? 'not-allowed' : 'pointer',
-                          opacity: ts.status === 'approved' ? 0.5 : 1,
-                          pointerEvents: ts.status === 'approved' ? 'none' : 'auto',
+                          color: isApproved ? 'var(--text-muted)' : 'var(--text-light)',
+                          textDecoration: 'none', cursor: isApproved ? 'not-allowed' : 'pointer',
+                          opacity: isApproved ? 0.5 : 1,
+                          pointerEvents: isApproved ? 'none' : 'auto',
                         }}>EDIT</Link>
                         <button onClick={async () => {
-                          if (ts.status === 'approved') return;
+                          if (isApproved) return;
                           await approveTimesheet(ts.id);
                           refetch(); toast.success('Timesheet approved');
                         }} style={{
                           fontSize: 11, fontWeight: 600, padding: '4px 9px', borderRadius: 6,
-                          border: 'none', cursor: ts.status === 'approved' ? 'not-allowed' : 'pointer',
-                          background: ts.status === 'approved' ? '#d1d5db' : 'var(--orange)',
-                          color: ts.status === 'approved' ? '#6b7280' : '#fff',
-                          opacity: ts.status === 'approved' ? 0.7 : 1,
-                        }}>{ts.status === 'approved' ? 'SAVED' : 'SAVE'}</button>
-                        {ts.status !== 'approved' && (
+                          border: 'none', cursor: isApproved ? 'not-allowed' : 'pointer',
+                          background: isApproved ? '#d1d5db' : 'var(--orange)',
+                          color: isApproved ? '#6b7280' : '#fff',
+                          opacity: isApproved ? 0.7 : 1,
+                        }}>{isApproved ? 'SAVED' : 'SAVE'}</button>
+                        {!isApproved && (
                           <button onClick={async () => {
                             if (window.confirm('Delete this timesheet?')) {
                               const err = await deleteTimesheet(ts.id);

@@ -132,6 +132,8 @@ export default function VehicleTimesheetPage() {
             <tbody>
               {filtered.map(ts => {
                 const machine = machines.find(m => m.id === ts.laborer_id);
+                const normalizedStatus = (ts.status ?? '').toLowerCase();
+                const isLocked = normalizedStatus === 'approved' || normalizedStatus === 'saved';
                 return (
                   <tr key={ts.id} style={{ borderBottom: '1px solid #f4f1ed', transition: 'background 0.1s' }}
                     onMouseEnter={e => { e.currentTarget.style.background = 'var(--row-hover)'; }}
@@ -158,23 +160,23 @@ export default function VehicleTimesheetPage() {
                         <Link href={`/vehicle-timesheet?vehicle=${ts.laborer_id}&ts=${ts.id}`} style={{
                           fontSize: 11, fontWeight: 600, padding: '4px 9px', borderRadius: 6,
                           border: '1px solid var(--border2)', background: 'var(--bg-card)',
-                          color: ts.status === 'approved' ? 'var(--text-muted)' : 'var(--text-light)',
-                          textDecoration: 'none', cursor: ts.status === 'approved' ? 'not-allowed' : 'pointer',
-                          opacity: ts.status === 'approved' ? 0.5 : 1,
-                          pointerEvents: ts.status === 'approved' ? 'none' : 'auto',
+                          color: isLocked ? 'var(--text-muted)' : 'var(--text-light)',
+                          textDecoration: 'none', cursor: isLocked ? 'not-allowed' : 'pointer',
+                          opacity: isLocked ? 0.5 : 1,
+                          pointerEvents: isLocked ? 'none' : 'auto',
                         }}>EDIT</Link>
                         <button onClick={async () => {
-                          if (ts.status === 'approved') return;
+                          if (isLocked) return;
                           await approveTimesheet(ts.id);
                           refetch(); toast.success('Timesheet approved');
                         }} style={{
                           fontSize: 11, fontWeight: 600, padding: '4px 9px', borderRadius: 6,
-                          border: 'none', cursor: ts.status === 'approved' ? 'not-allowed' : 'pointer',
-                          background: ts.status === 'approved' ? '#d1d5db' : 'var(--orange)',
-                          color: ts.status === 'approved' ? '#6b7280' : '#fff',
-                          opacity: ts.status === 'approved' ? 0.7 : 1,
-                        }}>{ts.status === 'approved' ? 'SAVED' : 'SAVE'}</button>
-                        {ts.status !== 'approved' && (
+                          border: 'none', cursor: isLocked ? 'not-allowed' : 'pointer',
+                          background: isLocked ? '#d1d5db' : 'var(--orange)',
+                          color: isLocked ? '#6b7280' : '#fff',
+                          opacity: isLocked ? 0.7 : 1,
+                        }}>{isLocked ? 'SAVED' : 'SAVE'}</button>
+                        {!isLocked && (
                           <button onClick={async () => {
                             if (window.confirm('Delete this timesheet?')) {
                               const err = await deleteTimesheet(ts.id);

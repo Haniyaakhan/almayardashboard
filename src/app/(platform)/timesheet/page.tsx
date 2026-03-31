@@ -39,6 +39,10 @@ function TimesheetPageInner() {
   const searchParams = useSearchParams();
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
+  function formatLaborDisplayName(lab: Laborer): string {
+    return lab.id_number ? `${lab.full_name} # ${lab.id_number}` : lab.full_name;
+  }
+
   // Fetch laborer IDs that already have a timesheet for the current month/year
   useEffect(() => {
     const supabase = createClient();
@@ -95,8 +99,8 @@ function TimesheetPageInner() {
     if (!laborerId) return;
     const lab = laborers.find(l => l.id === laborerId);
     if (!lab) return;
-    timesheet.setLaborName(lab.full_name);
-    timesheet.setDesignation(`${lab.designation}# ${lab.id_number}`);
+    timesheet.setLaborName(formatLaborDisplayName(lab));
+    timesheet.setDesignation(lab.designation ?? '');
     setLaborSearchInput(lab.full_name || lab.id_number || '');
   }, [laborers]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -123,19 +127,19 @@ function TimesheetPageInner() {
         timesheet.loadEntries(entries, {
           month: existing.month,
           year: existing.year,
-          laborName: lab.full_name,
+          laborName: formatLaborDisplayName(lab),
           projectName: existing.project_name ?? timesheet.projectName,
           supplierName: '',
           siteEngineerName: existing.site_engineer_name ?? '',
-          designation: `${lab.designation}# ${lab.id_number}`,
+          designation: lab.designation ?? '',
         });
       } else {
         const days = generateDaysInMonth(timesheet.month, timesheet.year);
         timesheet.loadEntries(days, {
           month: timesheet.month,
           year: timesheet.year,
-          laborName: lab.full_name,
-          designation: `${lab.designation}# ${lab.id_number}`,
+          laborName: formatLaborDisplayName(lab),
+          designation: lab.designation ?? '',
         });
       }
     } catch {
@@ -143,8 +147,8 @@ function TimesheetPageInner() {
       timesheet.loadEntries(days, {
         month: timesheet.month,
         year: timesheet.year,
-        laborName: lab.full_name,
-        designation: `${lab.designation}# ${lab.id_number}`,
+        laborName: formatLaborDisplayName(lab),
+        designation: lab.designation ?? '',
       });
     }
   }
