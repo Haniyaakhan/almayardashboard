@@ -1,13 +1,13 @@
 'use client';
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { useTimesheetHistory, approveTimesheet } from '@/hooks/useTimesheetHistory';
+import { useTimesheetHistory, approveTimesheet, deleteTimesheet } from '@/hooks/useTimesheetHistory';
 import { useLaborers } from '@/hooks/useLaborers';
 import { PageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { timesheetStatusBadge } from '@/components/ui/Badge';
 import { useToast } from '@/components/ui/Toast';
-import { ClipboardList, Plus } from 'lucide-react';
+import { ClipboardList, Plus, Trash2 } from 'lucide-react';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -63,16 +63,22 @@ export default function LabourTimesheetPage() {
           ))}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          {monthOptions.length > 0 && (
-            <select value={monthFilter} onChange={e => setMonthFilter(e.target.value)} style={{
-              fontSize: 12, fontWeight: 500, padding: '7px 13px', borderRadius: 9,
-              border: '1px solid var(--border2)', background: 'var(--bg-card)',
-              color: 'var(--text-light)', cursor: 'pointer', outline: 'none',
-            }}>
-              <option value="All">All Months</option>
-              {monthOptions.map(m => <option key={m} value={m}>{m}</option>)}
-            </select>
-          )}
+          <select value={monthFilter} onChange={e => setMonthFilter(e.target.value)} style={{
+            fontSize: 12, fontWeight: 500, padding: '7px 13px', borderRadius: 9,
+            border: '1px solid var(--border2)', background: 'var(--bg-card)',
+            color: 'var(--text-light)', cursor: 'pointer', outline: 'none',
+          }}>
+            <option value="All">All Months</option>
+            {monthOptions.length > 0 ? (
+              monthOptions.map(m => <option key={m} value={m}>{m}</option>)
+            ) : (
+              // Show all months if no timesheets exist
+              MONTHS.map((m, i) => {
+                const year = new Date().getFullYear();
+                return <option key={`${m}-${year}`} value={`${m} ${year}`}>{m} {year}</option>;
+              })
+            )}
+          </select>
           <Link href="/timesheet" style={{
             display: 'flex', alignItems: 'center', gap: 6,
             background: 'var(--orange)', color: '#fff',
@@ -152,7 +158,10 @@ export default function LabourTimesheetPage() {
                         <Link href={`/timesheet?laborer=${ts.laborer_id}&ts=${ts.id}`} style={{
                           fontSize: 11, fontWeight: 600, padding: '4px 9px', borderRadius: 6,
                           border: '1px solid var(--border2)', background: 'var(--bg-card)',
-                          color: 'var(--text-light)', textDecoration: 'none',
+                          color: ts.status === 'approved' ? 'var(--text-muted)' : 'var(--text-light)',
+                          textDecoration: 'none', cursor: ts.status === 'approved' ? 'not-allowed' : 'pointer',
+                          opacity: ts.status === 'approved' ? 0.5 : 1,
+                          pointerEvents: ts.status === 'approved' ? 'none' : 'auto',
                         }}>EDIT</Link>
                         <button onClick={async () => {
                           if (ts.status === 'approved') return;
@@ -160,11 +169,30 @@ export default function LabourTimesheetPage() {
                           refetch(); toast.success('Timesheet approved');
                         }} style={{
                           fontSize: 11, fontWeight: 600, padding: '4px 9px', borderRadius: 6,
-                          border: 'none', cursor: ts.status === 'approved' ? 'default' : 'pointer',
+                          border: 'none', cursor: ts.status === 'approved' ? 'not-allowed' : 'pointer',
                           background: ts.status === 'approved' ? '#d1d5db' : 'var(--orange)',
                           color: ts.status === 'approved' ? '#6b7280' : '#fff',
                           opacity: ts.status === 'approved' ? 0.7 : 1,
                         }}>{ts.status === 'approved' ? 'SAVED' : 'SAVE'}</button>
+                        {ts.status !== 'approved' && (
+                          <button onClick={async () => {
+                            if (window.confirm('Delete this timesheet?')) {
+                              const err = await deleteTimesheet(ts.id);
+                              if (err) {
+                                toast.error('Failed to delete timesheet');
+                              } else {
+                                refetch();
+                                toast.success('Timesheet deleted');
+                              }
+                            }
+                          }} style={{
+                            fontSize: 11, fontWeight: 600, padding: '4px 9px', borderRadius: 6,
+                            border: '1px solid #ef4444', background: '#fecaca',
+                            color: '#991b1b', cursor: 'pointer',
+                          }}>
+                            <Trash2 size={12} style={{ display: 'inline', marginRight: 4 }} /> DELETE
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

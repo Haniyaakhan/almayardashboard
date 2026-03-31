@@ -44,9 +44,6 @@ export default function TimesheetHeader({
               <div style={{ fontSize: '16px', fontStyle: 'normal', fontWeight: 'normal', marginRight: '100px',marginTop:'4px', }}>
                 {timesheetType === 'labor' ? 'Labor Working At Site' : 'Working At Site'}
               </div>
-              <div style={{ fontSize: '16px', fontWeight: 'normal', fontStyle: 'normal', marginTop: '2px', marginRight: '70px' }}>
-                LPO
-              </div>
             </div>
 
             {/* SITE USE boxes - normal flow, no absolute/spanning */}
@@ -83,7 +80,7 @@ export default function TimesheetHeader({
                     colSpan={2}
                     style={{ padding: '3px 8px', textAlign: 'center', fontSize: '11px', fontWeight: 'bold' }}
                   >
-                    I069B/Contracts/MSA-001
+                    I069A/Contracts/MSA-001
                   </td>
                 </tr>
                 <tr>
