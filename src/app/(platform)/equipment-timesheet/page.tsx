@@ -14,7 +14,7 @@ import TemplateRow from '@/components/TemplateRow';
 import { Button } from '@/components/ui/Button';
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/Toast';
-import { Save, Link as LinkIcon, Eraser, Plus } from 'lucide-react';
+import { Save, Search, Eraser, Plus } from 'lucide-react';
 import type { DayEntry } from '@/types/timesheet';
 import { generateDaysInMonth } from '@/lib/dateUtils';
 
@@ -29,6 +29,8 @@ function EquipmentTimesheetPageInner() {
   const [clearStartDay, setClearStartDay] = useState(1);
   const [clearEndDay, setClearEndDay] = useState(1);
   const [fillHours, setFillHours] = useState(10);
+  const [equipmentSearchInput, setEquipmentSearchInput] = useState('');
+  const [equipmentSearchStatus, setEquipmentSearchStatus] = useState<'idle' | 'notfound'>('idle');
   const searchParams = useSearchParams();
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
@@ -77,15 +79,23 @@ function EquipmentTimesheetPageInner() {
     if (!machine) return;
     timesheet.setLaborName(`${machine.name}# ${machine.plate_number ?? ''}`);
     timesheet.setDesignation(machine.plate_number ?? '');
+    setEquipmentSearchInput(machine.plate_number ?? machine.name);
   }, [machines]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function onEquipmentSelect(id: string) {
-    setSelectedEquipmentId(id);
-    if (!id) return;
-    const machine = machines.find(m => m.id === id);
-    if (!machine) return;
+  function hasTimesheetValues() {
+    return timesheet.workData.some(entry =>
+      entry.timeIn || entry.timeOutLunch || entry.lunchBreak || entry.timeIn2 || entry.timeOut2 ||
+      (entry.totalDuration || 0) > 0 || (entry.overTime || 0) > 0 || (entry.actualWorked || 0) > 0 ||
+      entry.approverSig || entry.remarks
+    );
+  }
+
+  async function loadEquipmentIntoTimesheet(machine: (typeof machines)[number]) {
+    setSelectedEquipmentId(machine.id);
+    setEquipmentSearchInput(machine.plate_number ?? machine.name);
+    setEquipmentSearchStatus('idle');
     try {
-      const existing = await getTimesheetByLaborer(id, timesheet.month, timesheet.year);
+      const existing = await getTimesheetByLaborer(machine.id, timesheet.month, timesheet.year);
       setLoadedTsId(existing?.id ?? null);
       if (existing && (existing as any).entries?.length) {
         const entries: DayEntry[] = ((existing as any).entries ?? []).map((e: any) => ({
@@ -132,7 +142,57 @@ function EquipmentTimesheetPageInner() {
     }
   }
 
+  async function onEquipmentSelect(id: string) {
+    if (!id) return;
+    const machine = machines.find(m => m.id === id);
+    if (!machine) return;
+    await loadEquipmentIntoTimesheet(machine);
+  }
+
+  async function handleEquipmentSearch(query: string) {
+    const trimmed = query.trim();
+    if (!trimmed) {
+      setEquipmentSearchStatus('idle');
+      return;
+    }
+    const lowered = trimmed.toLowerCase();
+    const equipment = machines.filter(m => m.category === 'equipment');
+    const exactPlateMatch = equipment.find(m => (m.plate_number ?? '').toLowerCase() === lowered);
+    if (exactPlateMatch) {
+      await loadEquipmentIntoTimesheet(exactPlateMatch);
+      return;
+    }
+    const exactNameMatch = equipment.find(m => m.name.toLowerCase() === lowered);
+    if (exactNameMatch) {
+      await loadEquipmentIntoTimesheet(exactNameMatch);
+      return;
+    }
+    const partialMatches = equipment.filter(m =>
+      m.name.toLowerCase().includes(lowered) || (m.plate_number ?? '').toLowerCase().includes(lowered)
+    );
+    if (partialMatches.length === 1) {
+      await loadEquipmentIntoTimesheet(partialMatches[0]);
+      return;
+    }
+    setEquipmentSearchStatus('notfound');
+  }
+
   async function handleSave() {
+    if (!selectedEquipmentId && !searchParams.get('equipment')) {
+      toast.error('Select equipment before saving');
+      return;
+    }
+
+    if (!timesheet.designation.trim()) {
+      toast.error('Equipment details are required before saving');
+      return;
+    }
+
+    if (!hasTimesheetValues()) {
+      toast.error('Enter timesheet values before saving');
+      return;
+    }
+
     const equipmentId = selectedEquipmentId || searchParams.get('equipment') || null;
 
     // Enforce max 2 timesheets per equipment per month
@@ -183,23 +243,31 @@ function EquipmentTimesheetPageInner() {
       {/* Actions bar */}
       <div className="print:hidden flex items-center gap-3 px-6 py-3 flex-wrap"
         style={{ background: 'var(--bg-sidebar)', borderBottom: '1px solid var(--border)' }}>
-        {/* Equipment selector */}
-        <div className="flex items-center gap-2">
-          <LinkIcon size={14} style={{ color: 'var(--text-muted)' }} />
-          <select
-            value={selectedEquipmentId}
-            onChange={e => onEquipmentSelect(e.target.value)}
+        {/* Equipment search/select */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <Search size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+          <input
+            type="text"
+            list="equipment-search-options"
+            value={equipmentSearchInput}
+            onChange={e => { setEquipmentSearchInput(e.target.value); setEquipmentSearchStatus('idle'); }}
+            onKeyDown={e => { if (e.key === 'Enter') handleEquipmentSearch(equipmentSearchInput); }}
+            onBlur={() => { if (equipmentSearchInput.trim() && equipmentSearchStatus === 'idle') handleEquipmentSearch(equipmentSearchInput); }}
+            placeholder="Search equipment by number or name..."
             className="text-sm rounded-lg px-3 py-1.5 outline-none"
-            style={{ background: 'var(--input-bg)', color: 'var(--text-primary)', border: '1px solid var(--border)', minWidth: 180 }}
-          >
-            <option value="">Select Equipment</option>
+            style={{ background: 'var(--input-bg)', color: 'var(--text-primary)', border: '1px solid var(--border)', minWidth: 280 }}
+          />
+          <datalist id="equipment-search-options">
             {machines.filter(m => m.category === 'equipment').map(m => (
-              <option key={m.id} value={m.id}>{m.name} ({m.plate_number || m.type})</option>
+              <option key={m.id} value={m.plate_number || m.name}>{`${m.name} (${m.plate_number || m.type})`}</option>
             ))}
-          </select>
+          </datalist>
+          {equipmentSearchStatus === 'notfound' && (
+            <span style={{ fontSize: 12, color: '#ef4444', fontWeight: 500 }}>Equipment not found</span>
+          )}
         </div>
 
-        <Button variant="primary" size="sm" loading={saving} icon={<Save size={13}/>} onClick={handleSave}>
+        <Button variant="primary" size="sm" loading={saving} disabled={saving || !selectedEquipmentId || !timesheet.designation.trim() || !hasTimesheetValues()} icon={<Save size={13}/>} onClick={handleSave}>
           Save Timesheet
         </Button>
 

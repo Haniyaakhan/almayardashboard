@@ -1,6 +1,6 @@
 ﻿'use client';
 import React, { useMemo, useRef, useState } from 'react';
-import { Download, RefreshCw, Printer } from 'lucide-react';
+import { Download, RefreshCw } from 'lucide-react';
 import { useApprovedLaborTimesheets } from '@/hooks/useOperationsTimesheets';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -42,16 +42,18 @@ export default function OperationsNpcInvoicePage() {
   const [selYear,  setSelYear]  = useState(today.getFullYear());
   const { timesheets, loading } = useApprovedLaborTimesheets(selMonth, selYear);
 
-  const [billTo,       setBillTo]       = useState('NPC SPC');
-  const [project,      setProject]      = useState('Railway Project');
-  const [invoiceNo,    setInvoiceNo]    = useState(() => genInvoiceNo(today.getFullYear(), today.getMonth()));
-  const [invoiceDate,  setInvoiceDate]  = useState(today.toISOString().slice(0, 10));
-  const [vatPercent,   setVatPercent]   = useState(5);
-  const [companyName,  setCompanyName]  = useState('ALMYAR UNITED TRADING LLC');
-  const [vatRegNo,     setVatRegNo]     = useState('OM1100123456');
-  const [accountNo,    setAccountNo]    = useState('0123456789');
-  const [iban,         setIban]         = useState('OM91000000000000123456');
-  const [bankName,     setBankName]     = useState('Bank Muscat');
+  const [billTo,         setBillTo]         = useState('NPC SPC');
+  const [project,        setProject]        = useState('Railway Project');
+  const [invoiceNo,      setInvoiceNo]      = useState(() => genInvoiceNo(today.getFullYear(), today.getMonth()));
+  const [invoiceDate,    setInvoiceDate]    = useState(today.toISOString().slice(0, 10));
+  const [vatPercent,     setVatPercent]     = useState(5);
+  const [companyName,    setCompanyName]    = useState('ALMYAR UNITED TRADING LLC');
+  const [npcSpcVatNo,    setNpcSpcVatNo]    = useState('OM1100123456');
+  const [vatNo1,         setVatNo1]         = useState('OM1100123456');
+  const [vatNo2,         setVatNo2]         = useState('OM1100123456');
+  const [accountNo,      setAccountNo]      = useState('0123456789');
+  const [iban,           setIban]           = useState('OM91000000000000123456');
+  const [bankName,       setBankName]       = useState('Bank Muscat');
 
   const [rows,      setRows]      = useState<InvoiceRow[]>([]);
   const [designationRates, setDesignationRates] = useState<Record<string, number>>({});
@@ -202,14 +204,15 @@ export default function OperationsNpcInvoicePage() {
           <div style={panelTitleSt}>Invoice Settings</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
             {([
-              ['Company Name', companyName, setCompanyName],
-              ['VAT Reg. No',  vatRegNo,    setVatRegNo],
-              ['Invoice No',   invoiceNo,   setInvoiceNo],
-              ['Bill To',      billTo,      setBillTo],
-              ['Project',      project,     setProject],
-              ['Bank Name',    bankName,    setBankName],
-              ['Account No',   accountNo,   setAccountNo],
-              ['IBAN',         iban,        setIban],
+              ['Bill To',         billTo,       setBillTo],
+              ['NPC SPC VAT NO',   npcSpcVatNo,  setNpcSpcVatNo],
+              ['Company Name',    companyName,  setCompanyName],
+              ['VAT NO (1)',      vatNo1,       setVatNo1],
+              ['Project',         project,      setProject],
+              ['Invoice No',      invoiceNo,    setInvoiceNo],
+              ['Bank Name',       bankName,     setBankName],
+              ['Account No',      accountNo,    setAccountNo],
+              ['IBAN',            iban,         setIban],
             ] as [string, string, (v: string) => void][]).map(([lbl, val, setter]) => (
               <label key={lbl} style={labelSt}>{lbl}
                 <input value={val} onChange={e => setter(e.target.value)} style={inputSt} />
@@ -217,6 +220,9 @@ export default function OperationsNpcInvoicePage() {
             ))}
             <label style={labelSt}>Invoice Date
               <input type="date" value={invoiceDate} onChange={e => setInvoiceDate(e.target.value)} style={inputSt} />
+            </label>
+            <label style={labelSt}>VAT NO (2)
+              <input value={vatNo2} onChange={e => setVatNo2(e.target.value)} style={inputSt} />
             </label>
             <label style={labelSt}>VAT %
               <input type="number" value={vatPercent} onChange={e => setVatPercent(Number(e.target.value) || 0)} style={inputSt} />
@@ -233,12 +239,6 @@ export default function OperationsNpcInvoicePage() {
               fontWeight: 700, fontSize: 13, cursor: generated && rows.length ? 'pointer' : 'default' }}>
             <Download size={13} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
             Download PDF
-          </button>
-          <button onClick={() => window.print()}
-            style={{ width: '100%', padding: '10px 0', borderRadius: 8, border: '1px solid var(--border2)',
-              background: 'var(--bg-card)', color: 'var(--text-light)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
-            <Printer size={13} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
-            Print
           </button>
         </div>
       </div>
@@ -275,10 +275,13 @@ export default function OperationsNpcInvoicePage() {
         {/* ── 2. INVOICE DETAILS ── */}
         <div style={{ marginBottom: 12, fontFamily: '"Times New Roman", Times, serif', fontSize: 14, color: '#111', lineHeight: 1.2 }}>
           <div><span style={invoiceFieldLabelSt}>BILL TO :</span> {billTo || '—'}</div>
+          <div><span style={invoiceFieldLabelSt}>NPC SPC VAT NO :</span> {npcSpcVatNo}</div>
+          <div>{companyName || '—'}</div>
+          <div><span style={invoiceFieldLabelSt}>VAT NO :</span> {vatNo1}</div>
           <div><span style={invoiceFieldLabelSt}>PROJECT :</span> {project || '—'}</div>
           <div><span style={invoiceFieldLabelSt}>INVOICE NO :</span> {invoiceNo || '—'}</div>
           <div><span style={invoiceFieldLabelSt}>INVOICE DATE :</span> {invoiceDate}</div>
-          <div><span style={invoiceFieldLabelSt}>VAT NO :</span> {vatRegNo}</div>
+          <div><span style={invoiceFieldLabelSt}>VAT NO :</span> {vatNo2}</div>
         </div>
 
         {/* ── 3. DESCRIPTION LINE ── */}
@@ -294,14 +297,14 @@ export default function OperationsNpcInvoicePage() {
           </div>
         ) : (
           <>
-            <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 8 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 4 }}>
               <thead>
                 <tr style={{ background: '#111', color: '#fff' }}>
-                  <th style={{ ...hdrCell, width: 56, textAlign: 'center', whiteSpace: 'nowrap' }}>SL NO</th>
+                  <th style={{ ...hdrCell, width: 40, textAlign: 'center', whiteSpace: 'nowrap' }}>SL NO</th>
                   <th style={{ ...hdrCell, textAlign: 'center' }}>Description</th>
-                  <th style={{ ...hdrCell, textAlign: 'center', width: 110 }}>Working Hours</th>
-                  <th style={{ ...hdrCell, textAlign: 'center', width: 110 }}>Rate (OMR)</th>
-                  <th style={{ ...hdrCell, textAlign: 'center', width: 120 }}>Amount (OMR)</th>
+                  <th style={{ ...hdrCell, textAlign: 'center', width: 90 }}>Working Hours</th>
+                  <th style={{ ...hdrCell, textAlign: 'center', width: 90 }}>Rate (OMR)</th>
+                  <th style={{ ...hdrCell, textAlign: 'center', width: 100 }}>Amount (OMR)</th>
                 </tr>
               </thead>
               <tbody>
@@ -316,7 +319,7 @@ export default function OperationsNpcInvoicePage() {
                       <td style={{ ...bodyCell, textAlign: 'left', background: idx % 2 !== 0 ? '#f9f9f9' : '#fff' }}>
                         {fmtNum(row.workingHours)}
                       </td>
-                      <td style={{ ...bodyCell, textAlign: 'left', padding: '7px 6px', background: idx % 2 !== 0 ? '#f9f9f9' : '#fff' }}>
+                      <td style={{ ...bodyCell, textAlign: 'left', padding: '6px 6px', background: idx % 2 !== 0 ? '#f9f9f9' : '#fff' }}>
                         {fmtNum(row.ratePerHour)}
                       </td>
                       <td style={{ ...bodyCell, textAlign: 'left', fontWeight: 600, background: idx % 2 !== 0 ? '#f9f9f9' : '#fff' }}>
@@ -329,8 +332,8 @@ export default function OperationsNpcInvoicePage() {
             </table>
 
             {/* ── 5. TOTALS ── */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 0, marginBottom: 20 }}>
-              <table style={{ borderCollapse: 'collapse', width: 320 }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 0, marginBottom: 12 }}>
+              <table style={{ borderCollapse: 'collapse', width: 300 }}>
                 <tbody>
                   <tr>
                     <td style={totLabelCell}>TOTAL</td>
@@ -341,8 +344,8 @@ export default function OperationsNpcInvoicePage() {
                     <td style={totValueCell}>{fmtNum(vatAmount)}</td>
                   </tr>
                   <tr style={{ borderTop: '2px solid #111' }}>
-                    <td style={{ ...totLabelCell, fontWeight: 700, paddingTop: 8, fontSize: 14 }}>TOTAL AMOUNT</td>
-                    <td style={{ ...totValueCell, fontWeight: 700, paddingTop: 8, fontSize: 14 }}>{fmtNum(grandTotal)}</td>
+                    <td style={{ ...totLabelCell, fontWeight: 700, paddingTop: 6, fontSize: 14 }}>TOTAL AMOUNT</td>
+                    <td style={{ ...totValueCell, fontWeight: 700, paddingTop: 6, fontSize: 14 }}>{fmtNum(grandTotal)}</td>
                   </tr>
                 </tbody>
               </table>
@@ -394,19 +397,19 @@ const mutedSt: React.CSSProperties = { fontSize: 11, color: 'var(--text-muted)',
 
 /* ── Invoice table cell styles ───────────────────────────────────────── */
 const hdrCell: React.CSSProperties = {
-  padding: '10px 12px', fontSize: 11, fontWeight: 700,
+  padding: '8px 8px', fontSize: 11, fontWeight: 700,
   border: '1px solid #333', letterSpacing: 0.3,
 };
 const bodyCell: React.CSSProperties = {
-  padding: '9px 12px', fontSize: 12,
+  padding: '6px 8px', fontSize: 12,
   border: '1px solid #ddd', color: '#111',
 };
 const totLabelCell: React.CSSProperties = {
-  padding: '6px 14px 6px 0', fontSize: 13, color: '#333',
+  padding: '4px 12px 4px 0', fontSize: 13, color: '#333',
   textAlign: 'left', borderBottom: '1px solid #eee',
 };
 const totValueCell: React.CSSProperties = {
-  padding: '6px 0', fontSize: 13, color: '#111',
+  padding: '4px 0', fontSize: 13, color: '#111',
   textAlign: 'right', borderBottom: '1px solid #eee',
   fontVariantNumeric: 'tabular-nums',
 };

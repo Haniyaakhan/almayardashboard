@@ -52,6 +52,13 @@ export async function approveTimesheet(id: string): Promise<Error | null> {
   return error;
 }
 
+export async function deleteTimesheet(id: string): Promise<Error | null> {
+  const supabase = createClient();
+  await supabase.from('timesheet_entries').delete().eq('timesheet_id', id);
+  const { error } = await supabase.from('timesheets').delete().eq('id', id);
+  return error;
+}
+
 export async function countTimesheetsForEntity(entityId: string, month: number, year: number): Promise<number> {
   const supabase = createClient();
   const { count } = await supabase

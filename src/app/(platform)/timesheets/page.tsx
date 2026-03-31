@@ -3,11 +3,11 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useLaborers } from '@/hooks/useLaborers';
 import { useMachines } from '@/hooks/useMachines';
-import { useTimesheetHistory, approveTimesheet } from '@/hooks/useTimesheetHistory';
+import { useTimesheetHistory, approveTimesheet, deleteTimesheet } from '@/hooks/useTimesheetHistory';
 import { PageSpinner } from '@/components/ui/Spinner';
 import { timesheetStatusBadge } from '@/components/ui/Badge';
 import { useToast } from '@/components/ui/Toast';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, Trash2 } from 'lucide-react';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -25,6 +25,7 @@ export default function TimesheetsPage() {
   const { machines, loading: machLoading } = useMachines();
   const toast = useToast();
 
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [typeFilter, setTypeFilter] = useState<'All' | SheetType>('All');
   const [statusFilter, setStatusFilter] = useState<'All' | 'approved' | 'draft'>('All');
   const [search, setSearch] = useState('');
@@ -203,6 +204,12 @@ export default function TimesheetsPage() {
                             border: '1px solid var(--border2)', background: 'var(--bg-card)',
                             color: 'var(--text-light)', textDecoration: 'none',
                           }}>EDIT</Link>
+                          <button onClick={() => setConfirmDeleteId(ts.id)} style={{
+                            fontSize: 11, fontWeight: 600, padding: '4px 9px', borderRadius: 6,
+                            border: 'none', cursor: 'pointer',
+                            background: 'rgba(239,68,68,0.1)', color: '#ef4444',
+                            display: 'flex', alignItems: 'center', gap: 4,
+                          }}><Trash2 size={11} /> DEL</button>
                           <button onClick={async () => {
                             if (ts.status === 'approved') return;
                             await approveTimesheet(ts.id);
@@ -224,6 +231,36 @@ export default function TimesheetsPage() {
           </div>
         )}
       </div>
+      {confirmDeleteId && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9999,
+          background: 'rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <div style={{
+            background: 'var(--bg-card)', borderRadius: 14, padding: '28px 32px', width: 340,
+            boxShadow: '0 8px 40px rgba(0,0,0,0.18)', textAlign: 'center',
+          }}>
+            <Trash2 size={32} color="#ef4444" style={{ margin: '0 auto 12px' }} />
+            <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>Delete Timesheet?</p>
+            <p style={{ fontSize: 12.5, color: 'var(--text-muted)', marginBottom: 24 }}>This action cannot be undone. All entries will be permanently removed.</p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+              <button onClick={() => setConfirmDeleteId(null)} style={{
+                padding: '8px 22px', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                border: '1px solid var(--border2)', background: 'var(--bg-card)', color: 'var(--text-light)',
+              }}>Cancel</button>
+              <button onClick={async () => {
+                const err = await deleteTimesheet(confirmDeleteId);
+                setConfirmDeleteId(null);
+                if (err) { toast.error('Failed to delete timesheet'); return; }
+                refetch(); toast.success('Timesheet deleted');
+              }} style={{
+                padding: '8px 22px', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                border: 'none', background: '#ef4444', color: '#fff',
+              }}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

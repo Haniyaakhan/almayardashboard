@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Copy } from 'lucide-react';
+import { Copy, RotateCcw } from 'lucide-react';
 import { isFriday } from '@/lib/dateUtils';
 import type { DayEntry } from '@/types/timesheet';
 
@@ -74,6 +74,11 @@ export default function TemplateRow({ sheetType, month, year, workData, onUpdate
       localStorage.setItem(storageKey, JSON.stringify(next));
       return next;
     });
+  }, [storageKey]);
+
+  const resetTemplate = useCallback(() => {
+    setTemplate(emptyTemplate);
+    localStorage.setItem(storageKey, JSON.stringify(emptyTemplate));
   }, [storageKey]);
 
   const copyToRange = useCallback(() => {
@@ -164,6 +169,21 @@ export default function TemplateRow({ sheetType, month, year, workData, onUpdate
           }}
         >
           <Copy size={12} /> Copy to All
+        </button>
+
+        <button
+          onClick={resetTemplate}
+          className="flex items-center gap-1 text-xs font-semibold rounded-lg px-3 py-1.5"
+          style={{
+            background: 'var(--bg-card, #fff)',
+            color: 'var(--text-light, #374151)',
+            border: '1px solid var(--border, #d1d5db)',
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+            marginTop: 12,
+          }}
+        >
+          <RotateCcw size={12} /> Reset
         </button>
       </div>
     </div>

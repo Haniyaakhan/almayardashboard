@@ -30,6 +30,12 @@ export async function getLaborerById(id: string): Promise<Laborer | null> {
   return data;
 }
 
+export async function getLaborerByIdNumber(idNumber: string): Promise<Laborer | null> {
+  const supabase = createClient();
+  const { data } = await supabase.from('laborers').select('*').eq('id_number', idNumber).limit(1);
+  return data && data.length > 0 ? (data[0] as Laborer) : null;
+}
+
 export async function createLaborer(data: Omit<Laborer, 'id' | 'created_at' | 'updated_at'>) {
   const supabase = createClient();
   const { error } = await supabase.from('laborers').insert(data);

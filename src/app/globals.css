@@ -105,8 +105,8 @@ button, input, select, textarea {
     background: white !important;
     padding: 0;
     margin: 0;
-    width: 210mm;
-    height: 297mm;
+    width: 100%;
+    height: 100%;
   }
 
   body > *, body > * > *, body > * > * > * {
@@ -157,13 +157,21 @@ button, input, select, textarea {
     display: none !important;
   }
 
+  /* Hide grid layout for printing */
+  div[style*="grid"] {
+    display: block !important;
+  }
+
   .npc-invoice-area {
+    display: block !important;
     box-shadow: none !important;
     width: 210mm !important;
     max-width: 210mm !important;
     min-height: 297mm !important;
+    height: auto !important;
     margin: 0 !important;
     padding: 0 14mm 14mm !important;
+    page-break-after: always !important;
   }
 }
 

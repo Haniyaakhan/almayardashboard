@@ -3,7 +3,8 @@
 import React, { useRef, useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useTimesheet } from '@/hooks/useTimesheet';
-import { useLaborers } from '@/hooks/useLaborers';
+import { useLaborers, getLaborerByIdNumber, createLaborer } from '@/hooks/useLaborers';
+import { LaborerForm } from '@/components/labor/LaborerForm';
 import { saveTimesheet, getTimesheetWithEntries, getTimesheetByLaborer } from '@/hooks/useTimesheetHistory';
 import { createClient } from '@/lib/supabase/client';
 import TimesheetHeader from '@/components/TimesheetHeader';
@@ -15,8 +16,9 @@ import TemplateRow from '@/components/TemplateRow';
 import { Button } from '@/components/ui/Button';
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/Toast';
-import { Save, Link as LinkIcon, Eraser, Plus } from 'lucide-react';
+import { Save, Search, Eraser, Plus, UserPlus } from 'lucide-react';
 import type { DayEntry } from '@/types/timesheet';
+import type { Laborer } from '@/types/database';
 import { generateDaysInMonth } from '@/lib/dateUtils';
 
 function TimesheetPageInner() {
@@ -30,6 +32,10 @@ function TimesheetPageInner() {
   const [clearStartDay, setClearStartDay] = useState(1);
   const [clearEndDay, setClearEndDay] = useState(1);
   const [fillHours, setFillHours] = useState(10);
+  const [laborSearchInput, setLaborSearchInput] = useState('');
+  const [laborSearchStatus, setLaborSearchStatus] = useState<'idle' | 'notfound'>('idle');
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addLaborerInitialId, setAddLaborerInitialId] = useState('');
   const searchParams = useSearchParams();
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
@@ -91,16 +97,15 @@ function TimesheetPageInner() {
     if (!lab) return;
     timesheet.setLaborName(lab.full_name);
     timesheet.setDesignation(`${lab.designation}# ${lab.id_number}`);
+    setLaborSearchInput(lab.full_name || lab.id_number || '');
   }, [laborers]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function onLaborerSelect(id: string) {
-    setSelectedLaborerId(id);
-    if (!id) return;
-    const lab = laborers.find(l => l.id === id);
-    if (!lab) return;
+  async function loadLaborerIntoTimesheet(lab: Laborer) {
+    setSelectedLaborerId(lab.id);
+    setLaborSearchInput(lab.full_name || lab.id_number || '');
+    setLaborSearchStatus('idle');
     try {
-      // Try to load existing timesheet for this laborer + current month/year
-      const existing = await getTimesheetByLaborer(id, timesheet.month, timesheet.year);
+      const existing = await getTimesheetByLaborer(lab.id, timesheet.month, timesheet.year);
       if (existing && (existing as any).entries?.length) {
         const entries: DayEntry[] = ((existing as any).entries ?? []).map((e: any) => ({
           day: e.day,
@@ -125,7 +130,6 @@ function TimesheetPageInner() {
           designation: `${lab.designation}# ${lab.id_number}`,
         });
       } else {
-        // No existing timesheet — reset to default days and fill header
         const days = generateDaysInMonth(timesheet.month, timesheet.year);
         timesheet.loadEntries(days, {
           month: timesheet.month,
@@ -135,7 +139,6 @@ function TimesheetPageInner() {
         });
       }
     } catch {
-      // If API fails, still update header info
       const days = generateDaysInMonth(timesheet.month, timesheet.year);
       timesheet.loadEntries(days, {
         month: timesheet.month,
@@ -146,7 +149,69 @@ function TimesheetPageInner() {
     }
   }
 
+  async function onLaborerSelect(id: string) {
+    if (!id) return;
+    const lab = laborers.find(l => l.id === id);
+    if (!lab) return;
+    await loadLaborerIntoTimesheet(lab);
+  }
+
+  async function handleLaborSearch(query: string) {
+    const trimmed = query.trim();
+    if (!trimmed) {
+      setLaborSearchStatus('idle');
+      return;
+    }
+
+    const exactIdMatch = await getLaborerByIdNumber(trimmed);
+    if (exactIdMatch) {
+      await loadLaborerIntoTimesheet(exactIdMatch);
+      return;
+    }
+
+    const lowered = trimmed.toLowerCase();
+    const exactNameMatch = laborers.find(l => l.full_name.trim().toLowerCase() === lowered);
+    if (exactNameMatch) {
+      await loadLaborerIntoTimesheet(exactNameMatch);
+      return;
+    }
+
+    const partialMatches = laborers.filter(l => {
+      if (takenLaborerIds.has(l.id) && l.id !== selectedLaborerId) return false;
+      return l.full_name.toLowerCase().includes(lowered) || l.id_number.toLowerCase().includes(lowered);
+    });
+
+    if (partialMatches.length === 1) {
+      await loadLaborerIntoTimesheet(partialMatches[0]);
+      return;
+    }
+
+    setLaborSearchStatus('notfound');
+    setAddLaborerInitialId(trimmed);
+    setShowAddModal(true);
+  }
+
+
+
+  function hasTimesheetValues() {
+    return timesheet.workData.some(entry =>
+      entry.timeIn || entry.timeOutLunch || entry.lunchBreak || entry.timeIn2 || entry.timeOut2 ||
+      (entry.totalDuration || 0) > 0 || (entry.overTime || 0) > 0 || (entry.actualWorked || 0) > 0 ||
+      entry.approverSig || entry.remarks
+    );
+  }
+
   async function handleSave() {
+    if (!timesheet.laborName.trim() || !timesheet.designation.trim()) {
+      toast.error('Labour name and designation are required before saving');
+      return;
+    }
+
+    if (!hasTimesheetValues()) {
+      toast.error('Enter timesheet values before saving');
+      return;
+    }
+
     setSaving(true);
     const laborerId = selectedLaborerId || searchParams.get('laborer') || null;
     const error = await saveTimesheet({
@@ -186,26 +251,48 @@ function TimesheetPageInner() {
       {/* Actions bar — hidden on print */}
       <div className="print:hidden flex items-center gap-3 px-6 py-3 flex-wrap"
         style={{ background: 'var(--bg-sidebar)', borderBottom: '1px solid var(--border)' }}>
-        {/* Laborer linker */}
-        <div className="flex items-center gap-2">
-          <LinkIcon size={14} style={{ color: 'var(--text-muted)' }} />
-          <select
-            value={selectedLaborerId}
-            onChange={e => onLaborerSelect(e.target.value)}
+        {/* Labour search/select */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <Search size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+          <input
+            type="text"
+            list="laborer-search-options"
+            value={laborSearchInput}
+            onChange={e => { setLaborSearchInput(e.target.value); setLaborSearchStatus('idle'); }}
+            onKeyDown={e => { if (e.key === 'Enter') handleLaborSearch(laborSearchInput); }}
+            onBlur={() => { if (laborSearchInput.trim() && laborSearchStatus === 'idle') handleLaborSearch(laborSearchInput); }}
+            placeholder="Search Labour by name or ID / Iqama…"
             className="text-sm rounded-lg px-3 py-1.5 outline-none"
-            style={{ background: 'var(--input-bg)', color: 'var(--text-primary)', border: '1px solid var(--border)', minWidth: 180 }}
-          >
-            <option value="">Select Laborer (optional)</option>
+            style={{ background: 'var(--input-bg)', color: 'var(--text-primary)', border: '1px solid var(--border)', minWidth: 280 }}
+          />
+          <datalist id="laborer-search-options">
             {laborers.map(l => {
               const isTaken = takenLaborerIds.has(l.id) && l.id !== selectedLaborerId;
               if (isTaken) return null;
-              return <option key={l.id} value={l.id}>{l.full_name}</option>;
+              return <option key={l.id} value={l.full_name}>{`${l.full_name} (${l.id_number})`}</option>;
             })}
-          </select>
+          </datalist>
+          {laborSearchStatus === 'notfound' && (
+            <>
+              <span style={{ fontSize: 12, color: '#ef4444', fontWeight: 500 }}>Not found</span>
+              <button onClick={() => setShowAddModal(true)} style={{
+                fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 6,
+                border: 'none', background: '#3b82f6', color: '#fff', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 4,
+              }}><UserPlus size={11} /> Add Labour</button>
+            </>
+          )}
         </div>
 
         {/* Save button */}
-        <Button variant="primary" size="sm" loading={saving} icon={<Save size={13}/>} onClick={handleSave}>
+        <Button
+          variant="primary"
+          size="sm"
+          loading={saving}
+          disabled={!timesheet.laborName.trim() || !timesheet.designation.trim() || !hasTimesheetValues()}
+          icon={<Save size={13}/>}
+          onClick={handleSave}
+        >
           Save Timesheet
         </Button>
 
@@ -307,6 +394,41 @@ function TimesheetPageInner() {
           />
         </div>
       </div>
+      {showAddModal && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.5)', overflowY: 'auto', padding: '32px 16px' }}
+          onClick={e => { if (e.target === e.currentTarget) setShowAddModal(false); }}
+        >
+          <div style={{ background: 'var(--bg-card)', borderRadius: 14, padding: '28px 32px', width: '100%', maxWidth: 680, margin: '0 auto', boxShadow: '0 8px 40px rgba(0,0,0,0.22)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <UserPlus size={20} color="#3b82f6" />
+                <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Add New Labour</h3>
+              </div>
+              <button
+                onClick={() => setShowAddModal(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: 'var(--text-muted)', lineHeight: 1 }}
+              >✕</button>
+            </div>
+            <LaborerForm
+              initial={{ id_number: addLaborerInitialId }}
+              submitLabel="Add Labour"
+              onSubmit={async data => {
+                const err = await createLaborer(data);
+                if (err) throw err;
+                const idNum = (data.id_number ?? '').trim();
+                const newLab = idNum ? await getLaborerByIdNumber(idNum) : null;
+                if (newLab) {
+                  setLaborSearchStatus('idle');
+                  await loadLaborerIntoTimesheet(newLab);
+                }
+                setShowAddModal(false);
+                toast.success('Labour added and loaded');
+              }}
+            />
+          </div>
+        </div>
+      )}
       {confirmDialog}
     </div>
   );

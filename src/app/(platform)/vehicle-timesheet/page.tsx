@@ -14,7 +14,7 @@ import TemplateRow from '@/components/TemplateRow';
 import { Button } from '@/components/ui/Button';
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/Toast';
-import { Save, Link as LinkIcon, Eraser, Plus } from 'lucide-react';
+import { Save, Search, Eraser, Plus } from 'lucide-react';
 import type { DayEntry } from '@/types/timesheet';
 import { generateDaysInMonth } from '@/lib/dateUtils';
 
@@ -29,6 +29,8 @@ function VehicleTimesheetPageInner() {
   const [clearStartDay, setClearStartDay] = useState(1);
   const [clearEndDay, setClearEndDay] = useState(1);
   const [fillHours, setFillHours] = useState(10);
+  const [vehicleSearchInput, setVehicleSearchInput] = useState('');
+  const [vehicleSearchStatus, setVehicleSearchStatus] = useState<'idle' | 'notfound'>('idle');
   const searchParams = useSearchParams();
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
@@ -78,15 +80,23 @@ function VehicleTimesheetPageInner() {
     if (!machine) return;
     timesheet.setLaborName(machine.operator_name ?? '');
     timesheet.setDesignation(`${machine.name}# ${machine.plate_number ?? ''}`);
+    setVehicleSearchInput(machine.plate_number ?? machine.name);
   }, [machines]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function onVehicleSelect(id: string) {
-    setSelectedVehicleId(id);
-    if (!id) return;
-    const machine = machines.find(m => m.id === id);
-    if (!machine) return;
+  function hasTimesheetValues() {
+    return timesheet.workData.some(entry =>
+      entry.timeIn || entry.timeOutLunch || entry.lunchBreak || entry.timeIn2 || entry.timeOut2 ||
+      (entry.totalDuration || 0) > 0 || (entry.overTime || 0) > 0 || (entry.actualWorked || 0) > 0 ||
+      entry.approverSig || entry.remarks
+    );
+  }
+
+  async function loadVehicleIntoTimesheet(machine: (typeof machines)[number]) {
+    setSelectedVehicleId(machine.id);
+    setVehicleSearchInput(machine.plate_number ?? machine.name);
+    setVehicleSearchStatus('idle');
     try {
-      const existing = await getTimesheetByLaborer(id, timesheet.month, timesheet.year);
+      const existing = await getTimesheetByLaborer(machine.id, timesheet.month, timesheet.year);
       setLoadedTsId(existing?.id ?? null);
       if (existing && (existing as any).entries?.length) {
         const entries: DayEntry[] = ((existing as any).entries ?? []).map((e: any) => ({
@@ -133,7 +143,57 @@ function VehicleTimesheetPageInner() {
     }
   }
 
+  async function onVehicleSelect(id: string) {
+    if (!id) return;
+    const machine = machines.find(m => m.id === id);
+    if (!machine) return;
+    await loadVehicleIntoTimesheet(machine);
+  }
+
+  async function handleVehicleSearch(query: string) {
+    const trimmed = query.trim();
+    if (!trimmed) {
+      setVehicleSearchStatus('idle');
+      return;
+    }
+    const lowered = trimmed.toLowerCase();
+    const vehicles = machines.filter(m => m.category === 'vehicle');
+    const exactPlateMatch = vehicles.find(m => (m.plate_number ?? '').toLowerCase() === lowered);
+    if (exactPlateMatch) {
+      await loadVehicleIntoTimesheet(exactPlateMatch);
+      return;
+    }
+    const exactNameMatch = vehicles.find(m => m.name.toLowerCase() === lowered);
+    if (exactNameMatch) {
+      await loadVehicleIntoTimesheet(exactNameMatch);
+      return;
+    }
+    const partialMatches = vehicles.filter(m =>
+      m.name.toLowerCase().includes(lowered) || (m.plate_number ?? '').toLowerCase().includes(lowered)
+    );
+    if (partialMatches.length === 1) {
+      await loadVehicleIntoTimesheet(partialMatches[0]);
+      return;
+    }
+    setVehicleSearchStatus('notfound');
+  }
+
   async function handleSave() {
+    if (!selectedVehicleId && !searchParams.get('vehicle')) {
+      toast.error('Select a vehicle before saving');
+      return;
+    }
+
+    if (!timesheet.designation.trim()) {
+      toast.error('Vehicle details are required before saving');
+      return;
+    }
+
+    if (!hasTimesheetValues()) {
+      toast.error('Enter timesheet values before saving');
+      return;
+    }
+
     const vehicleId = selectedVehicleId || searchParams.get('vehicle') || null;
 
     // Enforce max 2 timesheets per vehicle per month
@@ -184,23 +244,31 @@ function VehicleTimesheetPageInner() {
       {/* Actions bar */}
       <div className="print:hidden flex items-center gap-3 px-6 py-3 flex-wrap"
         style={{ background: 'var(--bg-sidebar)', borderBottom: '1px solid var(--border)' }}>
-        {/* Vehicle selector */}
-        <div className="flex items-center gap-2">
-          <LinkIcon size={14} style={{ color: 'var(--text-muted)' }} />
-          <select
-            value={selectedVehicleId}
-            onChange={e => onVehicleSelect(e.target.value)}
+        {/* Vehicle search/select */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <Search size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+          <input
+            type="text"
+            list="vehicle-search-options"
+            value={vehicleSearchInput}
+            onChange={e => { setVehicleSearchInput(e.target.value); setVehicleSearchStatus('idle'); }}
+            onKeyDown={e => { if (e.key === 'Enter') handleVehicleSearch(vehicleSearchInput); }}
+            onBlur={() => { if (vehicleSearchInput.trim() && vehicleSearchStatus === 'idle') handleVehicleSearch(vehicleSearchInput); }}
+            placeholder="Search vehicle by number or name..."
             className="text-sm rounded-lg px-3 py-1.5 outline-none"
-            style={{ background: 'var(--input-bg)', color: 'var(--text-primary)', border: '1px solid var(--border)', minWidth: 180 }}
-          >
-            <option value="">Select Vehicle</option>
+            style={{ background: 'var(--input-bg)', color: 'var(--text-primary)', border: '1px solid var(--border)', minWidth: 280 }}
+          />
+          <datalist id="vehicle-search-options">
             {machines.filter(m => m.category === 'vehicle').map(m => (
-              <option key={m.id} value={m.id}>{m.name} ({m.plate_number || m.type})</option>
+              <option key={m.id} value={m.plate_number || m.name}>{`${m.name} (${m.plate_number || m.type})`}</option>
             ))}
-          </select>
+          </datalist>
+          {vehicleSearchStatus === 'notfound' && (
+            <span style={{ fontSize: 12, color: '#ef4444', fontWeight: 500 }}>Vehicle not found</span>
+          )}
         </div>
 
-        <Button variant="primary" size="sm" loading={saving} icon={<Save size={13}/>} onClick={handleSave}>
+        <Button variant="primary" size="sm" loading={saving} disabled={saving || !selectedVehicleId || !timesheet.designation.trim() || !hasTimesheetValues()} icon={<Save size={13}/>} onClick={handleSave}>
           Save Timesheet
         </Button>
 
