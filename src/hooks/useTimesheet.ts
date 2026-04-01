@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { DayEntry, UseTimesheetReturn } from '@/types/timesheet';
-import { generateDaysInMonth, isFriday } from '@/lib/dateUtils';
+import { generateDaysInMonth, getPreviousMonthYear, isFriday } from '@/lib/dateUtils';
 
 type LoadMeta = {
   month: number; year: number;
@@ -16,8 +16,9 @@ export function useTimesheet(): UseTimesheetReturn & {
   fillDayRange: (startDay: number, endDay: number, hours?: number) => void;
   setWorkData: React.Dispatch<React.SetStateAction<DayEntry[]>>;
 } {
-  const [month, setMonth] = useState(1);
-  const [year, setYear] = useState(2026);
+  const defaultMonthYear = getPreviousMonthYear();
+  const [month, setMonth] = useState(defaultMonthYear.month);
+  const [year, setYear] = useState(defaultMonthYear.year);
   const [laborName, setLaborName] = useState('');
   const [projectName, setProjectName] = useState('I069A -UAE OMAN RAILWAY -PACKAGE 5 B (TUNNEL & STRUCTURES PART)');
   const [supplierName, setSupplierName] = useState('');

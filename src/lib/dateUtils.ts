@@ -6,6 +6,15 @@ export const MONTH_NAMES = [
   'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'
 ];
 
+export function getPreviousMonthYear() {
+  const now = new Date();
+  const previousMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  return {
+    month: previousMonthDate.getMonth(),
+    year: previousMonthDate.getFullYear(),
+  };
+}
+
 export function generateDaysInMonth(month: number, year: number): DayEntry[] {
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const days: DayEntry[] = [];
