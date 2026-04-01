@@ -12,7 +12,7 @@ import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/Toast';
 import { LaborerForm } from '@/components/labor/LaborerForm';
 
-const DESIGNATIONS = ['All', 'Mason', 'Carpenter', 'Rigger', 'Helper', 'Electrician', 'Scaffolder', 'Steelfixer', 'Other'];
+const DESIGNATIONS = ['All', 'Mason', 'Carpenter', 'Rigger', 'Helper', 'Trojan Helpers', 'Electrician', 'Scaffolder', 'Steelfixer', 'Other'];
 
 function normalizeDesignation(value: string): string {
   const normalized = (value ?? '').toLowerCase().replace(/\s+/g, '');
