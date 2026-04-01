@@ -1,7 +1,8 @@
 'use client';
 import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Users, Plus, Search, Pencil, Trash2, RotateCcw, X } from 'lucide-react';
+import { Users, Plus, Search, Pencil, Trash2, RotateCcw, X, Download } from 'lucide-react';
+import { exportLaborersToExcel } from '@/lib/excelExport';
 import { useLaborers, createLaborer, deactivateLaborer, reactivateLaborer } from '@/hooks/useLaborers';
 import { useForemen } from '@/hooks/useForemen';
 import { PageSpinner } from '@/components/ui/Spinner';
@@ -11,7 +12,14 @@ import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/Toast';
 import { LaborerForm } from '@/components/labor/LaborerForm';
 
-const DESIGNATIONS = ['All', 'Mason', 'Carpenter', 'Rigger', 'Helper', 'Electrician', 'Scaffolder', 'Steel Fixer', 'Other'];
+const DESIGNATIONS = ['All', 'Mason', 'Carpenter', 'Rigger', 'Helper', 'Electrician', 'Scaffolder', 'Steelfixer', 'Other'];
+
+function normalizeDesignation(value: string): string {
+  const normalized = (value ?? '').toLowerCase().replace(/\s+/g, '');
+  if (normalized === 'steelfixer') return 'steelfixer';
+  if (normalized === 'scalffolder') return 'scaffolder';
+  return normalized;
+}
 
 export function LaborRegistryPage() {
   const { laborers, loading, refetch } = useLaborers(false);
@@ -19,6 +27,7 @@ export function LaborRegistryPage() {
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const toast = useToast();
   const [showAddModal, setShowAddModal] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | 'Active' | 'Inactive'>('All');
   const [designationFilter, setDesignationFilter] = useState('All');
@@ -38,9 +47,27 @@ export function LaborRegistryPage() {
     const matchStatus =
       statusFilter === 'All' || (statusFilter === 'Active' ? l.is_active : !l.is_active);
     const matchDesignation =
-      designationFilter === 'All' || l.designation === designationFilter;
+      designationFilter === 'All' ||
+      normalizeDesignation(l.designation) === normalizeDesignation(designationFilter);
     return matchSearch && matchStatus && matchDesignation;
   });
+
+  async function handleExportFiltered() {
+    if (!filtered.length) { toast.error('No records to export'); return; }
+    const parts: string[] = [];
+    if (designationFilter !== 'All') parts.push(designationFilter);
+    if (statusFilter !== 'All') parts.push(statusFilter);
+    if (search.trim()) parts.push(`"${search.trim()}"`);
+    const label = parts.length ? parts.join(' · ') : 'All Labour';
+    setExporting(true);
+    try {
+      await exportLaborersToExcel(filtered, label, foremanNameById);
+    } catch {
+      toast.error('Export failed');
+    } finally {
+      setExporting(false);
+    }
+  }
 
   if (loading) return <PageSpinner />;
 
@@ -99,6 +126,13 @@ export function LaborRegistryPage() {
               }}
             />
           </div>
+          <button
+            onClick={handleExportFiltered}
+            disabled={exporting || !filtered.length}
+            style={{ ...addBtnStyle, background: '#16a34a', cursor: (exporting || !filtered.length) ? 'not-allowed' : 'pointer', opacity: (exporting || !filtered.length) ? 0.6 : 1 }}
+          >
+            <Download size={14} /> {exporting ? 'EXPORTING…' : `EXPORT (${filtered.length})`}
+          </button>
           <button onClick={() => setShowAddModal(true)} style={addBtnStyle}>
             <Plus size={14} /> ADD NEW LABOUR
           </button>

@@ -1,7 +1,7 @@
 import ExcelJS from 'exceljs';
 import { DayEntry } from '@/types/timesheet';
 import { formatDate, MONTH_NAMES } from '@/lib/dateUtils';
-import type { SalaryRecord } from '@/types/database';
+import type { Laborer, SalaryRecord } from '@/types/database';
 
 async function downloadWorkbook(workbook: ExcelJS.Workbook, filename: string): Promise<void> {
   const buffer = await workbook.xlsx.writeBuffer();
@@ -178,5 +178,66 @@ export async function exportSalaryReportToExcel(month: number, year: number, rec
   } catch (error) {
     console.error('Salary Excel export error:', error);
     throw new Error('Failed to export salary report');
+  }
+}
+
+export async function exportLaborersToExcel(
+  laborers: Laborer[],
+  label: string,
+  foremanNameById?: Map<string, string>,
+): Promise<void> {
+  try {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet(label);
+
+    worksheet.addRow(['ALMYAR UNITED TRADING LLC']);
+    worksheet.addRow([`${label} — Labour Registry`]);
+    worksheet.addRow([`Exported: ${new Date().toLocaleDateString()}`]);
+    worksheet.addRow([]);
+
+    const headers = [
+      'Full Name', 'Labour ID', 'Designation', 'Nationality',
+      'Contractor / Supplier', 'Foreman',
+      'Phone', 'Daily Rate (OMR)', 'Monthly Salary (OMR)',
+      'Bank Name', 'Bank Account', 'Status', 'Start Date', 'Notes',
+    ];
+    worksheet.addRow(headers);
+    const headerRow = worksheet.getRow(5);
+    headerRow.font = { bold: true };
+    headerRow.fill = {
+      type: 'pattern', pattern: 'solid',
+      fgColor: { argb: 'FFE9F0FA' },
+    };
+
+    laborers.forEach((l) => {
+      worksheet.addRow([
+        l.full_name,
+        l.id_number,
+        l.designation,
+        l.nationality || '',
+        l.supplier_name || '',
+        l.foreman_id ? (foremanNameById?.get(l.foreman_id) ?? l.foreman_id) : '',
+        l.phone || '',
+        l.daily_rate ?? '',
+        l.monthly_salary ?? '',
+        l.bank_name || '',
+        l.bank_account_number || '',
+        l.is_active ? 'Active' : 'Inactive',
+        l.start_date ? l.start_date.slice(0, 10) : '',
+        l.notes || '',
+      ]);
+    });
+
+    worksheet.columns = [
+      { width: 26 }, { width: 16 }, { width: 16 }, { width: 16 },
+      { width: 24 }, { width: 22 },
+      { width: 16 }, { width: 16 }, { width: 18 },
+      { width: 20 }, { width: 22 }, { width: 10 }, { width: 14 }, { width: 28 },
+    ];
+
+    await downloadWorkbook(workbook, `${label.replace(/\s+/g, '_')}_Labour_Registry.xlsx`);
+  } catch (error) {
+    console.error('Laborer Excel export error:', error);
+    throw new Error('Failed to export laborer data');
   }
 }
