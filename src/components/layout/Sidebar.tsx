@@ -5,7 +5,7 @@ import { useSupabaseUser } from '@/hooks/useSupabaseUser';
 import { createClient } from '@/lib/supabase/client';
 import {
   LayoutDashboard, ClipboardList, Users, Truck,
-  Wrench, FileBarChart, LogOut, Briefcase,
+  Wrench, FileBarChart, LogOut, Briefcase, DollarSign,
 } from 'lucide-react';
 
 const navItems = [
@@ -15,6 +15,7 @@ const navItems = [
   { href: '/equipment', icon: <Wrench size={19} />, label: 'Equipment' },
   { href: '/timesheets', icon: <ClipboardList size={19} />, label: 'Timesheets' },
   { href: '/reports', icon: <FileBarChart size={19} />, label: 'Reports' },
+  { href: '/payment-modules', icon: <DollarSign size={19} />, label: 'Payment Modules' },
 ];
 
 export function Sidebar() {
