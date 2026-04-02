@@ -139,8 +139,8 @@ export default function BankAccountReportPage() {
                       style={{ color: 'var(--text-primary)' }}
                     >
                       {cidx === 4 ? (
-                        <Badge 
-                          variant={cell === 'Active' ? 'success' : 'warning'}
+                        <Badge
+                          color={cell === 'Active' ? 'green' : 'amber'}
                         >
                           {cell}
                         </Badge>

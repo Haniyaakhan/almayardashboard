@@ -53,7 +53,7 @@ export default function SalaryPerMonthPage() {
   };
 
   const getStatusColor = (status: string) => {
-    return status === 'approved' ? 'success' : 'warning';
+    return status === 'approved' ? 'green' : 'amber';
   };
 
   return (
@@ -174,7 +174,7 @@ export default function SalaryPerMonthPage() {
                       style={{ color: 'var(--text-primary)' }}
                     >
                       {cidx === 7 ? (
-                        <Badge variant={getStatusColor(cell as string)}>
+                        <Badge color={getStatusColor(cell as string)}>
                           {cell}
                         </Badge>
                       ) : (
