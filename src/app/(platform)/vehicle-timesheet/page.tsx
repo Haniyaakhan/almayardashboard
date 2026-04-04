@@ -14,7 +14,7 @@ import TemplateRow from '@/components/TemplateRow';
 import { Button } from '@/components/ui/Button';
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/Toast';
-import { Save, Search, Eraser, Plus } from 'lucide-react';
+import { Save, Search, Eraser } from 'lucide-react';
 import type { DayEntry } from '@/types/timesheet';
 import { generateDaysInMonth } from '@/lib/dateUtils';
 
@@ -27,9 +27,7 @@ function VehicleTimesheetPageInner() {
   const [loadedTsId, setLoadedTsId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const toast = useToast();
-  const [clearStartDay, setClearStartDay] = useState(1);
-  const [clearEndDay, setClearEndDay] = useState(1);
-  const [fillHours, setFillHours] = useState(10);
+  const [selectedDay, setSelectedDay] = useState(1);
   const [vehicleSearchInput, setVehicleSearchInput] = useState('');
   const [vehicleSearchStatus, setVehicleSearchStatus] = useState<'idle' | 'notfound'>('idle');
   const [isApproved, setIsApproved] = useState(false);
@@ -322,26 +320,19 @@ function VehicleTimesheetPageInner() {
           </span>
         )}
 
-        {/* Clear date range */}
+        {/* Clear single day */}
         <div className="flex items-center gap-1.5 ml-auto" style={{ marginRight: 8 }}>
           <span className="text-xs" style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Day</span>
-          <input type="number" min={1} max={31} value={clearStartDay}
-            onChange={e => setClearStartDay(Number(e.target.value))}
-            disabled={isApproved}
-            className="text-sm rounded-lg px-2 py-1 outline-none text-center"
-            style={{ background: 'var(--input-bg)', color: 'var(--text-primary)', border: '1px solid var(--border)', width: 52 }}
-          />
-          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>to</span>
-          <input type="number" min={1} max={31} value={clearEndDay}
-            onChange={e => setClearEndDay(Number(e.target.value))}
+          <input type="number" min={1} max={31} value={selectedDay}
+            onChange={e => setSelectedDay(Number(e.target.value))}
             disabled={isApproved}
             className="text-sm rounded-lg px-2 py-1 outline-none text-center"
             style={{ background: 'var(--input-bg)', color: 'var(--text-primary)', border: '1px solid var(--border)', width: 52 }}
           />
           <button disabled={isApproved} onClick={async () => {
-            const ok = await confirm({ title: 'Clear Entries', message: `Clear all timesheet entries from day ${clearStartDay} to ${clearEndDay}?`, variant: 'danger', confirmLabel: 'Clear' });
+            const ok = await confirm({ title: 'Clear Entries', message: `Clear all timesheet entries for day ${selectedDay}?`, variant: 'danger', confirmLabel: 'Clear' });
             if (!ok) return;
-            timesheet.clearDayRange(clearStartDay, clearEndDay);
+            timesheet.clearDayRange(selectedDay, selectedDay);
           }}
             className="flex items-center gap-1 text-xs font-semibold rounded-lg px-3 py-1.5"
             style={{
@@ -350,26 +341,6 @@ function VehicleTimesheetPageInner() {
             }}
           >
             <Eraser size={12} /> Clear
-          </button>
-          <span className="text-xs" style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Hrs</span>
-          <input type="number" min={1} max={24} value={fillHours}
-            onChange={e => setFillHours(Number(e.target.value))}
-            disabled={isApproved}
-            className="text-sm rounded-lg px-2 py-1 outline-none text-center"
-            style={{ background: 'var(--input-bg)', color: 'var(--text-primary)', border: '1px solid var(--border)', width: 52 }}
-          />
-          <button disabled={isApproved} onClick={async () => {
-            const ok = await confirm({ title: 'Fill Default Values', message: `Fill ${fillHours} hours for day ${clearStartDay} to ${clearEndDay}?`, variant: 'info', confirmLabel: 'Fill' });
-            if (!ok) return;
-            timesheet.fillDayRange(clearStartDay, clearEndDay, fillHours);
-          }}
-            className="flex items-center gap-1 text-xs font-semibold rounded-lg px-3 py-1.5"
-            style={{
-              background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.3)',
-              color: '#16a34a', cursor: isApproved ? 'not-allowed' : 'pointer', opacity: isApproved ? 0.6 : 1, whiteSpace: 'nowrap',
-            }}
-          >
-            <Plus size={12} /> Add
           </button>
         </div>
 

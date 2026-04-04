@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { DayEntry, UseTimesheetReturn } from '@/types/timesheet';
-import { generateDaysInMonth, getPreviousMonthYear, isFriday } from '@/lib/dateUtils';
+import { generateDaysInMonth, getPreviousMonthYear } from '@/lib/dateUtils';
 
 type LoadMeta = {
   month: number; year: number;
@@ -91,10 +91,10 @@ export function useTimesheet(): UseTimesheetReturn & {
     }));
   }, []);
 
-  // Fill entries with default values for a range of days (skip Fridays)
+  // Fill entries with default values for a range of days
   const fillDayRange = useCallback((startDay: number, endDay: number, hours: number = 10) => {
     setWorkData(prev => prev.map(entry => {
-      if (entry.day >= startDay && entry.day <= endDay && !isFriday(year, month, entry.day)) {
+      if (entry.day >= startDay && entry.day <= endDay) {
         return {
           ...entry,
           timeIn: '5:30', timeOutLunch: '01:30', lunchBreak: '',
@@ -105,7 +105,7 @@ export function useTimesheet(): UseTimesheetReturn & {
       }
       return entry;
     }));
-  }, [year, month]);
+  }, []);
 
   // Calculate totals
   const { totalWorked, totalOT, totalActual } = useMemo(() => {
