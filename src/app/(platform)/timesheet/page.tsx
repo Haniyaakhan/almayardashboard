@@ -30,7 +30,8 @@ function TimesheetPageInner() {
   const [takenLaborerIds, setTakenLaborerIds] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
   const toast = useToast();
-  const [selectedDay, setSelectedDay] = useState(1);
+  const [rangeStartDay, setRangeStartDay] = useState(1);
+  const [rangeEndDay, setRangeEndDay] = useState(1);
   const [laborSearchInput, setLaborSearchInput] = useState('');
   const [laborSearchStatus, setLaborSearchStatus] = useState<'idle' | 'notfound'>('idle');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -38,6 +39,7 @@ function TimesheetPageInner() {
   const [isApproved, setIsApproved] = useState(false);
   const searchParams = useSearchParams();
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
+  const maxClearDay = timesheet.workData.length || 31;
 
   function formatLaborDisplayName(lab: Laborer): string {
     return lab.id_number ? `${lab.full_name} # ${lab.id_number}` : lab.full_name;
@@ -332,19 +334,31 @@ function TimesheetPageInner() {
           </span>
         )}
 
-        {/* Clear single day */}
+        {/* Clear day range */}
         <div className="flex items-center gap-1.5 ml-auto" style={{ marginRight: 8 }}>
-          <span className="text-xs" style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Day</span>
-          <input type="number" min={1} max={31} value={selectedDay}
-            onChange={e => setSelectedDay(Number(e.target.value))}
+          <span className="text-xs" style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>From</span>
+          <input type="number" min={1} max={maxClearDay} value={rangeStartDay}
+            onChange={e => setRangeStartDay(Math.max(1, Math.min(maxClearDay, Number(e.target.value) || 1)))}
+            disabled={isApproved}
+            className="text-sm rounded-lg px-2 py-1 outline-none text-center"
+            style={{ background: 'var(--input-bg)', color: 'var(--text-primary)', border: '1px solid var(--border)', width: 52 }}
+          />
+          <span className="text-xs" style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>To</span>
+          <input type="number" min={1} max={maxClearDay} value={rangeEndDay}
+            onChange={e => setRangeEndDay(Math.max(1, Math.min(maxClearDay, Number(e.target.value) || 1)))}
             disabled={isApproved}
             className="text-sm rounded-lg px-2 py-1 outline-none text-center"
             style={{ background: 'var(--input-bg)', color: 'var(--text-primary)', border: '1px solid var(--border)', width: 52 }}
           />
           <button disabled={isApproved} onClick={async () => {
-            const ok = await confirm({ title: 'Clear Entries', message: `Clear all timesheet entries for day ${selectedDay}?`, variant: 'danger', confirmLabel: 'Clear' });
+            const startDay = Math.min(rangeStartDay, rangeEndDay);
+            const endDay = Math.max(rangeStartDay, rangeEndDay);
+            const message = startDay === endDay
+              ? `Clear all timesheet entries for day ${startDay}?`
+              : `Clear all timesheet entries from day ${startDay} to day ${endDay}?`;
+            const ok = await confirm({ title: 'Clear Entries', message, variant: 'danger', confirmLabel: 'Clear' });
             if (!ok) return;
-            timesheet.clearDayRange(selectedDay, selectedDay);
+            timesheet.clearDayRange(startDay, endDay);
           }}
             className="flex items-center gap-1 text-xs font-semibold rounded-lg px-3 py-1.5"
             style={{
