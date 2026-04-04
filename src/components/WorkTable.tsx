@@ -11,6 +11,7 @@ interface WorkTableProps {
   totalActual: number;
   onUpdateDayEntry: (day: number, field: keyof DayEntry, value: string | number) => void;
   vehicleMode?: boolean;
+  readOnly?: boolean;
 }
 
 export default function WorkTable({
@@ -22,6 +23,7 @@ export default function WorkTable({
   totalActual,
   onUpdateDayEntry,
   vehicleMode,
+  readOnly = false,
 }: WorkTableProps) {
   return (
     <table className="w-full border-collapse mb-0">
@@ -81,6 +83,7 @@ export default function WorkTable({
                   type="text"
                   value={entry.timeIn}
                   onChange={(e) => onUpdateDayEntry(entry.day, 'timeIn', e.target.value)}
+                  readOnly={readOnly}
                   className="w-full outline-none text-center text-[12px] bg-transparent h-[13px] leading-[13px]"
                 />
               </td>
@@ -89,6 +92,7 @@ export default function WorkTable({
                   type="text"
                   value={entry.timeOutLunch}
                   onChange={(e) => onUpdateDayEntry(entry.day, 'timeOutLunch', e.target.value)}
+                  readOnly={readOnly}
                   className="w-full outline-none text-center text-[12px] bg-transparent h-[13px] leading-[13px]"
                 />
               </td>
@@ -97,6 +101,7 @@ export default function WorkTable({
                   type="text"
                   value={entry.lunchBreak}
                   onChange={(e) => onUpdateDayEntry(entry.day, 'lunchBreak', e.target.value)}
+                  readOnly={readOnly}
                   className="w-full outline-none text-center text-[12px] bg-transparent h-[13px] leading-[13px]"
                 />
               </td>
@@ -105,6 +110,7 @@ export default function WorkTable({
                   type="text"
                   value={entry.timeIn2}
                   onChange={(e) => onUpdateDayEntry(entry.day, 'timeIn2', e.target.value)}
+                  readOnly={readOnly}
                   className="w-full outline-none text-center text-[12px] bg-transparent h-[13px] leading-[13px]"
                 />
               </td>
@@ -113,6 +119,7 @@ export default function WorkTable({
                   type="text"
                   value={entry.timeOut2}
                   onChange={(e) => onUpdateDayEntry(entry.day, 'timeOut2', e.target.value)}
+                  readOnly={readOnly}
                   className="w-full outline-none text-center text-[12px] bg-transparent h-[13px] leading-[13px]"
                 />
               </td>
@@ -121,6 +128,7 @@ export default function WorkTable({
                   type="number"
                   value={entry.totalDuration || ''}
                   onChange={(e) => onUpdateDayEntry(entry.day, 'totalDuration', Number(e.target.value))}
+                  readOnly={readOnly}
                   className="w-full outline-none text-center text-[12px] bg-transparent h-[13px] leading-[13px]"
                 />
               </td>
@@ -129,6 +137,7 @@ export default function WorkTable({
                   type="number"
                   value={entry.overTime || ''}
                   onChange={(e) => onUpdateDayEntry(entry.day, 'overTime', Number(e.target.value))}
+                  readOnly={readOnly}
                   className="w-full outline-none text-center text-[12px] bg-transparent h-[13px] leading-[13px]"
                 />
               </td>
@@ -137,6 +146,7 @@ export default function WorkTable({
                   type="number"
                   value={entry.actualWorked || ''}
                   onChange={(e) => onUpdateDayEntry(entry.day, 'actualWorked', Number(e.target.value))}
+                  readOnly={readOnly}
                   className="w-full outline-none text-center text-[12px] bg-transparent h-[13px] leading-[13px]"
                 />
               </td>
@@ -145,6 +155,7 @@ export default function WorkTable({
                   type="text"
                   value={entry.approverSig}
                   onChange={(e) => onUpdateDayEntry(entry.day, 'approverSig', e.target.value)}
+                  readOnly={readOnly}
                   className="w-full outline-none text-center text-[12px] bg-transparent h-[13px] leading-[13px]"
                 />
               </td>
@@ -153,6 +164,7 @@ export default function WorkTable({
                   type="text"
                   value={entry.remarks}
                   onChange={(e) => onUpdateDayEntry(entry.day, 'remarks', e.target.value)}
+                  readOnly={readOnly}
                   className="w-full outline-none text-center text-[12px] bg-transparent h-[13px] leading-[13px]"
                 />
               </td>

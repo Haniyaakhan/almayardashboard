@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Copy, RotateCcw } from 'lucide-react';
-import { isFriday } from '@/lib/dateUtils';
 import type { DayEntry } from '@/types/timesheet';
 
 interface TemplateData {
@@ -43,11 +42,12 @@ interface TemplateRowProps {
   workData: DayEntry[];
   onUpdateDayEntry: (day: number, field: keyof DayEntry, value: string | number) => void;
   onMonthChange: (month: number) => void;
+  readOnly?: boolean;
 }
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-export default function TemplateRow({ sheetType, month, year, workData, onUpdateDayEntry, onMonthChange }: TemplateRowProps) {
+export default function TemplateRow({ sheetType, month, year, workData, onUpdateDayEntry, onMonthChange, readOnly = false }: TemplateRowProps) {
   const storageKey = `timesheet-template-${sheetType}`;
   const [template, setTemplate] = useState<TemplateData>(emptyTemplate);
   const [fromDay, setFromDay] = useState(1);
@@ -82,9 +82,10 @@ export default function TemplateRow({ sheetType, month, year, workData, onUpdate
   }, [storageKey]);
 
   const copyToRange = useCallback(() => {
+    if (readOnly) return;
+
     for (const day of workData) {
       if (day.day < fromDay || day.day > toDay) continue;
-      if (isFriday(year, month, day.day)) continue;
       for (const f of templateFields) {
         const val = template[f.key];
         if (val !== '') {
@@ -92,7 +93,7 @@ export default function TemplateRow({ sheetType, month, year, workData, onUpdate
         }
       }
     }
-  }, [template, workData, onUpdateDayEntry, fromDay, toDay, year, month]);
+  }, [template, workData, onUpdateDayEntry, fromDay, toDay, readOnly]);
 
   const inputStyle: React.CSSProperties = {
     background: 'var(--input-bg, #fff)',
@@ -117,6 +118,7 @@ export default function TemplateRow({ sheetType, month, year, workData, onUpdate
               value={template[f.key]}
               onChange={e => updateField(f.key, e.target.value)}
               placeholder="--"
+              disabled={readOnly}
               className="text-xs rounded px-1.5 py-1 outline-none text-center"
               style={{ ...inputStyle, width: f.key === 'remarks' || f.key === 'approverSig' ? 72 : 56 }}
             />
@@ -129,6 +131,7 @@ export default function TemplateRow({ sheetType, month, year, workData, onUpdate
           <select
             value={month}
             onChange={e => onMonthChange(Number(e.target.value))}
+            disabled={readOnly}
             className="text-xs rounded px-1.5 py-1 outline-none"
             style={{ ...inputStyle, width: 70 }}
           >
@@ -144,6 +147,7 @@ export default function TemplateRow({ sheetType, month, year, workData, onUpdate
           <input
             type="number" min={1} max={31} value={fromDay}
             onChange={e => setFromDay(Number(e.target.value))}
+            disabled={readOnly}
             className="text-xs rounded px-1 py-1 outline-none text-center"
             style={{ ...inputStyle, width: 40 }}
           />
@@ -151,6 +155,7 @@ export default function TemplateRow({ sheetType, month, year, workData, onUpdate
           <input
             type="number" min={1} max={31} value={toDay}
             onChange={e => setToDay(Number(e.target.value))}
+            disabled={readOnly}
             className="text-xs rounded px-1 py-1 outline-none text-center"
             style={{ ...inputStyle, width: 40 }}
           />
@@ -158,12 +163,14 @@ export default function TemplateRow({ sheetType, month, year, workData, onUpdate
 
         <button
           onClick={copyToRange}
+          disabled={readOnly}
           className="flex items-center gap-1 text-xs font-semibold rounded-lg px-3 py-1.5"
           style={{
             background: '#2563eb',
             color: '#fff',
             border: 'none',
-            cursor: 'pointer',
+            cursor: readOnly ? 'not-allowed' : 'pointer',
+            opacity: readOnly ? 0.6 : 1,
             whiteSpace: 'nowrap',
             marginTop: 12,
           }}
@@ -173,12 +180,14 @@ export default function TemplateRow({ sheetType, month, year, workData, onUpdate
 
         <button
           onClick={resetTemplate}
+          disabled={readOnly}
           className="flex items-center gap-1 text-xs font-semibold rounded-lg px-3 py-1.5"
           style={{
             background: 'var(--bg-card, #fff)',
             color: 'var(--text-light, #374151)',
             border: '1px solid var(--border, #d1d5db)',
-            cursor: 'pointer',
+            cursor: readOnly ? 'not-allowed' : 'pointer',
+            opacity: readOnly ? 0.6 : 1,
             whiteSpace: 'nowrap',
             marginTop: 12,
           }}

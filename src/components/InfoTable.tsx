@@ -18,6 +18,7 @@ interface InfoTableProps {
   onDesignationChange: (designation: string) => void;
   laborNameLabel?: string;
   designationLabel?: string;
+  readOnly?: boolean;
 }
 
 export default function InfoTable({
@@ -37,6 +38,7 @@ export default function InfoTable({
   onDesignationChange,
   laborNameLabel = 'Labor Name',
   designationLabel = 'Designation',
+  readOnly = false,
 }: InfoTableProps) {
   const cellNoTop = 'border border-black border-t-0 p-1 text-sm-minus';
 
@@ -63,6 +65,7 @@ export default function InfoTable({
                   value={projectName}
                   onChange={(e) => onProjectNameChange(e.target.value)}
                   rows={2}
+                  readOnly={readOnly}
                   className="w-full outline-none bg-transparent text-sm-minus font-bold resize-none leading-tight"
                   style={{ overflow: 'hidden' }}
                 />
@@ -77,6 +80,7 @@ export default function InfoTable({
                   type="text"
                   value={supplierName}
                   onChange={(e) => onSupplierNameChange(e.target.value)}
+                  readOnly={readOnly}
                   className="w-full outline-none bg-transparent text-sm-minus font-bold"
                 />
               </td>
@@ -90,6 +94,7 @@ export default function InfoTable({
                   type="text"
                   value={laborName}
                   onChange={(e) => onLaborNameChange(e.target.value)}
+                  readOnly={readOnly}
                   className="w-full outline-none bg-transparent text-sm-minus font-bold"
                 />
               </td>
@@ -103,6 +108,7 @@ export default function InfoTable({
                   type="text"
                   value={designation}
                   onChange={(e) => onDesignationChange(e.target.value)}
+                  readOnly={readOnly}
                   className="w-full outline-none bg-transparent text-sm-minus font-bold"
                 />
               </td>
@@ -130,6 +136,7 @@ export default function InfoTable({
                     type="text"
                     value={siteEngineerName}
                     onChange={(e) => onSiteEngineerNameChange(e.target.value)}
+                    readOnly={readOnly}
                     className="w-full outline-none bg-transparent text-[11px] font-bold"
                   />
                 </td>
@@ -155,6 +162,7 @@ export default function InfoTable({
                   <select
                     value={month}
                     onChange={(e) => onMonthChange(Number(e.target.value))}
+                    disabled={readOnly}
                     className="w-full outline-none bg-transparent text-[11px] font-bold text-center appearance-none cursor-pointer"
                   >
                     {MONTH_NAMES.map((name, index) => (
@@ -172,6 +180,7 @@ export default function InfoTable({
                     onChange={(e) => onYearChange(Number(e.target.value))}
                     min="2020"
                     max="2040"
+                    readOnly={readOnly}
                     className="w-[35px] outline-none bg-transparent text-[11px] font-bold text-center inline"
                   />
                 </td>

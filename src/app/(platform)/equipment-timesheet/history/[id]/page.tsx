@@ -1,6 +1,6 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { getTimesheetWithEntries } from '@/hooks/useTimesheetHistory';
 import { PageSpinner } from '@/components/ui/Spinner';
@@ -16,12 +16,19 @@ const DAYS_IN_MONTH = (month: number, year: number) => new Date(year, month + 1,
 
 export default function EquipmentTimesheetDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [ts, setTs] = useState<Timesheet | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     getTimesheetWithEntries(id).then(data => { setTs(data); setLoading(false); });
   }, [id]);
+
+  useEffect(() => {
+    if (searchParams.get('print') !== '1') return;
+    router.replace(`/equipment-timesheet?ts=${id}&print=1`);
+  }, [id, router, searchParams]);
 
   if (loading) return <PageSpinner />;
   if (!ts) return (
@@ -43,7 +50,7 @@ export default function EquipmentTimesheetDetailPage() {
         action={
           <div className="flex gap-2 items-center">
             {timesheetStatusBadge(ts.status)}
-            <Button size="sm" variant="secondary" icon={<Printer size={13}/>} onClick={() => window.print()}>Print</Button>
+            <Button size="sm" variant="secondary" icon={<Printer size={13}/>} onClick={() => window.open(`/equipment-timesheet?ts=${id}&print=1`, '_blank', 'noopener,noreferrer')}>Print</Button>
             <Link href="/equipment-timesheet/history"><Button size="sm" variant="ghost" icon={<ArrowLeft size={13}/>}>Back</Button></Link>
           </div>
         }

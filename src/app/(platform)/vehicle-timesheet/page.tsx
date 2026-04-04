@@ -20,6 +20,7 @@ import { generateDaysInMonth } from '@/lib/dateUtils';
 
 function VehicleTimesheetPageInner() {
   const timesheetRef = useRef<HTMLDivElement>(null);
+  const hasAutoPrintedRef = useRef(false);
   const timesheet = useTimesheet();
   const { machines } = useMachines();
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>('');
@@ -31,6 +32,7 @@ function VehicleTimesheetPageInner() {
   const [fillHours, setFillHours] = useState(10);
   const [vehicleSearchInput, setVehicleSearchInput] = useState('');
   const [vehicleSearchStatus, setVehicleSearchStatus] = useState<'idle' | 'notfound'>('idle');
+  const [isApproved, setIsApproved] = useState(false);
   const searchParams = useSearchParams();
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
@@ -43,6 +45,7 @@ function VehicleTimesheetPageInner() {
       setLoadedTsId(tsId);
       getTimesheetWithEntries(tsId).then(ts => {
         if (!ts) return;
+        setIsApproved((ts.status ?? '').toLowerCase() === 'approved');
         const entries: DayEntry[] = ((ts as any).entries ?? []).map((e: any) => ({
           day: e.day,
           timeIn: e.time_in ?? '',
@@ -71,6 +74,22 @@ function VehicleTimesheetPageInner() {
     }
   }, [machines]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (searchParams.get('print') !== '1') {
+      hasAutoPrintedRef.current = false;
+      return;
+    }
+
+    if (!searchParams.get('ts') || !timesheet.laborName.trim() || hasAutoPrintedRef.current) return;
+
+    const timer = window.setTimeout(() => {
+      hasAutoPrintedRef.current = true;
+      window.print();
+    }, 250);
+
+    return () => window.clearTimeout(timer);
+  }, [searchParams, timesheet.laborName, timesheet.designation, timesheet.month, timesheet.year]);
+
   // When machines load and ?vehicle= param exists (no ts param), auto-fill vehicle info
   useEffect(() => {
     const vehicleId = searchParams.get('vehicle');
@@ -98,6 +117,7 @@ function VehicleTimesheetPageInner() {
     try {
       const existing = await getTimesheetByLaborer(machine.id, timesheet.month, timesheet.year);
       setLoadedTsId(existing?.id ?? null);
+      setIsApproved((existing?.status ?? '').toLowerCase() === 'approved');
       if (existing && (existing as any).entries?.length) {
         const entries: DayEntry[] = ((existing as any).entries ?? []).map((e: any) => ({
           day: e.day,
@@ -122,6 +142,7 @@ function VehicleTimesheetPageInner() {
           designation: `${machine.name}# ${machine.plate_number ?? ''}`,
         });
       } else {
+        setIsApproved(false);
         const days = generateDaysInMonth(timesheet.month, timesheet.year);
         timesheet.loadEntries(days, {
           month: timesheet.month,
@@ -132,6 +153,7 @@ function VehicleTimesheetPageInner() {
         });
       }
     } catch {
+      setIsApproved(false);
       const days = generateDaysInMonth(timesheet.month, timesheet.year);
       timesheet.loadEntries(days, {
         month: timesheet.month,
@@ -179,6 +201,11 @@ function VehicleTimesheetPageInner() {
   }
 
   async function handleSave() {
+    if (isApproved) {
+      toast.error('Approved timesheets cannot be edited');
+      return;
+    }
+
     const hasManualVehicleDetails = Boolean(
       timesheet.laborName.trim() || timesheet.designation.trim()
     );
@@ -258,6 +285,7 @@ function VehicleTimesheetPageInner() {
             onChange={e => { setVehicleSearchInput(e.target.value); setVehicleSearchStatus('idle'); }}
             onKeyDown={e => { if (e.key === 'Enter') handleVehicleSearch(vehicleSearchInput); }}
             onBlur={() => { if (vehicleSearchInput.trim() && vehicleSearchStatus === 'idle') handleVehicleSearch(vehicleSearchInput); }}
+            disabled={isApproved}
             placeholder="Search vehicle by number or name..."
             className="text-sm rounded-lg px-3 py-1.5 outline-none"
             style={{ background: 'var(--input-bg)', color: 'var(--text-primary)', border: '1px solid var(--border)', minWidth: 280 }}
@@ -278,30 +306,39 @@ function VehicleTimesheetPageInner() {
           loading={saving}
           disabled={
             saving ||
+            isApproved ||
             (!selectedVehicleId && !timesheet.laborName.trim() && !timesheet.designation.trim()) ||
             !hasTimesheetValues()
           }
           icon={<Save size={13}/>}
           onClick={handleSave}
         >
-          Save Timesheet
+          {isApproved ? 'Approved' : 'Save Timesheet'}
         </Button>
+
+        {isApproved && (
+          <span className="text-xs font-semibold" style={{ color: 'var(--orange)' }}>
+            Approved timesheet is locked. You can still print it.
+          </span>
+        )}
 
         {/* Clear date range */}
         <div className="flex items-center gap-1.5 ml-auto" style={{ marginRight: 8 }}>
           <span className="text-xs" style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Day</span>
           <input type="number" min={1} max={31} value={clearStartDay}
             onChange={e => setClearStartDay(Number(e.target.value))}
+            disabled={isApproved}
             className="text-sm rounded-lg px-2 py-1 outline-none text-center"
             style={{ background: 'var(--input-bg)', color: 'var(--text-primary)', border: '1px solid var(--border)', width: 52 }}
           />
           <span className="text-xs" style={{ color: 'var(--text-muted)' }}>to</span>
           <input type="number" min={1} max={31} value={clearEndDay}
             onChange={e => setClearEndDay(Number(e.target.value))}
+            disabled={isApproved}
             className="text-sm rounded-lg px-2 py-1 outline-none text-center"
             style={{ background: 'var(--input-bg)', color: 'var(--text-primary)', border: '1px solid var(--border)', width: 52 }}
           />
-          <button onClick={async () => {
+          <button disabled={isApproved} onClick={async () => {
             const ok = await confirm({ title: 'Clear Entries', message: `Clear all timesheet entries from day ${clearStartDay} to ${clearEndDay}?`, variant: 'danger', confirmLabel: 'Clear' });
             if (!ok) return;
             timesheet.clearDayRange(clearStartDay, clearEndDay);
@@ -309,7 +346,7 @@ function VehicleTimesheetPageInner() {
             className="flex items-center gap-1 text-xs font-semibold rounded-lg px-3 py-1.5"
             style={{
               background: 'var(--red-bg, #fef2f2)', border: '1px solid var(--red-border, #fecaca)',
-              color: 'var(--red-text, #dc2626)', cursor: 'pointer', whiteSpace: 'nowrap',
+              color: 'var(--red-text, #dc2626)', cursor: isApproved ? 'not-allowed' : 'pointer', opacity: isApproved ? 0.6 : 1, whiteSpace: 'nowrap',
             }}
           >
             <Eraser size={12} /> Clear
@@ -317,10 +354,11 @@ function VehicleTimesheetPageInner() {
           <span className="text-xs" style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Hrs</span>
           <input type="number" min={1} max={24} value={fillHours}
             onChange={e => setFillHours(Number(e.target.value))}
+            disabled={isApproved}
             className="text-sm rounded-lg px-2 py-1 outline-none text-center"
             style={{ background: 'var(--input-bg)', color: 'var(--text-primary)', border: '1px solid var(--border)', width: 52 }}
           />
-          <button onClick={async () => {
+          <button disabled={isApproved} onClick={async () => {
             const ok = await confirm({ title: 'Fill Default Values', message: `Fill ${fillHours} hours for day ${clearStartDay} to ${clearEndDay}?`, variant: 'info', confirmLabel: 'Fill' });
             if (!ok) return;
             timesheet.fillDayRange(clearStartDay, clearEndDay, fillHours);
@@ -328,7 +366,7 @@ function VehicleTimesheetPageInner() {
             className="flex items-center gap-1 text-xs font-semibold rounded-lg px-3 py-1.5"
             style={{
               background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.3)',
-              color: '#16a34a', cursor: 'pointer', whiteSpace: 'nowrap',
+              color: '#16a34a', cursor: isApproved ? 'not-allowed' : 'pointer', opacity: isApproved ? 0.6 : 1, whiteSpace: 'nowrap',
             }}
           >
             <Plus size={12} /> Add
@@ -348,7 +386,7 @@ function VehicleTimesheetPageInner() {
             totalActual={timesheet.totalActual}
           />
         </div>
-        <TemplateRow sheetType="vehicle" month={timesheet.month} year={timesheet.year} workData={timesheet.workData} onUpdateDayEntry={timesheet.updateDayEntry} onMonthChange={timesheet.setMonth} />
+        <TemplateRow sheetType="vehicle" month={timesheet.month} year={timesheet.year} workData={timesheet.workData} onUpdateDayEntry={timesheet.updateDayEntry} onMonthChange={timesheet.setMonth} readOnly={isApproved} />
       </div>
 
       {/* A4 Timesheet */}
@@ -371,6 +409,7 @@ function VehicleTimesheetPageInner() {
             onDesignationChange={timesheet.setDesignation}
             laborNameLabel="Operator Name"
             designationLabel="Reg No"
+            readOnly={isApproved}
           />
           <WorkTable
             month={timesheet.month} year={timesheet.year}
@@ -379,6 +418,7 @@ function VehicleTimesheetPageInner() {
             totalActual={timesheet.totalActual}
             onUpdateDayEntry={timesheet.updateDayEntry}
             vehicleMode
+            readOnly={isApproved}
           />
           <FooterSection
             totalWorked={timesheet.totalWorked} totalOT={timesheet.totalOT}

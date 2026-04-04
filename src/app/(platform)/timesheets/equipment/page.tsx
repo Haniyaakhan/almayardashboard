@@ -148,7 +148,12 @@ export default function EquipmentTimesheetPage() {
                     </td>
                     <td style={{ padding: '10px 13px' }}>{timesheetStatusBadge(ts.status)}</td>
                     <td style={{ padding: '10px 13px' }}>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Link href={`/equipment-timesheet?ts=${ts.id}&print=1`} target="_blank" rel="noreferrer" style={{
+                          fontSize: 11, fontWeight: 600, padding: '4px 9px', borderRadius: 6,
+                          border: 'none', background: 'rgba(37,99,235,0.1)', color: '#2563eb',
+                          textDecoration: 'none',
+                        }}>PRINT</Link>
                         <Link href={`/equipment-timesheet?equipment=${ts.laborer_id}&ts=${ts.id}`} style={{
                           fontSize: 11, fontWeight: 600, padding: '4px 9px', borderRadius: 6,
                           border: '1px solid var(--border2)', background: 'var(--bg-card)',
@@ -167,7 +172,7 @@ export default function EquipmentTimesheetPage() {
                           background: isApproved ? '#d1d5db' : 'var(--orange)',
                           color: isApproved ? '#6b7280' : '#fff',
                           opacity: isApproved ? 0.7 : 1,
-                        }}>{isApproved ? 'SAVED' : 'SAVE'}</button>
+                        }}>{isApproved ? 'APPROVED' : 'APPROVE'}</button>
                         {!isApproved && (
                           <button onClick={async () => {
                             if (window.confirm('Delete this timesheet?')) {

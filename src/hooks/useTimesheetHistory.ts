@@ -3,6 +3,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { Timesheet } from '@/types/database';
 
+function isApprovedStatus(status?: string | null) {
+  return (status ?? '').toLowerCase() === 'approved';
+}
+
 export function useTimesheetHistory(laborerId?: string, limit?: number) {
   const [timesheets, setTimesheets] = useState<Timesheet[]>([]);
   const [loading, setLoading] = useState(true);
@@ -92,6 +96,16 @@ export async function saveTimesheet(payload: {
 
   if (timesheetId) {
     // Edit a specific existing timesheet (used by vehicle/equipment edits)
+    const { data: existingTs } = await supabase
+      .from('timesheets')
+      .select('id, status')
+      .eq('id', timesheetId)
+      .maybeSingle();
+
+    if (isApprovedStatus(existingTs?.status)) {
+      return new Error('Approved timesheets cannot be edited');
+    }
+
     const { data: ts, error: tsErr } = await supabase
       .from('timesheets').update(header).eq('id', timesheetId).select().single();
     if (tsErr || !ts) return tsErr ?? new Error('Failed to update timesheet');
@@ -99,7 +113,7 @@ export async function saveTimesheet(payload: {
   } else if (payload.sheet_type === 'labor' && payload.laborer_id) {
     // Labour: 1 per person per month — find existing and update, or insert
     const { data: existing } = await supabase
-      .from('timesheets').select('id')
+      .from('timesheets').select('id, status')
       .eq('laborer_id', payload.laborer_id)
       .eq('month', payload.month)
       .eq('year', payload.year)
@@ -108,6 +122,10 @@ export async function saveTimesheet(payload: {
       .maybeSingle();
 
     if (existing) {
+      if (isApprovedStatus(existing.status)) {
+        return new Error('Approved timesheets cannot be edited');
+      }
+
       const { data: ts, error: tsErr } = await supabase
         .from('timesheets').update(header).eq('id', existing.id).select().single();
       if (tsErr || !ts) return tsErr ?? new Error('Failed to update timesheet');

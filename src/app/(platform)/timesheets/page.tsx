@@ -63,6 +63,13 @@ export default function TimesheetsPage() {
     return `/timesheet?ts=${ts.id}`;
   }
 
+  function printLink(ts: (typeof timesheets)[0], type: SheetType): string {
+    if (type === 'labor') return `/timesheet?ts=${ts.id}&print=1`;
+    if (type === 'vehicle') return `/vehicle-timesheet?ts=${ts.id}&print=1`;
+    if (type === 'equipment') return `/equipment-timesheet?ts=${ts.id}&print=1`;
+    return `/timesheet?ts=${ts.id}&print=1`;
+  }
+
   const monthOptions = Array.from(
     new Set(timesheets.map(ts => `${MONTHS[ts.month]} ${ts.year}`))
   );
@@ -191,7 +198,7 @@ export default function TimesheetsPage() {
                   const name = resolveName(ts, type);
                   const colors = TYPE_COLORS[type];
                   const normalizedStatus = (ts.status ?? '').toLowerCase();
-                  const isLocked = normalizedStatus === 'approved' || normalizedStatus === 'saved';
+                  const isLocked = normalizedStatus === 'approved';
                   return (
                     <tr key={ts.id}
                       style={{ borderBottom: '1px solid #f4f1ed', transition: 'background 0.1s' }}
@@ -219,7 +226,12 @@ export default function TimesheetsPage() {
                       </td>
                       <td style={{ padding: '10px 13px' }}>{timesheetStatusBadge(ts.status)}</td>
                       <td style={{ padding: '10px 13px' }}>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Link href={printLink(ts, type)} target="_blank" rel="noreferrer" style={{
+                            fontSize: 11, fontWeight: 600, padding: '4px 9px', borderRadius: 6,
+                            border: 'none', background: 'rgba(37,99,235,0.1)', color: '#2563eb',
+                            textDecoration: 'none',
+                          }}>PRINT</Link>
                           <Link href={editLink(ts, type)} style={{
                             fontSize: 11, fontWeight: 600, padding: '4px 9px', borderRadius: 6,
                             border: '1px solid var(--border2)', background: 'var(--bg-card)',
@@ -247,7 +259,7 @@ export default function TimesheetsPage() {
                             background: isLocked ? '#d1d5db' : 'var(--orange)',
                             color: isLocked ? '#6b7280' : '#fff',
                             opacity: isLocked ? 0.7 : 1,
-                          }}>{isLocked ? 'SAVED' : 'SAVE'}</button>
+                          }}>{isLocked ? 'APPROVED' : 'APPROVE'}</button>
                         </div>
                       </td>
                     </tr>
@@ -278,7 +290,7 @@ export default function TimesheetsPage() {
               <button onClick={async () => {
                 const selected = timesheets.find(ts => ts.id === confirmDeleteId);
                 const selectedStatus = (selected?.status ?? '').toLowerCase();
-                if (selectedStatus === 'approved' || selectedStatus === 'saved') {
+                if (selectedStatus === 'approved') {
                   setConfirmDeleteId(null);
                   toast.error('Approved timesheets cannot be deleted');
                   return;
