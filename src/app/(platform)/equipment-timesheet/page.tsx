@@ -26,13 +26,45 @@ function EquipmentTimesheetPageInner() {
   const [loadedTsId, setLoadedTsId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const toast = useToast();
-  const [rangeStartDay, setRangeStartDay] = useState(1);
-  const [rangeEndDay, setRangeEndDay] = useState(1);
+  const [rangeStartDay, setRangeStartDay] = useState('');
+  const [rangeEndDay, setRangeEndDay] = useState('');
   const [equipmentSearchInput, setEquipmentSearchInput] = useState('');
   const [equipmentSearchStatus, setEquipmentSearchStatus] = useState<'idle' | 'notfound'>('idle');
   const [isApproved, setIsApproved] = useState(false);
   const searchParams = useSearchParams();
   const maxClearDay = timesheet.workData.length || 31;
+  const hasRangeValues = rangeStartDay !== '' && rangeEndDay !== '';
+
+  useEffect(() => {
+    setRangeStartDay((prev) => {
+      if (!prev) return '';
+      return String(Math.max(1, Math.min(maxClearDay, Math.trunc(Number(prev) || 1))));
+    });
+    setRangeEndDay((prev) => {
+      if (!prev) return '';
+      return String(Math.max(1, Math.min(maxClearDay, Math.trunc(Number(prev) || 1))));
+    });
+  }, [maxClearDay]);
+
+  function updateRangeValue(value: string, setter: React.Dispatch<React.SetStateAction<string>>) {
+    if (value === '') {
+      setter('');
+      return;
+    }
+    const numericValue = Number(value);
+    if (Number.isNaN(numericValue)) return;
+    setter(String(Math.max(1, Math.min(maxClearDay, Math.trunc(numericValue)))));
+  }
+
+  function getSelectedRange() {
+    if (!hasRangeValues) return null;
+    const start = Math.max(1, Math.min(maxClearDay, Math.trunc(Number(rangeStartDay) || 1)));
+    const end = Math.max(1, Math.min(maxClearDay, Math.trunc(Number(rangeEndDay) || 1)));
+    return {
+      startDay: Math.min(start, end),
+      endDay: Math.max(start, end),
+    };
+  }
 
   // On mount: load existing timesheet if ?ts= param is present
   useEffect(() => {
@@ -323,24 +355,24 @@ function EquipmentTimesheetPageInner() {
         <div className="flex items-center gap-1.5 ml-auto" style={{ marginRight: 8 }}>
           <span className="text-xs" style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>From</span>
           <input type="number" min={1} max={maxClearDay} value={rangeStartDay}
-            onChange={e => setRangeStartDay(Math.max(1, Math.min(maxClearDay, Number(e.target.value) || 1)))}
+            onChange={e => updateRangeValue(e.target.value, setRangeStartDay)}
             disabled={isApproved}
             className="text-sm rounded-lg px-2 py-1 outline-none text-center"
             style={{ background: 'var(--input-bg)', color: 'var(--text-primary)', border: '1px solid var(--border)', width: 52 }}
           />
           <span className="text-xs" style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>To</span>
           <input type="number" min={1} max={maxClearDay} value={rangeEndDay}
-            onChange={e => setRangeEndDay(Math.max(1, Math.min(maxClearDay, Number(e.target.value) || 1)))}
+            onChange={e => updateRangeValue(e.target.value, setRangeEndDay)}
             disabled={isApproved}
             className="text-sm rounded-lg px-2 py-1 outline-none text-center"
             style={{ background: 'var(--input-bg)', color: 'var(--text-primary)', border: '1px solid var(--border)', width: 52 }}
           />
           <button
-            disabled={isApproved}
+            disabled={isApproved || !hasRangeValues}
             onClick={() => {
-              const startDay = Math.min(rangeStartDay, rangeEndDay);
-              const endDay = Math.max(rangeStartDay, rangeEndDay);
-              timesheet.fillDayRange(startDay, endDay, 10, true);
+              const range = getSelectedRange();
+              if (!range) return;
+              timesheet.fillDayRange(range.startDay, range.endDay, 10, true);
             }}
             className="flex items-center gap-1 text-xs font-semibold rounded-lg px-3 py-1.5"
             style={{
@@ -355,11 +387,11 @@ function EquipmentTimesheetPageInner() {
             <Plus size={12} /> Add Default
           </button>
           <button
-            disabled={isApproved}
+            disabled={isApproved || !hasRangeValues}
             onClick={() => {
-              const startDay = Math.min(rangeStartDay, rangeEndDay);
-              const endDay = Math.max(rangeStartDay, rangeEndDay);
-              timesheet.fillDayRange(startDay, endDay, 10, false);
+              const range = getSelectedRange();
+              if (!range) return;
+              timesheet.fillDayRange(range.startDay, range.endDay, 10, false);
             }}
             className="flex items-center gap-1 text-xs font-semibold rounded-lg px-3 py-1.5"
             style={{
@@ -373,10 +405,10 @@ function EquipmentTimesheetPageInner() {
           >
             <Plus size={12} /> Add Friday
           </button>
-          <button disabled={isApproved} onClick={() => {
-            const startDay = Math.min(rangeStartDay, rangeEndDay);
-            const endDay = Math.max(rangeStartDay, rangeEndDay);
-            timesheet.clearDayRange(startDay, endDay);
+          <button disabled={isApproved || !hasRangeValues} onClick={() => {
+            const range = getSelectedRange();
+            if (!range) return;
+            timesheet.clearDayRange(range.startDay, range.endDay);
           }}
             className="flex items-center gap-1 text-xs font-semibold rounded-lg px-3 py-1.5"
             style={{
