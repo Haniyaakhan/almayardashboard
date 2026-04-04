@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { DayEntry, UseTimesheetReturn } from '@/types/timesheet';
-import { generateDaysInMonth, getPreviousMonthYear } from '@/lib/dateUtils';
+import { generateDaysInMonth, getPreviousMonthYear, isFriday } from '@/lib/dateUtils';
 
 type LoadMeta = {
   month: number; year: number;
@@ -91,21 +91,28 @@ export function useTimesheet(): UseTimesheetReturn & {
     }));
   }, []);
 
-  // Fill entries with default values for a range of days
+  // Fill entries with default values for a range of days, keeping Fridays empty
   const fillDayRange = useCallback((startDay: number, endDay: number, hours: number = 10) => {
     setWorkData(prev => prev.map(entry => {
       if (entry.day >= startDay && entry.day <= endDay) {
+        const friday = isFriday(year, month, entry.day);
         return {
           ...entry,
-          timeIn: '5:30', timeOutLunch: '01:30', lunchBreak: '',
-          timeIn2: '3:30', timeOut2: '6:30',
-          totalDuration: hours, overTime: 0, actualWorked: hours,
-          approverSig: '', remarks: '',
+          timeIn: friday ? '' : '5:30',
+          timeOutLunch: friday ? '' : '01:30',
+          lunchBreak: '',
+          timeIn2: friday ? '' : '3:30',
+          timeOut2: friday ? '' : '6:30',
+          totalDuration: friday ? 0 : hours,
+          overTime: 0,
+          actualWorked: friday ? 0 : hours,
+          approverSig: '',
+          remarks: '',
         };
       }
       return entry;
     }));
-  }, []);
+  }, [month, year]);
 
   // Calculate totals
   const { totalWorked, totalOT, totalActual } = useMemo(() => {

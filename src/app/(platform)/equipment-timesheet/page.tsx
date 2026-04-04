@@ -14,7 +14,7 @@ import TemplateRow from '@/components/TemplateRow';
 import { Button } from '@/components/ui/Button';
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/Toast';
-import { Save, Search, Eraser } from 'lucide-react';
+import { Save, Search, Eraser, Plus } from 'lucide-react';
 import type { DayEntry } from '@/types/timesheet';
 import { generateDaysInMonth } from '@/lib/dateUtils';
 
@@ -337,6 +337,25 @@ function EquipmentTimesheetPageInner() {
             className="text-sm rounded-lg px-2 py-1 outline-none text-center"
             style={{ background: 'var(--input-bg)', color: 'var(--text-primary)', border: '1px solid var(--border)', width: 52 }}
           />
+          <button
+            disabled={isApproved}
+            onClick={() => {
+              const startDay = Math.min(rangeStartDay, rangeEndDay);
+              const endDay = Math.max(rangeStartDay, rangeEndDay);
+              timesheet.fillDayRange(startDay, endDay);
+            }}
+            className="flex items-center gap-1 text-xs font-semibold rounded-lg px-3 py-1.5"
+            style={{
+              background: '#dcfce7',
+              border: '1px solid #86efac',
+              color: '#166534',
+              cursor: isApproved ? 'not-allowed' : 'pointer',
+              opacity: isApproved ? 0.6 : 1,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <Plus size={12} /> Add Default
+          </button>
           <button disabled={isApproved} onClick={async () => {
             const startDay = Math.min(rangeStartDay, rangeEndDay);
             const endDay = Math.max(rangeStartDay, rangeEndDay);
