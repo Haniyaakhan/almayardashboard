@@ -178,13 +178,17 @@ function EquipmentTimesheetPageInner() {
   }
 
   async function handleSave() {
-    if (!selectedEquipmentId && !searchParams.get('equipment')) {
-      toast.error('Select equipment before saving');
+    const hasManualEquipmentDetails = Boolean(
+      timesheet.laborName.trim() || timesheet.designation.trim()
+    );
+
+    if (!selectedEquipmentId && !searchParams.get('equipment') && !hasManualEquipmentDetails) {
+      toast.error('Select equipment or type equipment name / reg no before saving');
       return;
     }
 
-    if (!timesheet.designation.trim()) {
-      toast.error('Equipment details are required before saving');
+    if (!hasManualEquipmentDetails && !(selectedEquipmentId || searchParams.get('equipment'))) {
+      toast.error('Enter equipment name or reg no before saving');
       return;
     }
 
@@ -267,7 +271,18 @@ function EquipmentTimesheetPageInner() {
           )}
         </div>
 
-        <Button variant="primary" size="sm" loading={saving} disabled={saving || !selectedEquipmentId || !timesheet.designation.trim() || !hasTimesheetValues()} icon={<Save size={13}/>} onClick={handleSave}>
+        <Button
+          variant="primary"
+          size="sm"
+          loading={saving}
+          disabled={
+            saving ||
+            (!selectedEquipmentId && !timesheet.laborName.trim() && !timesheet.designation.trim()) ||
+            !hasTimesheetValues()
+          }
+          icon={<Save size={13}/>}
+          onClick={handleSave}
+        >
           Save Timesheet
         </Button>
 
