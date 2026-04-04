@@ -14,7 +14,6 @@ import FooterSection from '@/components/FooterSection';
 import ExportButtons from '@/components/ExportButtons';
 import TemplateRow from '@/components/TemplateRow';
 import { Button } from '@/components/ui/Button';
-import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/Toast';
 import { Save, Search, Eraser, UserPlus, Plus } from 'lucide-react';
 import type { DayEntry } from '@/types/timesheet';
@@ -38,7 +37,6 @@ function TimesheetPageInner() {
   const [addLaborerInitialId, setAddLaborerInitialId] = useState('');
   const [isApproved, setIsApproved] = useState(false);
   const searchParams = useSearchParams();
-  const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const maxClearDay = timesheet.workData.length || 31;
 
   function formatLaborDisplayName(lab: Laborer): string {
@@ -355,7 +353,7 @@ function TimesheetPageInner() {
             onClick={() => {
               const startDay = Math.min(rangeStartDay, rangeEndDay);
               const endDay = Math.max(rangeStartDay, rangeEndDay);
-              timesheet.fillDayRange(startDay, endDay);
+              timesheet.fillDayRange(startDay, endDay, 10, true);
             }}
             className="flex items-center gap-1 text-xs font-semibold rounded-lg px-3 py-1.5"
             style={{
@@ -369,14 +367,28 @@ function TimesheetPageInner() {
           >
             <Plus size={12} /> Add Default
           </button>
-          <button disabled={isApproved} onClick={async () => {
+          <button
+            disabled={isApproved}
+            onClick={() => {
+              const startDay = Math.min(rangeStartDay, rangeEndDay);
+              const endDay = Math.max(rangeStartDay, rangeEndDay);
+              timesheet.fillDayRange(startDay, endDay, 10, false);
+            }}
+            className="flex items-center gap-1 text-xs font-semibold rounded-lg px-3 py-1.5"
+            style={{
+              background: '#dbeafe',
+              border: '1px solid #93c5fd',
+              color: '#1d4ed8',
+              cursor: isApproved ? 'not-allowed' : 'pointer',
+              opacity: isApproved ? 0.6 : 1,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <Plus size={12} /> Add Friday
+          </button>
+          <button disabled={isApproved} onClick={() => {
             const startDay = Math.min(rangeStartDay, rangeEndDay);
             const endDay = Math.max(rangeStartDay, rangeEndDay);
-            const message = startDay === endDay
-              ? `Clear all timesheet entries for day ${startDay}?`
-              : `Clear all timesheet entries from day ${startDay} to day ${endDay}?`;
-            const ok = await confirm({ title: 'Clear Entries', message, variant: 'danger', confirmLabel: 'Clear' });
-            if (!ok) return;
             timesheet.clearDayRange(startDay, endDay);
           }}
             className="flex items-center gap-1 text-xs font-semibold rounded-lg px-3 py-1.5"
@@ -476,7 +488,6 @@ function TimesheetPageInner() {
           </div>
         </div>
       )}
-      {confirmDialog}
     </div>
   );
 }
