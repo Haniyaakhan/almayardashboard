@@ -118,7 +118,7 @@ export default function LabourTimesheetPage() {
                 const dailyRate = laborerData?.daily_rate ?? 0;
                 const salary = dailyRate > 0 ? Math.round(dailyRate * (ts.total_actual / 10)) : 0;
                 const normalizedStatus = (ts.status ?? '').toLowerCase();
-                const isLocked = normalizedStatus === 'approved' || normalizedStatus === 'saved';
+                const isLocked = normalizedStatus === 'approved';
                 return (
                   <tr key={ts.id} style={{ borderBottom: '1px solid #f4f1ed', transition: 'background 0.1s' }}
                     onMouseEnter={e => { e.currentTarget.style.background = 'var(--row-hover)'; }}
@@ -156,7 +156,12 @@ export default function LabourTimesheetPage() {
                     </td>
                     <td style={{ padding: '10px 13px' }}>{timesheetStatusBadge(ts.status)}</td>
                     <td style={{ padding: '10px 13px' }}>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Link href={`/timesheet?ts=${ts.id}&print=1`} target="_blank" rel="noreferrer" style={{
+                          fontSize: 11, fontWeight: 600, padding: '4px 9px', borderRadius: 6,
+                          border: 'none', background: 'rgba(37,99,235,0.1)', color: '#2563eb',
+                          textDecoration: 'none',
+                        }}>PRINT</Link>
                         <Link href={`/timesheet?laborer=${ts.laborer_id}&ts=${ts.id}`} style={{
                           fontSize: 11, fontWeight: 600, padding: '4px 9px', borderRadius: 6,
                           border: '1px solid var(--border2)', background: 'var(--bg-card)',
@@ -175,7 +180,7 @@ export default function LabourTimesheetPage() {
                           background: isLocked ? '#d1d5db' : 'var(--orange)',
                           color: isLocked ? '#6b7280' : '#fff',
                           opacity: isLocked ? 0.7 : 1,
-                        }}>{isLocked ? 'SAVED' : 'SAVE'}</button>
+                        }}>{isLocked ? 'APPROVED' : 'APPROVE'}</button>
                         {!isLocked && (
                           <button onClick={async () => {
                             if (window.confirm('Delete this timesheet?')) {

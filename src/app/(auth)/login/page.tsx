@@ -20,7 +20,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       if (!hasSupabaseConfig) {
-        throw new Error('Supabase environment variables are missing. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in Vercel project settings.');
+        throw new Error('Supabase environment variables are missing. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to `.env.local` for local development, then restart the app.');
       }
 
       const supabase = createClient();
@@ -85,6 +85,12 @@ export default function LoginPage() {
                 onBlur={e => { e.target.style.borderColor = '#ece8e2'; e.target.style.boxShadow = 'none'; }}
               />
             </div>
+
+            {!hasSupabaseConfig && (
+              <div className="text-sm px-3 py-2 rounded-lg" style={{ background: 'rgba(245,158,11,0.10)', color: '#9a6700', border: '1px solid rgba(245,158,11,0.25)' }}>
+                Supabase is not configured yet. Update `.env.local` with your project URL and anon key, then restart `npm run dev`.
+              </div>
+            )}
 
             {error && (
               <div className="text-sm px-3 py-2 rounded-lg" style={{ background: 'rgba(239,68,68,0.08)', color: '#c62828', border: '1px solid rgba(239,68,68,0.15)' }}>

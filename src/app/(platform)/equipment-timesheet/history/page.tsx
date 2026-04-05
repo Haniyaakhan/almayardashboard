@@ -132,7 +132,7 @@ export default function EquipmentTimesheetHistoryPage() {
               {filtered.map(ts => {
                 const machine = machines.find(m => m.id === ts.laborer_id);
                 const normalizedStatus = (ts.status ?? '').toLowerCase();
-                const isLocked = normalizedStatus === 'approved' || normalizedStatus === 'saved';
+                const isLocked = normalizedStatus === 'approved';
                 return (
                   <tr key={ts.id} style={{ borderBottom: '1px solid #f4f1ed', transition: 'background 0.1s' }}
                     onMouseEnter={e => { e.currentTarget.style.background = 'var(--row-hover)'; }}
@@ -152,7 +152,12 @@ export default function EquipmentTimesheetHistoryPage() {
                     </td>
                     <td style={{ padding: '10px 13px' }}>{timesheetStatusBadge(ts.status)}</td>
                     <td style={{ padding: '10px 13px' }}>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Link href={`/equipment-timesheet?ts=${ts.id}&print=1`} target="_blank" rel="noreferrer" style={{
+                          fontSize: 11, fontWeight: 600, padding: '4px 9px', borderRadius: 6,
+                          border: 'none', background: 'rgba(37,99,235,0.1)', color: '#2563eb',
+                          textDecoration: 'none',
+                        }}>PRINT</Link>
                         <Link href={`/equipment-timesheet?equipment=${ts.laborer_id}&ts=${ts.id}`} style={{
                           fontSize: 11, fontWeight: 600, padding: '4px 9px', borderRadius: 6,
                           border: '1px solid var(--border2)', background: 'var(--bg-card)',
@@ -172,7 +177,7 @@ export default function EquipmentTimesheetHistoryPage() {
                           background: isLocked ? '#d1d5db' : 'var(--orange)',
                           color: isLocked ? '#6b7280' : '#fff',
                           opacity: isLocked ? 0.7 : 1,
-                        }}>{isLocked ? 'SAVED' : 'SAVE'}</button>
+                        }}>{isLocked ? 'APPROVED' : 'APPROVE'}</button>
                       </div>
                     </td>
                   </tr>

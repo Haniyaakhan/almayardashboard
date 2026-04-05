@@ -13,7 +13,7 @@ type LoadMeta = {
 export function useTimesheet(): UseTimesheetReturn & {
   loadEntries: (entries: DayEntry[], meta: LoadMeta) => void;
   clearDayRange: (startDay: number, endDay: number) => void;
-  fillDayRange: (startDay: number, endDay: number, hours?: number) => void;
+  fillDayRange: (startDay: number, endDay: number, hours?: number, skipFridays?: boolean) => void;
   setWorkData: React.Dispatch<React.SetStateAction<DayEntry[]>>;
 } {
   const defaultMonthYear = getPreviousMonthYear();
@@ -91,21 +91,29 @@ export function useTimesheet(): UseTimesheetReturn & {
     }));
   }, []);
 
-  // Fill entries with default values for a range of days (skip Fridays)
-  const fillDayRange = useCallback((startDay: number, endDay: number, hours: number = 10) => {
+  // Fill entries with default values for a range of days; optionally skip Fridays
+  const fillDayRange = useCallback((startDay: number, endDay: number, hours: number = 10, skipFridays: boolean = true) => {
     setWorkData(prev => prev.map(entry => {
-      if (entry.day >= startDay && entry.day <= endDay && !isFriday(year, month, entry.day)) {
+      if (entry.day >= startDay && entry.day <= endDay) {
+        const friday = isFriday(year, month, entry.day);
+        const shouldSkip = skipFridays && friday;
         return {
           ...entry,
-          timeIn: '5:30', timeOutLunch: '01:30', lunchBreak: '',
-          timeIn2: '3:30', timeOut2: '6:30',
-          totalDuration: hours, overTime: 0, actualWorked: hours,
-          approverSig: '', remarks: '',
+          timeIn: shouldSkip ? '' : '5:30',
+          timeOutLunch: shouldSkip ? '' : '01:30',
+          lunchBreak: '',
+          timeIn2: shouldSkip ? '' : '3:30',
+          timeOut2: shouldSkip ? '' : '6:30',
+          totalDuration: shouldSkip ? 0 : hours,
+          overTime: 0,
+          actualWorked: shouldSkip ? 0 : hours,
+          approverSig: '',
+          remarks: '',
         };
       }
       return entry;
     }));
-  }, [year, month]);
+  }, [month, year]);
 
   // Calculate totals
   const { totalWorked, totalOT, totalActual } = useMemo(() => {

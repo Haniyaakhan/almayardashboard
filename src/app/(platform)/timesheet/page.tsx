@@ -14,30 +14,62 @@ import FooterSection from '@/components/FooterSection';
 import ExportButtons from '@/components/ExportButtons';
 import TemplateRow from '@/components/TemplateRow';
 import { Button } from '@/components/ui/Button';
-import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/Toast';
-import { Save, Search, Eraser, Plus, UserPlus } from 'lucide-react';
+import { Save, Search, Eraser, UserPlus, Plus } from 'lucide-react';
 import type { DayEntry } from '@/types/timesheet';
 import type { Laborer } from '@/types/database';
 import { generateDaysInMonth } from '@/lib/dateUtils';
 
 function TimesheetPageInner() {
   const timesheetRef = useRef<HTMLDivElement>(null);
+  const hasAutoPrintedRef = useRef(false);
   const timesheet = useTimesheet();
   const { laborers } = useLaborers();
   const [selectedLaborerId, setSelectedLaborerId] = useState<string>('');
   const [takenLaborerIds, setTakenLaborerIds] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
   const toast = useToast();
-  const [clearStartDay, setClearStartDay] = useState(1);
-  const [clearEndDay, setClearEndDay] = useState(1);
-  const [fillHours, setFillHours] = useState(10);
+  const [rangeStartDay, setRangeStartDay] = useState('');
+  const [rangeEndDay, setRangeEndDay] = useState('');
   const [laborSearchInput, setLaborSearchInput] = useState('');
   const [laborSearchStatus, setLaborSearchStatus] = useState<'idle' | 'notfound'>('idle');
   const [showAddModal, setShowAddModal] = useState(false);
   const [addLaborerInitialId, setAddLaborerInitialId] = useState('');
+  const [isApproved, setIsApproved] = useState(false);
   const searchParams = useSearchParams();
-  const { confirm, dialog: confirmDialog } = useConfirmDialog();
+  const maxClearDay = timesheet.workData.length || 31;
+  const hasRangeValues = rangeStartDay !== '' && rangeEndDay !== '';
+
+  useEffect(() => {
+    setRangeStartDay((prev) => {
+      if (!prev) return '';
+      return String(Math.max(1, Math.min(maxClearDay, Math.trunc(Number(prev) || 1))));
+    });
+    setRangeEndDay((prev) => {
+      if (!prev) return '';
+      return String(Math.max(1, Math.min(maxClearDay, Math.trunc(Number(prev) || 1))));
+    });
+  }, [maxClearDay]);
+
+  function updateRangeValue(value: string, setter: React.Dispatch<React.SetStateAction<string>>) {
+    if (value === '') {
+      setter('');
+      return;
+    }
+    const numericValue = Number(value);
+    if (Number.isNaN(numericValue)) return;
+    setter(String(Math.max(1, Math.min(maxClearDay, Math.trunc(numericValue)))));
+  }
+
+  function getSelectedRange() {
+    if (!hasRangeValues) return null;
+    const start = Math.max(1, Math.min(maxClearDay, Math.trunc(Number(rangeStartDay) || 1)));
+    const end = Math.max(1, Math.min(maxClearDay, Math.trunc(Number(rangeEndDay) || 1)));
+    return {
+      startDay: Math.min(start, end),
+      endDay: Math.max(start, end),
+    };
+  }
 
   function formatLaborDisplayName(lab: Laborer): string {
     return lab.id_number ? `${lab.full_name} # ${lab.id_number}` : lab.full_name;
@@ -66,6 +98,7 @@ function TimesheetPageInner() {
     if (tsId) {
       getTimesheetWithEntries(tsId).then(ts => {
         if (!ts) return;
+        setIsApproved((ts.status ?? '').toLowerCase() === 'approved');
         const entries: DayEntry[] = ((ts as any).entries ?? []).map((e: any) => ({
           day: e.day,
           timeIn: e.time_in ?? '',
@@ -92,6 +125,22 @@ function TimesheetPageInner() {
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (searchParams.get('print') !== '1') {
+      hasAutoPrintedRef.current = false;
+      return;
+    }
+
+    if (!searchParams.get('ts') || !timesheet.laborName.trim() || hasAutoPrintedRef.current) return;
+
+    const timer = window.setTimeout(() => {
+      hasAutoPrintedRef.current = true;
+      window.print();
+    }, 250);
+
+    return () => window.clearTimeout(timer);
+  }, [searchParams, timesheet.laborName, timesheet.designation, timesheet.month, timesheet.year]);
+
   // When laborers load, update designation with fresh laborer data (for both ?laborer= and ?ts= paths)
   useEffect(() => {
     if (!laborers.length) return;
@@ -110,6 +159,7 @@ function TimesheetPageInner() {
     setLaborSearchStatus('idle');
     try {
       const existing = await getTimesheetByLaborer(lab.id, timesheet.month, timesheet.year);
+      setIsApproved((existing?.status ?? '').toLowerCase() === 'approved');
       if (existing && (existing as any).entries?.length) {
         const entries: DayEntry[] = ((existing as any).entries ?? []).map((e: any) => ({
           day: e.day,
@@ -134,6 +184,7 @@ function TimesheetPageInner() {
           designation: lab.designation ?? '',
         });
       } else {
+        setIsApproved(false);
         const days = generateDaysInMonth(timesheet.month, timesheet.year);
         timesheet.loadEntries(days, {
           month: timesheet.month,
@@ -143,6 +194,7 @@ function TimesheetPageInner() {
         });
       }
     } catch {
+      setIsApproved(false);
       const days = generateDaysInMonth(timesheet.month, timesheet.year);
       timesheet.loadEntries(days, {
         month: timesheet.month,
@@ -206,6 +258,11 @@ function TimesheetPageInner() {
   }
 
   async function handleSave() {
+    if (isApproved) {
+      toast.error('Approved timesheets cannot be edited');
+      return;
+    }
+
     if (!timesheet.laborName.trim() || !timesheet.designation.trim()) {
       toast.error('Labour name and designation are required before saving');
       return;
@@ -265,6 +322,7 @@ function TimesheetPageInner() {
             onChange={e => { setLaborSearchInput(e.target.value); setLaborSearchStatus('idle'); }}
             onKeyDown={e => { if (e.key === 'Enter') handleLaborSearch(laborSearchInput); }}
             onBlur={() => { if (laborSearchInput.trim() && laborSearchStatus === 'idle') handleLaborSearch(laborSearchInput); }}
+            disabled={isApproved}
             placeholder="Search Labour by name or ID / Iqama…"
             className="text-sm rounded-lg px-3 py-1.5 outline-none"
             style={{ background: 'var(--input-bg)', color: 'var(--text-primary)', border: '1px solid var(--border)', minWidth: 280 }}
@@ -279,7 +337,7 @@ function TimesheetPageInner() {
           {laborSearchStatus === 'notfound' && (
             <>
               <span style={{ fontSize: 12, color: '#ef4444', fontWeight: 500 }}>Not found</span>
-              <button onClick={() => setShowAddModal(true)} style={{
+              <button disabled={isApproved} onClick={() => setShowAddModal(true)} style={{
                 fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 6,
                 border: 'none', background: '#3b82f6', color: '#fff', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', gap: 4,
@@ -293,58 +351,85 @@ function TimesheetPageInner() {
           variant="primary"
           size="sm"
           loading={saving}
-          disabled={!timesheet.laborName.trim() || !timesheet.designation.trim() || !hasTimesheetValues()}
+          disabled={isApproved || !timesheet.laborName.trim() || !timesheet.designation.trim() || !hasTimesheetValues()}
           icon={<Save size={13}/>}
           onClick={handleSave}
         >
-          Save Timesheet
+          {isApproved ? 'Approved' : 'Save Timesheet'}
         </Button>
 
-        {/* Clear date range */}
+        {isApproved && (
+          <span className="text-xs font-semibold" style={{ color: 'var(--orange)' }}>
+            Approved timesheet is locked. You can still print it.
+          </span>
+        )}
+
+        {/* Clear day range */}
         <div className="flex items-center gap-1.5 ml-auto" style={{ marginRight: 8 }}>
-          <span className="text-xs" style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Day</span>
-          <input type="number" min={1} max={31} value={clearStartDay}
-            onChange={e => setClearStartDay(Number(e.target.value))}
+          <span className="text-xs" style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>From</span>
+          <input type="number" min={1} max={maxClearDay} value={rangeStartDay}
+            onChange={e => updateRangeValue(e.target.value, setRangeStartDay)}
+            disabled={isApproved}
             className="text-sm rounded-lg px-2 py-1 outline-none text-center"
             style={{ background: 'var(--input-bg)', color: 'var(--text-primary)', border: '1px solid var(--border)', width: 52 }}
           />
-          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>to</span>
-          <input type="number" min={1} max={31} value={clearEndDay}
-            onChange={e => setClearEndDay(Number(e.target.value))}
+          <span className="text-xs" style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>To</span>
+          <input type="number" min={1} max={maxClearDay} value={rangeEndDay}
+            onChange={e => updateRangeValue(e.target.value, setRangeEndDay)}
+            disabled={isApproved}
             className="text-sm rounded-lg px-2 py-1 outline-none text-center"
             style={{ background: 'var(--input-bg)', color: 'var(--text-primary)', border: '1px solid var(--border)', width: 52 }}
           />
-          <button onClick={async () => {
-            const ok = await confirm({ title: 'Clear Entries', message: `Clear all timesheet entries from day ${clearStartDay} to ${clearEndDay}?`, variant: 'danger', confirmLabel: 'Clear' });
-            if (!ok) return;
-            timesheet.clearDayRange(clearStartDay, clearEndDay);
+          <button
+            disabled={isApproved || !hasRangeValues}
+            onClick={() => {
+              const range = getSelectedRange();
+              if (!range) return;
+              timesheet.fillDayRange(range.startDay, range.endDay, 10, true);
+            }}
+            className="flex items-center gap-1 text-xs font-semibold rounded-lg px-3 py-1.5"
+            style={{
+              background: '#dcfce7',
+              border: '1px solid #86efac',
+              color: '#166534',
+              cursor: isApproved ? 'not-allowed' : 'pointer',
+              opacity: isApproved ? 0.6 : 1,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <Plus size={12} /> Add Default
+          </button>
+          <button
+            disabled={isApproved || !hasRangeValues}
+            onClick={() => {
+              const range = getSelectedRange();
+              if (!range) return;
+              timesheet.fillDayRange(range.startDay, range.endDay, 10, false);
+            }}
+            className="flex items-center gap-1 text-xs font-semibold rounded-lg px-3 py-1.5"
+            style={{
+              background: '#dbeafe',
+              border: '1px solid #93c5fd',
+              color: '#1d4ed8',
+              cursor: isApproved ? 'not-allowed' : 'pointer',
+              opacity: isApproved ? 0.6 : 1,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <Plus size={12} /> Add Friday
+          </button>
+          <button disabled={isApproved || !hasRangeValues} onClick={() => {
+            const range = getSelectedRange();
+            if (!range) return;
+            timesheet.clearDayRange(range.startDay, range.endDay);
           }}
             className="flex items-center gap-1 text-xs font-semibold rounded-lg px-3 py-1.5"
             style={{
               background: 'var(--red-bg, #fef2f2)', border: '1px solid var(--red-border, #fecaca)',
-              color: 'var(--red-text, #dc2626)', cursor: 'pointer', whiteSpace: 'nowrap',
+              color: 'var(--red-text, #dc2626)', cursor: isApproved ? 'not-allowed' : 'pointer', opacity: isApproved ? 0.6 : 1, whiteSpace: 'nowrap',
             }}
           >
             <Eraser size={12} /> Clear
-          </button>
-          <span className="text-xs" style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Hrs</span>
-          <input type="number" min={1} max={24} value={fillHours}
-            onChange={e => setFillHours(Number(e.target.value))}
-            className="text-sm rounded-lg px-2 py-1 outline-none text-center"
-            style={{ background: 'var(--input-bg)', color: 'var(--text-primary)', border: '1px solid var(--border)', width: 52 }}
-          />
-          <button onClick={async () => {
-            const ok = await confirm({ title: 'Fill Default Values', message: `Fill ${fillHours} hours for day ${clearStartDay} to ${clearEndDay}?`, variant: 'info', confirmLabel: 'Fill' });
-            if (!ok) return;
-            timesheet.fillDayRange(clearStartDay, clearEndDay, fillHours);
-          }}
-            className="flex items-center gap-1 text-xs font-semibold rounded-lg px-3 py-1.5"
-            style={{
-              background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.3)',
-              color: '#16a34a', cursor: 'pointer', whiteSpace: 'nowrap',
-            }}
-          >
-            <Plus size={12} /> Add
           </button>
         </div>
 
@@ -361,7 +446,7 @@ function TimesheetPageInner() {
             totalActual={timesheet.totalActual}
           />
         </div>
-        <TemplateRow sheetType="labor" month={timesheet.month} year={timesheet.year} workData={timesheet.workData} onUpdateDayEntry={timesheet.updateDayEntry} onMonthChange={timesheet.setMonth} />
+        <TemplateRow sheetType="labor" month={timesheet.month} year={timesheet.year} workData={timesheet.workData} onUpdateDayEntry={timesheet.updateDayEntry} onMonthChange={timesheet.setMonth} readOnly={isApproved} />
       </div>
 
       {/* A4 Timesheet */}
@@ -382,6 +467,7 @@ function TimesheetPageInner() {
             onSupplierNameChange={timesheet.setSupplierName}
             onSiteEngineerNameChange={timesheet.setSiteEngineerName}
             onDesignationChange={timesheet.setDesignation}
+            readOnly={isApproved}
           />
           <WorkTable
             month={timesheet.month} year={timesheet.year}
@@ -390,6 +476,7 @@ function TimesheetPageInner() {
             totalActual={timesheet.totalActual}
             onUpdateDayEntry={timesheet.updateDayEntry}
             vehicleMode
+            readOnly={isApproved}
           />
           <FooterSection
             totalWorked={timesheet.totalWorked} totalOT={timesheet.totalOT}
@@ -433,7 +520,6 @@ function TimesheetPageInner() {
           </div>
         </div>
       )}
-      {confirmDialog}
     </div>
   );
 }
