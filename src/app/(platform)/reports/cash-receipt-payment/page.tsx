@@ -27,6 +27,7 @@ export default function CashReceiptPaymentPage() {
   const [invoiceRefs, setInvoiceRefs] = useState('');
 
   const [basicAmount, setBasicAmount] = useState('');
+  const [vatPercent, setVatPercent] = useState('5');
   const [vat, setVat] = useState('');
   const [totalAmount, setTotalAmount] = useState('');
 
@@ -64,6 +65,15 @@ export default function CashReceiptPaymentPage() {
         <span>{label}</span>
       </div>
     );
+  }
+
+  function recalculateAmounts(nextBasicAmount: string, nextVatPercent: string) {
+    const basic = Number(nextBasicAmount) || 0;
+    const percent = Number(nextVatPercent) || 0;
+    const vatAmount = (basic * percent) / 100;
+
+    setVat(vatAmount.toFixed(3));
+    setTotalAmount((basic + vatAmount).toFixed(3));
   }
 
   async function saveAsPdf() {
@@ -135,12 +145,14 @@ export default function CashReceiptPaymentPage() {
                 <input placeholder="Basic Amount" type="number" step="0.01" value={basicAmount} onChange={e => {
                   const val = e.target.value;
                   setBasicAmount(val);
-                  const basic = Number(val) || 0;
-                  const vatAmount = (basic * 0.05).toFixed(3);
-                  setVat(vatAmount);
-                  setTotalAmount((basic + Number(vatAmount)).toFixed(3));
+                  recalculateAmounts(val, vatPercent);
                 }} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }} />
-                <input placeholder="VAT (5%)" type="number" step="0.01" value={vat} disabled className="w-full px-3 py-2 rounded-lg text-sm outline-none opacity-60" style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }} />
+                <input placeholder="VAT %" type="number" step="0.01" value={vatPercent} onChange={e => {
+                  const val = e.target.value;
+                  setVatPercent(val);
+                  recalculateAmounts(basicAmount, val);
+                }} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }} />
+                <input placeholder={`VAT (${vatPercent || 0}%)`} type="number" step="0.01" value={vat} disabled className="w-full px-3 py-2 rounded-lg text-sm outline-none opacity-60" style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }} />
                 <input placeholder="Total Amount" type="number" step="0.01" value={totalAmount} disabled className="w-full px-3 py-2 rounded-lg text-sm outline-none opacity-60" style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }} />
               </div>
 
@@ -234,7 +246,7 @@ export default function CashReceiptPaymentPage() {
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <tbody>
                     <tr><td style={{ padding: '4px 0' }}><strong>Basic Amount</strong></td><td style={{ textAlign: 'right' }}>{fmt(basicAmount)}</td></tr>
-                    <tr><td style={{ padding: '4px 0' }}><strong>VAT</strong></td><td style={{ textAlign: 'right' }}>{fmt(vat)}</td></tr>
+                    <tr><td style={{ padding: '4px 0' }}><strong>VAT ({vatPercent || 0}%)</strong></td><td style={{ textAlign: 'right' }}>{fmt(vat)}</td></tr>
                     <tr><td style={{ padding: '4px 0' }}><strong>Total Amount</strong></td><td style={{ textAlign: 'right' }}>{fmt(totalAmount)}</td></tr>
                   </tbody>
                 </table>
