@@ -32,6 +32,70 @@ BEGIN
 	END IF;
 END $$;
 
+-- 14. Monthly salary sheet model used by salary-generation page
+CREATE TABLE IF NOT EXISTS public.salary_sheets (
+	id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+	month int NOT NULL CHECK (month BETWEEN 0 AND 11),
+	year int NOT NULL,
+	status text NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'approved')),
+	approved_at timestamptz,
+	created_at timestamptz NOT NULL DEFAULT now(),
+	updated_at timestamptz NOT NULL DEFAULT now(),
+	UNIQUE (month, year)
+);
+
+CREATE TABLE IF NOT EXISTS public.salary_sheet_entries (
+	id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+	sheet_id uuid NOT NULL REFERENCES public.salary_sheets(id) ON DELETE CASCADE,
+	laborer_id uuid NOT NULL REFERENCES public.laborers(id) ON DELETE CASCADE,
+	labor_name text NOT NULL DEFAULT '',
+	labor_code text NOT NULL DEFAULT '',
+	designation text NOT NULL DEFAULT '',
+	bank_name text NOT NULL DEFAULT '-',
+	bank_account_number text NOT NULL DEFAULT '-',
+	monthly_salary numeric(12,3) NOT NULL DEFAULT 0,
+	actual_worked_hours numeric(10,3) NOT NULL DEFAULT 0,
+	overtime_hours numeric(10,3) NOT NULL DEFAULT 0,
+	total_worked_hours numeric(10,3) NOT NULL DEFAULT 0,
+	hourly_rate numeric(12,6) NOT NULL DEFAULT 0,
+	total_salary numeric(12,3) NOT NULL DEFAULT 0,
+	created_at timestamptz NOT NULL DEFAULT now(),
+	updated_at timestamptz NOT NULL DEFAULT now(),
+	UNIQUE (sheet_id, laborer_id)
+);
+
+CREATE INDEX IF NOT EXISTS salary_sheets_month_year_idx ON public.salary_sheets(month, year);
+CREATE INDEX IF NOT EXISTS salary_sheet_entries_sheet_idx ON public.salary_sheet_entries(sheet_id);
+
+DO $$
+BEGIN
+	IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'salary_sheets_updated_at') THEN
+		CREATE TRIGGER salary_sheets_updated_at
+		BEFORE UPDATE ON public.salary_sheets
+		FOR EACH ROW EXECUTE PROCEDURE public.handle_updated_at();
+	END IF;
+
+	IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'salary_sheet_entries_updated_at') THEN
+		CREATE TRIGGER salary_sheet_entries_updated_at
+		BEFORE UPDATE ON public.salary_sheet_entries
+		FOR EACH ROW EXECUTE PROCEDURE public.handle_updated_at();
+	END IF;
+END $$;
+
+ALTER TABLE public.salary_sheets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.salary_sheet_entries ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+	IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'salary_sheets' AND policyname = 'auth_all') THEN
+		CREATE POLICY "auth_all" ON public.salary_sheets FOR ALL TO authenticated USING (true) WITH CHECK (true);
+	END IF;
+
+	IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'salary_sheet_entries' AND policyname = 'auth_all') THEN
+		CREATE POLICY "auth_all" ON public.salary_sheet_entries FOR ALL TO authenticated USING (true) WITH CHECK (true);
+	END IF;
+END $$;
+
 -- 6. Add operations/payroll fields to laborers
 ALTER TABLE public.laborers ADD COLUMN IF NOT EXISTS foreman_id uuid;
 ALTER TABLE public.laborers ADD COLUMN IF NOT EXISTS site_number text;

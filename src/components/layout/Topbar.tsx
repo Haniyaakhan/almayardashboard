@@ -26,6 +26,10 @@ const titles: Record<string, string> = {
   '/operations/salary': 'Operations Salary',
   '/operations/npc-invoice': 'NPC Invoice',
   '/reports': 'Reports',
+  '/payment-modules': 'Payment Modules',
+  '/payment-modules/cash-receipt-payment': 'Cash Receipt Payment',
+  '/payment-modules/invoice-generation': 'Invoice Generation',
+  '/payment-modules/salary-generation': 'Salary Generation',
 };
 
 function getTitle(pathname: string): string {

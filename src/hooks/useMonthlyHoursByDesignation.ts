@@ -1,6 +1,26 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 
+function normalizeDesignation(value: string | null | undefined) {
+  const raw = (value || 'Unspecified').trim().replace(/\s+/g, ' ');
+  if (!raw) return 'unspecified';
+  const normalized = raw.toLowerCase();
+
+  // Collapse common data-entry variants into canonical groups.
+  if (['helper', 'helpers'].includes(normalized)) return 'helper';
+  if (['scaffolder', 'scalffolder', 'sacffolder'].includes(normalized)) return 'scaffolder';
+
+  return normalized;
+}
+
+function displayDesignation(normalized: string) {
+  if (!normalized || normalized === 'unspecified') return 'Unspecified';
+  return normalized
+    .split(' ')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
 export interface MonthlyHoursByDesignation {
   month: number;
   year: number;
@@ -23,28 +43,34 @@ export function useMonthlyHoursByDesignation(month: number, year: number) {
       const supabase = createClient();
       const { data, error: err } = await supabase
         .from('timesheets')
-        .select('designation, total_actual')
+        .select('designation, total_actual, laborer_id, labor_name')
         .eq('month', month)
         .eq('year', year)
         .eq('sheet_type', 'labor');
 
       if (err) throw err;
 
-      // Group by designation
-      const grouped: { [key: string]: { hours: number; count: Set<string> } } = {};
+      // Group by normalized designation and count unique workers in that designation.
+      const grouped: { [key: string]: { hours: number; workers: Set<string> } } = {};
       
       (data || []).forEach(ts => {
-        if (!grouped[ts.designation]) {
-          grouped[ts.designation] = { hours: 0, count: new Set() };
+        const designationKey = normalizeDesignation(ts.designation);
+        if (!grouped[designationKey]) {
+          grouped[designationKey] = { hours: 0, workers: new Set() };
         }
-        grouped[ts.designation].hours += ts.total_actual || 0;
-        grouped[ts.designation].count.add(ts.designation); // Use for counting unique entries
+
+        grouped[designationKey].hours += Number(ts.total_actual) || 0;
+
+        const workerKey = (ts.laborer_id || ts.labor_name || '').toString().trim();
+        if (workerKey) {
+          grouped[designationKey].workers.add(workerKey.toLowerCase());
+        }
       });
 
-      const designations = Object.entries(grouped).map(([designation, { hours, count }]) => ({
-        designation: designation || 'Unspecified',
+      const designations = Object.entries(grouped).map(([designationKey, { hours, workers }]) => ({
+        designation: displayDesignation(designationKey),
         totalHours: hours,
-        employeeCount: count.size,
+        employeeCount: workers.size,
       }));
 
       setReport({

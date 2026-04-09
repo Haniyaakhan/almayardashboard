@@ -31,7 +31,7 @@ export default function InvoiceGenerationPage() {
   const [invoiceNo, setInvoiceNo] = useState('');
   const [invoiceDate, setInvoiceDate] = useState(today);
   const [vatNo2, setVatNo2] = useState('');
-  const [vatPercent, setVatPercent] = useState(5);
+  const [vatPercent, setVatPercent] = useState('5');
   const [bankName, setBankName] = useState('');
   const [accountNo, setAccountNo] = useState('');
   const [iban, setIban] = useState('');
@@ -60,7 +60,8 @@ export default function InvoiceGenerationPage() {
   }
 
   const subtotal = rows.reduce((s, r) => s + (Number(r.quantity) || 0) * (Number(r.rate) || 0), 0);
-  const vatAmount = (subtotal * (Number(vatPercent) || 0)) / 100;
+  const vatPercentNumber = Number(vatPercent) || 0;
+  const vatAmount = (subtotal * vatPercentNumber) / 100;
   const grandTotal = subtotal + vatAmount;
 
   async function downloadPDF() {
@@ -157,8 +158,10 @@ export default function InvoiceGenerationPage() {
                 VAT %
                 <input
                   type="number"
+                  step="0.01"
+                  min="0"
                   value={vatPercent}
-                  onChange={e => setVatPercent(Number(e.target.value) || 0)}
+                  onChange={e => setVatPercent(e.target.value)}
                   className="mt-1 w-full px-3 py-2 rounded-lg text-sm outline-none"
                   style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
                 />
@@ -291,7 +294,7 @@ export default function InvoiceGenerationPage() {
                   </tr>
                   <tr>
                     <td style={{ padding: '4px 12px 4px 0', fontSize: 13, color: '#333', textAlign: 'left', borderBottom: '1px solid #eee' }}>
-                      VAT {vatPercent}%
+                      VAT {vatPercentNumber}%
                     </td>
                     <td style={{ padding: '4px 0', fontSize: 13, color: '#111', textAlign: 'right', borderBottom: '1px solid #eee', fontVariantNumeric: 'tabular-nums' }}>
                       {fmtNum(vatAmount)}

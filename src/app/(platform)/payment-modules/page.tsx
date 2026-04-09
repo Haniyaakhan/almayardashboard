@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { CreditCard, FileText } from 'lucide-react';
+import { CreditCard, FileText, Calculator } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card } from '@/components/ui/Card';
 
@@ -10,13 +10,19 @@ const PAYMENT_MODULES = [
     title: 'Cash Receipt Payment',
     description: 'Payer/payee details, payment breakdown, method and authorization.',
     icon: CreditCard,
-    href: '/reports/cash-receipt-payment',
+    href: '/payment-modules/cash-receipt-payment',
   },
   {
     title: 'Invoice Generation',
     description: 'Create professional tax invoices with manual line items and formatting.',
     icon: FileText,
-    href: '/reports/invoice-generation',
+    href: '/payment-modules/invoice-generation',
+  },
+  {
+    title: 'Salary Generation',
+    description: 'Search labor by ID/name and generate salary view grouped by designation.',
+    icon: Calculator,
+    href: '/payment-modules/salary-generation',
   },
 ];
 

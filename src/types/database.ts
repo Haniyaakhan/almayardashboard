@@ -139,6 +139,39 @@ export interface LaborAdvance {
 
 export type SalaryStatus = 'draft' | 'approved';
 
+export type SalarySheetStatus = 'draft' | 'approved';
+
+export interface SalarySheet {
+  id: string;
+  month: number;
+  year: number;
+  status: SalarySheetStatus;
+  approved_at: string | null;
+  created_at: string;
+  updated_at: string;
+  entries?: SalarySheetEntry[];
+}
+
+export interface SalarySheetEntry {
+  id: string;
+  sheet_id: string;
+  laborer_id: string;
+  labor_name: string;
+  labor_code: string;
+  designation: string;
+  bank_name: string;
+  bank_account_number: string;
+  monthly_salary: number;
+  actual_worked_hours: number;
+  overtime_hours: number;
+  total_worked_hours: number;
+  hourly_rate: number;
+  total_salary: number;
+  deduction: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface SalaryRecord {
   id: string;
   laborer_id: string;

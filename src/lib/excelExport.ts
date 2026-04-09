@@ -181,6 +181,93 @@ export async function exportSalaryReportToExcel(month: number, year: number, rec
   }
 }
 
+export interface ManualSalarySheetRow {
+  laborName: string;
+  laborId: string;
+  designation: string;
+  salary: number;
+  bankName: string;
+  bankAccountNumber: string;
+  totalHours: number;
+  overTime: number;
+  actualHours: number;
+  ratePerHour: number;
+  actualSalary: number;
+}
+
+export async function exportManualSalarySheetToExcel(
+  month: number,
+  year: number,
+  rows: ManualSalarySheetRow[]
+): Promise<void> {
+  try {
+    const monthName = MONTH_NAMES[month] ?? String(month + 1);
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Manual Salary Sheet');
+
+    worksheet.addRow(['Manual Salary Generation']);
+    worksheet.addRow(['ALMYAR UNITED TRADING LLC']);
+    worksheet.addRow([`Month: ${monthName}`, `Year: ${year}`]);
+    worksheet.addRow([]);
+
+    worksheet.addRow([
+      'Labor Name',
+      'Labor ID',
+      'Designation',
+      'Salary',
+      'Bank Name',
+      'Bank Account Number',
+      'Total Hours',
+      'Over Time',
+      'Actual Hours',
+      'Rate per Hour (Salary/260)',
+      'Actual Salary',
+    ]);
+
+    rows.forEach((row) => {
+      worksheet.addRow([
+        row.laborName,
+        row.laborId,
+        row.designation,
+        Number(row.salary ?? 0),
+        row.bankName,
+        row.bankAccountNumber,
+        Number(row.totalHours ?? 0),
+        Number(row.overTime ?? 0),
+        Number(row.actualHours ?? 0),
+        Number(row.ratePerHour ?? 0),
+        Number(row.actualSalary ?? 0),
+      ]);
+    });
+
+    const totalActualSalary = rows.reduce((sum, row) => sum + Number(row.actualSalary ?? 0), 0);
+    worksheet.addRow([]);
+    worksheet.addRow(['', '', '', '', '', '', '', '', '', 'Total Actual Salary', totalActualSalary]);
+
+    worksheet.columns = [
+      { width: 24 },
+      { width: 16 },
+      { width: 16 },
+      { width: 12 },
+      { width: 18 },
+      { width: 22 },
+      { width: 12 },
+      { width: 12 },
+      { width: 12 },
+      { width: 20 },
+      { width: 16 },
+    ];
+
+    const headerRow = worksheet.getRow(5);
+    headerRow.font = { bold: true };
+
+    await downloadWorkbook(workbook, `Manual_Salary_Sheet_${monthName}_${year}.xlsx`);
+  } catch (error) {
+    console.error('Manual salary sheet Excel export error:', error);
+    throw new Error('Failed to export manual salary sheet');
+  }
+}
+
 export async function exportLaborersToExcel(
   laborers: Laborer[],
   label: string,

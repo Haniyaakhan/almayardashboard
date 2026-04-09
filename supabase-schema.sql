@@ -181,6 +181,42 @@ create table public.salary_records (
 create index salary_records_month_year_idx on public.salary_records(month, year);
 create index salary_records_laborer_month_year_idx on public.salary_records(laborer_id, month, year);
 
+-- SALARY SHEETS (MANUAL MONTHLY SALARY GENERATION)
+create table public.salary_sheets (
+  id                 uuid primary key default uuid_generate_v4(),
+  month              int not null check (month between 0 and 11),
+  year               int not null,
+  status             text not null default 'draft' check (status in ('draft','approved')),
+  approved_at        timestamptz,
+  created_at         timestamptz not null default now(),
+  updated_at         timestamptz not null default now(),
+  unique (month, year)
+);ALTER TABLE salary_sheet_entries ADD COLUMN IF NOT EXISTS deduction NUMERIC DEFAULT 0;
+```> ALTER TABLE salary_sheet_entries ADD COLUMN IF NOT EXISTS deduction NUMERIC DEFAULT 0;
+
+create table public.salary_sheet_entries (
+  id                 uuid primary key default uuid_generate_v4(),
+  sheet_id           uuid not null references public.salary_sheets(id) on delete cascade,
+  laborer_id         uuid not null references public.laborers(id) on delete cascade,
+  labor_name         text not null default '',
+  labor_code         text not null default '',
+  designation        text not null default '',
+  bank_name          text not null default '-',
+  bank_account_number text not null default '-',
+  monthly_salary     numeric(12,3) not null default 0,
+  actual_worked_hours numeric(10,3) not null default 0,
+  overtime_hours     numeric(10,3) not null default 0,
+  total_worked_hours numeric(10,3) not null default 0,
+  hourly_rate        numeric(12,6) not null default 0,
+  total_salary       numeric(12,3) not null default 0,
+  created_at         timestamptz not null default now(),
+  updated_at         timestamptz not null default now(),
+  unique (sheet_id, laborer_id)
+);
+
+create index salary_sheets_month_year_idx on public.salary_sheets(month, year);
+create index salary_sheet_entries_sheet_idx on public.salary_sheet_entries(sheet_id);
+
 -- NPC INVOICES
 create table public.npc_invoices (
   id                  uuid primary key default uuid_generate_v4(),
@@ -221,6 +257,8 @@ create trigger machines_updated_at   before update on public.machines   for each
 create trigger timesheets_updated_at before update on public.timesheets for each row execute procedure public.handle_updated_at();
 create trigger labor_advances_updated_at before update on public.labor_advances for each row execute procedure public.handle_updated_at();
 create trigger salary_records_updated_at before update on public.salary_records for each row execute procedure public.handle_updated_at();
+create trigger salary_sheets_updated_at before update on public.salary_sheets for each row execute procedure public.handle_updated_at();
+create trigger salary_sheet_entries_updated_at before update on public.salary_sheet_entries for each row execute procedure public.handle_updated_at();
 create trigger npc_invoices_updated_at before update on public.npc_invoices for each row execute procedure public.handle_updated_at();
 
 -- ROW LEVEL SECURITY
@@ -233,6 +271,8 @@ alter table public.timesheets        enable row level security;
 alter table public.timesheet_entries enable row level security;
 alter table public.labor_advances    enable row level security;
 alter table public.salary_records    enable row level security;
+alter table public.salary_sheets     enable row level security;
+alter table public.salary_sheet_entries enable row level security;
 alter table public.npc_invoices      enable row level security;
 alter table public.npc_invoice_items enable row level security;
 
@@ -245,5 +285,7 @@ create policy "auth_all" on public.timesheets         for all to authenticated u
 create policy "auth_all" on public.timesheet_entries  for all to authenticated using (true) with check (true);
 create policy "auth_all" on public.labor_advances     for all to authenticated using (true) with check (true);
 create policy "auth_all" on public.salary_records     for all to authenticated using (true) with check (true);
+create policy "auth_all" on public.salary_sheets     for all to authenticated using (true) with check (true);
+create policy "auth_all" on public.salary_sheet_entries for all to authenticated using (true) with check (true);
 create policy "auth_all" on public.npc_invoices       for all to authenticated using (true) with check (true);
 create policy "auth_all" on public.npc_invoice_items  for all to authenticated using (true) with check (true);

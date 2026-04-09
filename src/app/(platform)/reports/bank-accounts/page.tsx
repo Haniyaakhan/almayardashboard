@@ -1,15 +1,30 @@
 'use client';
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { Spinner } from '@/components/ui/Spinner';
 import { Badge } from '@/components/ui/Badge';
 import { useBankAccountReport } from '@/hooks/useBankAccountReport';
-import { ReportExportButtons } from '@/components/ReportExportButtons';
-import { CheckCircle, AlertCircle } from 'lucide-react';
+import { CheckCircle, AlertCircle, Download, Search } from 'lucide-react';
+import { exportToXLSX } from '@/lib/exportUtils';
 
 export default function BankAccountReportPage() {
   const { report, loading, error } = useBankAccountReport();
+  const [search, setSearch] = useState('');
+
+  const details = report?.details ?? [];
+  const filteredDetails = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return details;
+
+    return details.filter((emp) => {
+      const name = (emp.full_name || '').toLowerCase();
+      const designation = (emp.designation || '').toLowerCase();
+      const bankName = (emp.bank_name || '').toLowerCase();
+      const account = (emp.bank_account_number || '').toLowerCase();
+      return name.includes(q) || designation.includes(q) || bankName.includes(q) || account.includes(q);
+    });
+  }, [details, search]);
 
   if (loading) {
     return (
@@ -30,19 +45,26 @@ export default function BankAccountReportPage() {
     );
   }
 
-  const reportData = {
-    headers: ['Employee Name', 'Designation', 'Bank Name', 'Account Number', 'Status'],
-    rows: report.details.map(emp => ({
-      cells: [
-        emp.full_name,
-        emp.designation || 'Unspecified',
-        emp.bank_name || '-',
-        emp.bank_account_number ? `****${emp.bank_account_number.slice(-4)}` : '-',
-        emp.hasBankAccount ? 'Active' : 'Missing',
-      ],
-      key: emp.id,
-    })),
-  };
+  const withBankAccounts = filteredDetails.filter((emp) => emp.hasBankAccount);
+  const withoutBankAccounts = filteredDetails.filter((emp) => !emp.hasBankAccount);
+
+  const exportHeaders = ['Employee Name', 'Designation', 'Bank Name', 'Account Number', 'Status'];
+
+  const withBankRows = withBankAccounts.map((emp) => [
+    emp.full_name,
+    emp.designation || 'Unspecified',
+    emp.bank_name || '-',
+    emp.bank_account_number || '-',
+    'Active',
+  ]);
+
+  const withoutBankRows = withoutBankAccounts.map((emp) => [
+    emp.full_name,
+    emp.designation || 'Unspecified',
+    '-',
+    '-',
+    'Missing',
+  ]);
 
   return (
     <div className="p-6 space-y-6">
@@ -51,110 +73,114 @@ export default function BankAccountReportPage() {
         subtitle="Employees with and without bank account information"
       />
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
-                With Bank Accounts
-              </p>
-              <p className="text-2xl font-bold text-green-600 mt-2">
-                {report.withBankAccounts}
-              </p>
-            </div>
-            <CheckCircle className="w-8 h-8 text-green-600" />
-          </div>
-        </Card>
-
-        <Card>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
-                Without Bank Accounts
-              </p>
-              <p className="text-2xl font-bold text-orange-600 mt-2">
-                {report.withoutBankAccounts}
-              </p>
-            </div>
-            <AlertCircle className="w-8 h-8 text-orange-600" />
-          </div>
-        </Card>
-
-        <Card>
-          <div>
-            <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
-              Total Employees
-            </p>
-            <p className="text-2xl font-bold mt-2">
-              {report.total}
-            </p>
-            <p className="text-xs mt-2">
-              {((report.withBankAccounts / report.total) * 100).toFixed(1)}% coverage
-            </p>
-          </div>
-        </Card>
-      </div>
-
-      {/* Export */}
       <Card>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Export Options</h2>
-          <ReportExportButtons 
-            headers={reportData.headers}
-            rows={reportData.rows.map(r => r.cells)}
-            filename="bank-account-report"
+        <div
+          className="flex items-center gap-3 rounded-xl px-4 py-3"
+          style={{ background: 'var(--input-bg)', border: '1px solid var(--border)' }}
+        >
+          <Search className="h-4 w-4" style={{ color: 'var(--text-muted)' }} />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search employee by name, designation, bank, or account number"
+            className="w-full bg-transparent text-sm outline-none"
+            style={{ color: 'var(--text-primary)' }}
           />
         </div>
       </Card>
 
-      {/* Details Table */}
-      <Card>
-        <h2 className="text-lg font-semibold mb-4">Employee Details</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                {reportData.headers.map(header => (
-                  <th 
-                    key={header}
-                    className="text-left py-3 px-4 font-semibold"
-                    style={{ color: 'var(--text-secondary)' }}
-                  >
-                    {header}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {reportData.rows.map((row, idx) => (
-                <tr 
-                  key={row.key} 
-                  style={{ borderBottom: '1px solid var(--border)' }}
-                >
-                  {row.cells.map((cell, cidx) => (
-                    <td 
-                      key={cidx} 
-                      className="py-3 px-4"
-                      style={{ color: 'var(--text-primary)' }}
-                    >
-                      {cidx === 4 ? (
-                        <Badge
-                          color={cell === 'Active' ? 'green' : 'amber'}
-                        >
-                          {cell}
-                        </Badge>
-                      ) : (
-                        cell
-                      )}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        <Card className="overflow-hidden" padding="p-0">
+          <div className="flex items-center justify-between border-b px-5 py-4" style={{ borderColor: 'var(--border)' }}>
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>Employees With Bank Accounts</h2>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge color="green">{withBankAccounts.length}</Badge>
+              <button
+                onClick={() => exportToXLSX(exportHeaders, withBankRows, 'employees-with-bank-accounts')}
+                className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                style={{
+                  background: 'var(--bg-secondary)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text-primary)',
+                }}
+                title="Export with bank accounts as Excel"
+              >
+                <Download className="w-4 h-4 inline-block mr-2" />
+                Excel
+              </button>
+            </div>
+          </div>
+
+          <div className="max-h-[520px] overflow-y-auto p-4 space-y-3">
+            {withBankAccounts.length ? withBankAccounts.map((emp) => (
+              <div key={emp.id} className="rounded-xl p-3" style={{ border: '1px solid var(--border)', background: 'var(--bg-card)' }}>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{emp.full_name}</p>
+                    <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{emp.designation || 'Unspecified'}</p>
+                  </div>
+                  <Badge color="green">Active</Badge>
+                </div>
+                <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                  <div>Bank: {emp.bank_name || '-'}</div>
+                  <div>Account: {emp.bank_account_number ? `****${emp.bank_account_number.slice(-4)}` : '-'}</div>
+                </div>
+              </div>
+            )) : (
+              <div className="rounded-xl p-4 text-sm" style={{ border: '1px dashed var(--border)', color: 'var(--text-secondary)' }}>
+                No employees with bank accounts.
+              </div>
+            )}
+          </div>
+        </Card>
+
+        <Card className="overflow-hidden" padding="p-0">
+          <div className="flex items-center justify-between border-b px-5 py-4" style={{ borderColor: 'var(--border)' }}>
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-orange-600" />
+              <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>Employees Without Bank Accounts</h2>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge color="orange">{withoutBankAccounts.length}</Badge>
+              <button
+                onClick={() => exportToXLSX(exportHeaders, withoutBankRows, 'employees-without-bank-accounts')}
+                className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                style={{
+                  background: 'var(--bg-secondary)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text-primary)',
+                }}
+                title="Export without bank accounts as Excel"
+              >
+                <Download className="w-4 h-4 inline-block mr-2" />
+                Excel
+              </button>
+            </div>
+          </div>
+
+          <div className="max-h-[520px] overflow-y-auto p-4 space-y-3">
+            {withoutBankAccounts.length ? withoutBankAccounts.map((emp) => (
+              <div key={emp.id} className="rounded-xl p-3" style={{ border: '1px solid var(--border)', background: 'var(--bg-card)' }}>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{emp.full_name}</p>
+                    <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{emp.designation || 'Unspecified'}</p>
+                  </div>
+                  <Badge color="amber">Missing</Badge>
+                </div>
+              </div>
+            )) : (
+              <div className="rounded-xl p-4 text-sm" style={{ border: '1px dashed var(--border)', color: 'var(--text-secondary)' }}>
+                No employees missing bank accounts.
+              </div>
+            )}
+          </div>
+        </Card>
+      </div>
     </div>
   );
 }
