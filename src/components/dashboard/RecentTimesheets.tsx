@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { timesheetStatusBadge } from '@/components/ui/Badge';
 import type { Timesheet, Laborer, Machine } from '@/types/database';
+import { toDisplayDesignation } from '@/lib/designation';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -25,7 +26,13 @@ export function RecentTimesheets({ timesheets, laborers, machines }: Props) {
     const id = ts.laborer_id ?? '';
     if (laborerIds.has(id)) {
       const l = laborerMap.get(id);
-      return { name: l?.full_name ?? '—', sub: l?.designation ?? '—', type: 'Labor', color: '#ff6b2b', href: `/timesheet/history/${ts.id}` };
+      return {
+        name: l?.full_name ?? '—',
+        sub: toDisplayDesignation(l?.designation ?? ts.designation ?? 'Unspecified'),
+        type: 'Labor',
+        color: '#ff6b2b',
+        href: `/timesheet/history/${ts.id}`,
+      };
     }
     if (vehicleIds.has(id)) {
       const m = machineMap.get(id);

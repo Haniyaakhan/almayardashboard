@@ -8,6 +8,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { timesheetStatusBadge } from '@/components/ui/Badge';
 import { useToast } from '@/components/ui/Toast';
 import { ClipboardList, Plus } from 'lucide-react';
+import { toDisplayDesignation } from '@/lib/designation';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -144,7 +145,7 @@ export default function TimesheetHistoryPage() {
                       </div>
                     </td>
                     <td style={{ padding: '10px 13px', fontSize: 12, color: 'var(--text-light)' }}>
-                      {ts.designation || laborerData?.designation || '—'}
+                      {toDisplayDesignation(ts.designation || laborerData?.designation || 'Unspecified')}
                     </td>
                     <td style={{ padding: '10px 13px', fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
                       {ts.total_actual} hrs

@@ -14,6 +14,7 @@ import { useTimesheetHistory } from '@/hooks/useTimesheetHistory';
 import { useLaborAdvances, createLaborAdvance } from '@/hooks/useLaborAdvances';
 import { useSalaryRecords } from '@/hooks/useSalaryRecords';
 import { MONTH_NAMES } from '@/lib/dateUtils';
+import { toDisplayDesignation } from '@/lib/designation';
 
 // ─── Style helpers ────────────────────────────────────────────────────────────
 const cardStyle: React.CSSProperties = {
@@ -220,7 +221,7 @@ export default function DashboardPage() {
                       <Link href={`/labor/${l.id}`} style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', textDecoration: 'none' }}>
                         {l.full_name}
                       </Link>
-                      <div style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>{l.designation} · {l.supplier_name || '—'}</div>
+                      <div style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>{toDisplayDesignation(l.designation)} · {l.supplier_name || '—'}</div>
                     </div>
                     <Badge color={l.is_active ? 'green' : 'red'}>{l.is_active ? 'Active' : 'Left'}</Badge>
                   </div>

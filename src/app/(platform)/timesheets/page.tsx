@@ -8,6 +8,7 @@ import { PageSpinner } from '@/components/ui/Spinner';
 import { timesheetStatusBadge } from '@/components/ui/Badge';
 import { useToast } from '@/components/ui/Toast';
 import { Plus, Search, Trash2 } from 'lucide-react';
+import { toDisplayDesignation } from '@/lib/designation';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -216,7 +217,9 @@ export default function TimesheetsPage() {
                         {name}
                       </td>
                       <td style={{ padding: '10px 13px', fontSize: 12, color: 'var(--text-light)', fontFamily: 'monospace', fontWeight: 600 }}>
-                        {ts.designation || '—'}
+                        {type === 'labor'
+                          ? toDisplayDesignation(ts.designation || laborerMap.get(ts.laborer_id ?? '')?.designation || 'Unspecified')
+                          : (ts.designation || '—')}
                       </td>
                       <td style={{ padding: '10px 13px', fontSize: 12, color: 'var(--text-light)' }}>
                         {MONTHS[ts.month]} {ts.year}

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { normalizeDesignationKey, toDisplayDesignation } from '@/lib/designation';
 
 export interface EmployeesByDesignation {
   designation: string;
@@ -46,11 +47,10 @@ export function useEmployeesByDesignation() {
       const grouped: { [key: string]: EmployeesByDesignation } = {};
 
       (data || []).forEach(emp => {
-        const rawDesignation = (emp.designation || 'Unspecified').trim() || 'Unspecified';
-        const designationKey = rawDesignation.toLowerCase();
+        const designationKey = normalizeDesignationKey(emp.designation);
         if (!grouped[designationKey]) {
           grouped[designationKey] = {
-            designation: rawDesignation,
+            designation: toDisplayDesignation(designationKey),
             count: 0,
             employees: [],
           };

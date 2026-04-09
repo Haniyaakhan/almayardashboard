@@ -1,25 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-
-function normalizeDesignation(value: string | null | undefined) {
-  const raw = (value || 'Unspecified').trim().replace(/\s+/g, ' ');
-  if (!raw) return 'unspecified';
-  const normalized = raw.toLowerCase();
-
-  // Collapse common data-entry variants into canonical groups.
-  if (['helper', 'helpers'].includes(normalized)) return 'helper';
-  if (['scaffolder', 'scalffolder', 'sacffolder'].includes(normalized)) return 'scaffolder';
-
-  return normalized;
-}
-
-function displayDesignation(normalized: string) {
-  if (!normalized || normalized === 'unspecified') return 'Unspecified';
-  return normalized
-    .split(' ')
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
-}
+import { normalizeDesignationKey, toDisplayDesignation } from '@/lib/designation';
 
 export interface MonthlyHoursByDesignation {
   month: number;
@@ -54,7 +35,7 @@ export function useMonthlyHoursByDesignation(month: number, year: number) {
       const grouped: { [key: string]: { hours: number; workers: Set<string> } } = {};
       
       (data || []).forEach(ts => {
-        const designationKey = normalizeDesignation(ts.designation);
+        const designationKey = normalizeDesignationKey(ts.designation);
         if (!grouped[designationKey]) {
           grouped[designationKey] = { hours: 0, workers: new Set() };
         }
@@ -68,7 +49,7 @@ export function useMonthlyHoursByDesignation(month: number, year: number) {
       });
 
       const designations = Object.entries(grouped).map(([designationKey, { hours, workers }]) => ({
-        designation: displayDesignation(designationKey),
+        designation: toDisplayDesignation(designationKey),
         totalHours: hours,
         employeeCount: workers.size,
       }));

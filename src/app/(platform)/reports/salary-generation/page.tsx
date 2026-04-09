@@ -33,7 +33,8 @@ import {
   useSalarySheet,
 } from '@/hooks/useSalarySheets';
 import { MONTH_NAMES, getPreviousMonthYear } from '@/lib/dateUtils';
-import { exportToCSV } from '@/lib/exportUtils';
+import { normalizeDesignationKey, toDisplayDesignation } from '@/lib/designation';
+import { exportManualSalarySheetToExcel } from '@/lib/excelExport';
 import type { SalarySheetEntry } from '@/types/database';
 
 type EntryDraft = {
@@ -79,22 +80,6 @@ function getMonthOptions() {
   }
 
   return options;
-}
-
-function normalizeDesignation(value: string) {
-  const normalized = (value || 'Unspecified').trim().replace(/\s+/g, ' ').toLowerCase();
-
-  if (['sacffolder', 'scalffolder', 'scaffolder'].includes(normalized)) {
-    return 'scaffolder';
-  }
-
-  return normalized;
-}
-
-function displayDesignation(value: string) {
-  const normalized = normalizeDesignation(value);
-  if (normalized === 'scaffolder') return 'Scaffolder';
-  return (value || 'Unspecified').trim().replace(/\s+/g, ' ') || 'Unspecified';
 }
 
 export default function SalaryGenerationPage() {
@@ -390,45 +375,34 @@ export default function SalaryGenerationPage() {
     toast.success('Salary sheet approved');
   }
 
-  function onExportCSV() {
+  async function onExportExcel() {
     if (!entries.length) {
       toast.warning('No entries to export');
       return;
     }
 
-    exportToCSV(
-      [
-        'Labour Name',
-        'Labour ID',
-        'Designation',
-        'Monthly Salary',
-        'Hourly Rate',
-        'Actual Worked Hours',
-        'Total Worked Hours',
-        'Overtime Hours',
-        'Total Salary',
-        'Deduction',
-        'Net Salary',
-        'Bank Name',
-        'Bank Account Number',
-      ],
-      entries.map((entry) => [
-        entry.labor_name,
-        entry.labor_code,
-        displayDesignation(entry.designation),
-        fmt(entry.monthly_salary),
-        fmt(entry.hourly_rate),
-        fmt(entry.actual_worked_hours),
-        fmt(entry.total_worked_hours),
-        fmt(entry.overtime_hours),
-        fmt(entry.total_salary),
-        fmt(Number(entry.deduction) || 0),
-        fmt((Number(entry.total_salary) || 0) - (Number(entry.deduction) || 0)),
-        entry.bank_name || '-',
-        entry.bank_account_number || '-',
-      ]),
-      `salary_sheet_${year}_${month + 1}`
-    );
+    try {
+      await exportManualSalarySheetToExcel(
+        month,
+        year,
+        entries.map((entry) => ({
+          laborName: entry.labor_name,
+          laborId: entry.labor_code,
+          salary: Number(entry.monthly_salary || 0),
+          bankName: entry.bank_name || '-',
+          bankAccountNumber: entry.bank_account_number || '-',
+          totalHours: Number(entry.total_worked_hours || 0),
+          overTime: Number(entry.overtime_hours || 0),
+          actualHours: Number(entry.actual_worked_hours || 0),
+          ratePerHour: Number(entry.hourly_rate || 0),
+          actualSalary: Number(entry.total_salary || 0),
+          deduction: Number(entry.deduction || 0),
+          netSalary: Number(entry.total_salary || 0) - Number(entry.deduction || 0),
+        }))
+      );
+    } catch {
+      toast.error('Failed to export Excel');
+    }
   }
 
   function onPrintPDF() {
@@ -437,24 +411,62 @@ export default function SalaryGenerationPage() {
       return;
     }
 
-    const rowsHtml = entries
-      .map((entry) => `
-        <tr>
-          <td>${entry.labor_name}</td>
-          <td>${entry.labor_code}</td>
-          <td>${displayDesignation(entry.designation)}</td>
-          <td>${fmtOMR(entry.monthly_salary)}</td>
-          <td>${fmt(entry.hourly_rate)}</td>
-          <td>${fmt(entry.actual_worked_hours)}</td>
-          <td>${fmt(entry.total_worked_hours)}</td>
-          <td>${fmt(entry.overtime_hours)}</td>
-          <td>${fmtOMR(entry.total_salary)}</td>
-          <td>${fmtOMR(Number(entry.deduction) || 0)}</td>
-          <td>${fmtOMR((Number(entry.total_salary) || 0) - (Number(entry.deduction) || 0))}</td>
-          <td>${entry.bank_name || '-'}</td>
-          <td>${entry.bank_account_number || '-'}</td>
-        </tr>
-      `)
+    const groupedByDesignation = entries.reduce((acc, entry) => {
+      const designation = toDisplayDesignation(entry.designation);
+      if (!acc[designation]) acc[designation] = [];
+      acc[designation].push(entry);
+      return acc;
+    }, {} as Record<string, SalarySheetEntry[]>);
+
+    const sectionHtml = Object.keys(groupedByDesignation)
+      .sort((a, b) => a.localeCompare(b))
+      .map((designation) => {
+        const rows = groupedByDesignation[designation];
+        const rowsHtml = rows
+          .map((entry) => `
+            <tr>
+              <td>${entry.labor_name}</td>
+              <td>${entry.labor_code}</td>
+              <td>${fmtOMR(entry.monthly_salary)}</td>
+              <td>${fmt(entry.hourly_rate)}</td>
+              <td>${fmt(entry.actual_worked_hours)}</td>
+              <td>${fmt(entry.total_worked_hours)}</td>
+              <td>${fmt(entry.overtime_hours)}</td>
+              <td>${fmtOMR(entry.total_salary)}</td>
+              <td>${fmtOMR(Number(entry.deduction) || 0)}</td>
+              <td>${fmtOMR((Number(entry.total_salary) || 0) - (Number(entry.deduction) || 0))}</td>
+              <td>${entry.bank_name || '-'}</td>
+              <td>${entry.bank_account_number || '-'}</td>
+            </tr>
+          `)
+          .join('');
+
+        const sectionNetTotal = rows.reduce((sum, item) => sum + ((Number(item.total_salary) || 0) - (Number(item.deduction) || 0)), 0);
+
+        return `
+          <h2>${designation}</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>ID</th>
+                <th>M/Salary</th>
+                <th>H/Rate</th>
+                <th>AW-Hours</th>
+                <th>TW-Hours</th>
+                <th>OT</th>
+                <th>Total Salary</th>
+                <th>Deduction</th>
+                <th>Net Salary</th>
+                <th>Bank Name</th>
+                <th>Account Number</th>
+              </tr>
+            </thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+          <div class="section-total">${designation} Total (Net): ${fmtOMR(sectionNetTotal)}</div>
+        `;
+      })
       .join('');
 
     const printWindow = window.open('', '_blank', 'width=1200,height=860');
@@ -471,35 +483,18 @@ export default function SalaryGenerationPage() {
             body { font-family: Arial, sans-serif; padding: 22px; color: #111827; }
             h1 { margin: 0 0 4px; font-size: 20px; }
             p { margin: 0 0 14px; color: #4b5563; }
+            h2 { margin: 18px 0 8px; font-size: 14px; color: #1f2937; }
             table { width: 100%; border-collapse: collapse; font-size: 11px; }
             th, td { border: 1px solid #e5e7eb; padding: 6px; text-align: left; }
             th { background: #f8fafc; text-transform: uppercase; font-size: 10px; letter-spacing: 0.04em; }
+            .section-total { margin: 8px 0 14px; font-weight: 600; font-size: 12px; }
             .total { margin-top: 14px; font-weight: 700; font-size: 14px; }
           </style>
         </head>
         <body>
           <h1>Salary Sheet</h1>
           <p>${MONTH_NAMES[month]} ${year} - ${sheet?.status === 'approved' ? 'Approved' : 'Draft'}</p>
-          <table>
-            <thead>
-              <tr>
-                <th>Labour Name</th>
-                <th>Labour ID</th>
-                <th>Designation</th>
-                <th>Monthly Salary</th>
-                <th>Hourly Rate</th>
-                <th>Actual Worked Hours</th>
-                <th>Total Worked Hours</th>
-                <th>Overtime</th>
-                <th>Total Salary</th>
-                <th>Deduction</th>
-                <th>Net Salary</th>
-                <th>Bank Name</th>
-                <th>Bank Account Number</th>
-              </tr>
-            </thead>
-            <tbody>${rowsHtml}</tbody>
-          </table>
+          ${sectionHtml}
           <div class="total">Grand Total (Net): ${fmtOMR(entries.reduce((sum, item) => sum + ((Number(item.total_salary) || 0) - (Number(item.deduction) || 0)), 0))}</div>
         </body>
       </html>
@@ -564,7 +559,7 @@ export default function SalaryGenerationPage() {
     const grouped = new Map<string, { label: string; rows: SalarySheetEntry[] }>();
 
     entries.forEach((entry) => {
-      const key = normalizeDesignation(entry.designation);
+      const key = normalizeDesignationKey(entry.designation);
       const existing = grouped.get(key);
       if (existing) {
         existing.rows.push(entry);
@@ -572,7 +567,7 @@ export default function SalaryGenerationPage() {
       }
 
       grouped.set(key, {
-        label: displayDesignation(entry.designation),
+        label: toDisplayDesignation(entry.designation),
         rows: [entry],
       });
     });
@@ -661,8 +656,8 @@ export default function SalaryGenerationPage() {
               Approve
             </Button>
             <div className="flex gap-2">
-              <Button variant="secondary" size="sm" icon={<Download size={14} />} onClick={onExportCSV} className="flex-1 justify-center">
-                Export CSV
+              <Button variant="secondary" size="sm" icon={<Download size={14} />} onClick={onExportExcel} className="flex-1 justify-center">
+                Export Excel
               </Button>
               <Button variant="secondary" size="sm" icon={<FileText size={14} />} onClick={onPrintPDF} className="flex-1 justify-center">
                 Print / PDF
@@ -749,7 +744,7 @@ export default function SalaryGenerationPage() {
                           {selectedLabor.id_number || selectedLabor.id}
                         </div>
                       </div>
-                      <Badge color="blue">{displayDesignation(selectedLabor.designation)}</Badge>
+                      <Badge color="blue">{toDisplayDesignation(selectedLabor.designation)}</Badge>
                     </div>
                   </div>
 
@@ -865,19 +860,18 @@ export default function SalaryGenerationPage() {
                   <thead style={{ background: 'var(--thead-bg)' }}>
                     <tr style={{ borderBottom: '1px solid var(--border)' }}>
                       {[
-                        'Labour Name',
-                        'Labour ID',
-                        'Designation',
-                        'Monthly Salary',
-                        'Hourly Rate (Salary/260)',
-                        'Actual Worked Hours',
-                        'Total Worked Hours',
-                        'Overtime',
+                        'Name',
+                        'ID',
+                        'M/Salary',
+                        'H/Rate',
+                        'AW-Hours',
+                        'TW-Hours',
+                        'OT',
                         'Total Salary',
                         'Deduction',
                         'Net Salary',
                         'Bank Name',
-                        'Bank Account Number',
+                        'Account Number',
                         'Action',
                       ].map((h) => (
                         <th key={h} className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{h}</th>
@@ -910,10 +904,6 @@ export default function SalaryGenerationPage() {
                         >
                           <td className="px-3 py-3" style={{ color: 'var(--text-primary)' }}>{row.labor_name}</td>
                           <td className="px-3 py-3" style={{ color: 'var(--text-primary)' }}>{row.labor_code}</td>
-                          <td className="px-3 py-3" style={{ color: 'var(--text-primary)' }}>
-                            <Badge color="gray">{displayDesignation(row.designation || '')}</Badge>
-                          </td>
-
                           <td className="px-3 py-3">
                             {isEditing ? (
                               <input
@@ -1036,7 +1026,7 @@ export default function SalaryGenerationPage() {
                       );
                     })}
                     <tr style={{ background: 'var(--thead-bg)' }}>
-                      <td colSpan={6} className="px-3 py-3 text-right text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: 'var(--text-secondary)' }}>
+                      <td colSpan={5} className="px-3 py-3 text-right text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: 'var(--text-secondary)' }}>
                         Totals
                       </td>
                       <td className="px-3 py-3 text-right font-semibold" style={{ color: 'var(--text-primary)' }}>
@@ -1070,7 +1060,6 @@ export default function SalaryGenerationPage() {
         <div
           onClick={(e) => { if (e.target === e.currentTarget) setShowAddLaborModal(false); }}
           style={{
-            position: 'fixed',
             inset: 0,
             zIndex: 999,
             background: 'rgba(0,0,0,0.45)',

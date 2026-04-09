@@ -11,15 +11,7 @@ import { Badge } from '@/components/ui/Badge';
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/Toast';
 import { LaborerForm } from '@/components/labor/LaborerForm';
-
-const DESIGNATIONS = ['All', 'Mason', 'Carpenter', 'Rigger', 'Helper', 'Trojan Helpers', 'Electrician', 'Scaffolder', 'Steelfixer', 'Other'];
-
-function normalizeDesignation(value: string): string {
-  const normalized = (value ?? '').toLowerCase().replace(/\s+/g, '');
-  if (normalized === 'steelfixer') return 'steelfixer';
-  if (normalized === 'scalffolder') return 'scaffolder';
-  return normalized;
-}
+import { normalizeDesignationKey, toDisplayDesignation } from '@/lib/designation';
 
 export function LaborRegistryPage() {
   const { laborers, loading, refetch } = useLaborers(false);
@@ -37,18 +29,32 @@ export function LaborRegistryPage() {
     [foremen]
   );
 
+  const designationOptions = useMemo(() => {
+    const unique = new Set<string>();
+    laborers.forEach((l) => unique.add(normalizeDesignationKey(l.designation)));
+
+    return ['All', ...Array.from(unique)
+      .filter((key) => key !== 'unspecified')
+      .map((key) => toDisplayDesignation(key))
+      .sort((a, b) => a.localeCompare(b))];
+  }, [laborers]);
+
   const filtered = laborers.filter((l) => {
-    const q = search.toLowerCase();
+    const q = search.trim().toLowerCase();
+    const normalizedQuery = normalizeDesignationKey(q);
+    const designationKey = normalizeDesignationKey(l.designation);
+    const designationLabel = toDisplayDesignation(l.designation).toLowerCase();
     const matchSearch =
       l.full_name.toLowerCase().includes(q) ||
       l.id_number.toLowerCase().includes(q) ||
-      l.designation.toLowerCase().includes(q) ||
+      designationLabel.includes(q) ||
+      designationKey.includes(normalizedQuery) ||
       (l.supplier_name ?? '').toLowerCase().includes(q);
     const matchStatus =
       statusFilter === 'All' || (statusFilter === 'Active' ? l.is_active : !l.is_active);
     const matchDesignation =
       designationFilter === 'All' ||
-      normalizeDesignation(l.designation) === normalizeDesignation(designationFilter);
+      normalizeDesignationKey(l.designation) === normalizeDesignationKey(designationFilter);
     return matchSearch && matchStatus && matchDesignation;
   });
 
@@ -103,7 +109,7 @@ export function LaborRegistryPage() {
               outline: 'none',
             }}
           >
-            {DESIGNATIONS.map(d => (
+            {designationOptions.map(d => (
               <option key={d} value={d}>{d === 'All' ? 'All Designations' : d}</option>
             ))}
           </select>
@@ -195,7 +201,7 @@ export function LaborRegistryPage() {
                       </div>
                     </td>
                     <td style={{ ...tdStyle, fontFamily: 'monospace' }}>{l.id_number || '—'}</td>
-                    <td style={tdStyle}>{l.designation || '—'}</td>
+                    <td style={tdStyle}>{toDisplayDesignation(l.designation)}</td>
                     <td style={tdStyle}>{l.foreman_id ? (foremanNameById.get(l.foreman_id) ?? '—') : '—'}</td>
                     <td style={tdStyle}>{l.supplier_name || '—'}</td>
                     <td style={tdStyle}>{l.phone || '—'}</td>

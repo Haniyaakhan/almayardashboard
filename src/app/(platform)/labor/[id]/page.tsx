@@ -8,6 +8,7 @@ import { PageSpinner } from '@/components/ui/Spinner';
 import { timesheetStatusBadge } from '@/components/ui/Badge';
 import { ArrowLeft } from 'lucide-react';
 import type { Laborer } from '@/types/database';
+import { toDisplayDesignation } from '@/lib/designation';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -24,7 +25,7 @@ export default function LaborerDetailPage() {
 
   const info: [string, string][] = [
     ['Labour ID', laborer.id_number || '—'],
-    ['Designation', laborer.designation],
+    ['Designation', toDisplayDesignation(laborer.designation)],
     ['Contractor', laborer.supplier_name || '—'],
     ['Phone', laborer.phone || '—'],
     ['Nationality', laborer.nationality || '—'],
@@ -65,7 +66,7 @@ export default function LaborerDetailPage() {
             fontFamily: "'Sora', sans-serif", letterSpacing: '-0.3px',
           }}>{laborer.full_name}</div>
           <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-            {laborer.designation} · {laborer.supplier_name || '—'} ·
+            {toDisplayDesignation(laborer.designation)} · {laborer.supplier_name || '—'} ·
             <span style={{
               display: 'inline-flex', alignItems: 'center', gap: 4,
               fontSize: 11, fontWeight: 600, padding: '2px 10px', borderRadius: 20,

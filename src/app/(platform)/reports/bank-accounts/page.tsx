@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/Badge';
 import { useBankAccountReport } from '@/hooks/useBankAccountReport';
 import { CheckCircle, AlertCircle, Download, Search } from 'lucide-react';
 import { exportToXLSX } from '@/lib/exportUtils';
+import { normalizeDesignationKey, toDisplayDesignation } from '@/lib/designation';
 
 export default function BankAccountReportPage() {
   const { report, loading, error } = useBankAccountReport();
@@ -15,14 +16,22 @@ export default function BankAccountReportPage() {
   const details = report?.details ?? [];
   const filteredDetails = useMemo(() => {
     const q = search.trim().toLowerCase();
+    const normalizedQuery = normalizeDesignationKey(q);
     if (!q) return details;
 
     return details.filter((emp) => {
       const name = (emp.full_name || '').toLowerCase();
-      const designation = (emp.designation || '').toLowerCase();
+      const designation = normalizeDesignationKey(emp.designation);
+      const designationLabel = toDisplayDesignation(emp.designation).toLowerCase();
       const bankName = (emp.bank_name || '').toLowerCase();
       const account = (emp.bank_account_number || '').toLowerCase();
-      return name.includes(q) || designation.includes(q) || bankName.includes(q) || account.includes(q);
+      return (
+        name.includes(q)
+        || designation.includes(normalizedQuery)
+        || designationLabel.includes(q)
+        || bankName.includes(q)
+        || account.includes(q)
+      );
     });
   }, [details, search]);
 
@@ -52,7 +61,7 @@ export default function BankAccountReportPage() {
 
   const withBankRows = withBankAccounts.map((emp) => [
     emp.full_name,
-    emp.designation || 'Unspecified',
+    toDisplayDesignation(emp.designation),
     emp.bank_name || '-',
     emp.bank_account_number || '-',
     'Active',
@@ -60,7 +69,7 @@ export default function BankAccountReportPage() {
 
   const withoutBankRows = withoutBankAccounts.map((emp) => [
     emp.full_name,
-    emp.designation || 'Unspecified',
+    toDisplayDesignation(emp.designation),
     '-',
     '-',
     'Missing',
@@ -121,7 +130,7 @@ export default function BankAccountReportPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{emp.full_name}</p>
-                    <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{emp.designation || 'Unspecified'}</p>
+                    <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{toDisplayDesignation(emp.designation)}</p>
                   </div>
                   <Badge color="green">Active</Badge>
                 </div>
@@ -168,7 +177,7 @@ export default function BankAccountReportPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{emp.full_name}</p>
-                    <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{emp.designation || 'Unspecified'}</p>
+                    <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{toDisplayDesignation(emp.designation)}</p>
                   </div>
                   <Badge color="amber">Missing</Badge>
                 </div>

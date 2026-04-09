@@ -2,6 +2,7 @@ import ExcelJS from 'exceljs';
 import { DayEntry } from '@/types/timesheet';
 import { formatDate, MONTH_NAMES } from '@/lib/dateUtils';
 import type { Laborer, SalaryRecord } from '@/types/database';
+import { toDisplayDesignation } from '@/lib/designation';
 
 async function downloadWorkbook(workbook: ExcelJS.Workbook, filename: string): Promise<void> {
   const buffer = await workbook.xlsx.writeBuffer();
@@ -184,7 +185,6 @@ export async function exportSalaryReportToExcel(month: number, year: number, rec
 export interface ManualSalarySheetRow {
   laborName: string;
   laborId: string;
-  designation: string;
   salary: number;
   bankName: string;
   bankAccountNumber: string;
@@ -193,6 +193,8 @@ export interface ManualSalarySheetRow {
   actualHours: number;
   ratePerHour: number;
   actualSalary: number;
+  deduction: number;
+  netSalary: number;
 }
 
 export async function exportManualSalarySheetToExcel(
@@ -211,51 +213,56 @@ export async function exportManualSalarySheetToExcel(
     worksheet.addRow([]);
 
     worksheet.addRow([
-      'Labor Name',
-      'Labor ID',
-      'Designation',
-      'Salary',
+      'Name',
+      'ID',
+      'M/Salary',
+      'H/Rate',
+      'AW-Hours',
+      'TW-Hours',
+      'OT',
+      'Total Salary',
+      'Deduction',
+      'Net Salary',
       'Bank Name',
-      'Bank Account Number',
-      'Total Hours',
-      'Over Time',
-      'Actual Hours',
-      'Rate per Hour (Salary/260)',
-      'Actual Salary',
+      'Account Number',
     ]);
 
     rows.forEach((row) => {
       worksheet.addRow([
         row.laborName,
         row.laborId,
-        row.designation,
         Number(row.salary ?? 0),
-        row.bankName,
-        row.bankAccountNumber,
+        Number(row.ratePerHour ?? 0),
+        Number(row.actualHours ?? 0),
         Number(row.totalHours ?? 0),
         Number(row.overTime ?? 0),
-        Number(row.actualHours ?? 0),
-        Number(row.ratePerHour ?? 0),
         Number(row.actualSalary ?? 0),
+        Number(row.deduction ?? 0),
+        Number(row.netSalary ?? 0),
+        row.bankName,
+        row.bankAccountNumber,
       ]);
     });
 
     const totalActualSalary = rows.reduce((sum, row) => sum + Number(row.actualSalary ?? 0), 0);
+    const totalNetSalary = rows.reduce((sum, row) => sum + Number(row.netSalary ?? 0), 0);
     worksheet.addRow([]);
-    worksheet.addRow(['', '', '', '', '', '', '', '', '', 'Total Actual Salary', totalActualSalary]);
+    worksheet.addRow(['', '', '', '', '', '', '', 'Total Salary', totalActualSalary, '', '', '']);
+    worksheet.addRow(['', '', '', '', '', '', '', '', '', 'Total Net Salary', totalNetSalary, '']);
 
     worksheet.columns = [
-      { width: 24 },
-      { width: 16 },
+      { width: 22 },
       { width: 16 },
       { width: 12 },
+      { width: 12 },
+      { width: 12 },
+      { width: 12 },
+      { width: 10 },
+      { width: 16 },
+      { width: 14 },
+      { width: 14 },
       { width: 18 },
       { width: 22 },
-      { width: 12 },
-      { width: 12 },
-      { width: 12 },
-      { width: 20 },
-      { width: 16 },
     ];
 
     const headerRow = worksheet.getRow(5);
@@ -300,7 +307,7 @@ export async function exportLaborersToExcel(
       worksheet.addRow([
         l.full_name,
         l.id_number,
-        l.designation,
+        toDisplayDesignation(l.designation),
         l.nationality || '',
         l.supplier_name || '',
         l.foreman_id ? (foremanNameById?.get(l.foreman_id) ?? l.foreman_id) : '',
