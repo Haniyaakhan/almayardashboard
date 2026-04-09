@@ -121,6 +121,7 @@ export default function SalaryGenerationPage() {
 
   const [activeTab, setActiveTab] = useState('');
   const [seedingDone, setSeedingDone] = useState(false);
+  const [previewSearch, setPreviewSearch] = useState('');
 
   const { laborers, loading: laborersLoading, error: laborersError, refetch: refetchLaborers } = useLaborers(false);
   const {
@@ -595,6 +596,17 @@ export default function SalaryGenerationPage() {
 
   const activeRows = useMemo(() => designationTabs.find((tab) => tab.key === activeTab)?.rows ?? [], [activeTab, designationTabs]);
 
+  const filteredActiveRows = useMemo(() => {
+    const q = previewSearch.trim().toLowerCase();
+    if (!q) return activeRows;
+
+    return activeRows.filter((row) => {
+      const name = (row.labor_name || '').toLowerCase();
+      const code = (row.labor_code || '').toLowerCase();
+      return name.includes(q) || code.includes(q);
+    });
+  }, [activeRows, previewSearch]);
+
   const selectedMonthLabel = `${MONTH_NAMES[month]} ${year}`;
 
   if (laborersLoading || sheetLoading) return <PageSpinner />;
@@ -802,14 +814,30 @@ export default function SalaryGenerationPage() {
         ) : (
           <div className="space-y-4">
             <div className="border-b px-5 py-4" style={{ borderColor: 'var(--border)' }}>
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div>
-                  <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)', fontFamily: "'Sora', sans-serif" }}>
-                    Salary Sheet Preview
-                  </h2>
-                  <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                    Review labour grouped by designation before exporting.
-                  </p>
+              <div className="space-y-3">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)', fontFamily: "'Sora', sans-serif" }}>
+                      Salary Sheet Preview
+                    </h2>
+                    <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                      Review labour grouped by designation before exporting.
+                    </p>
+                  </div>
+                  <div
+                    className="flex items-center gap-3 rounded-2xl px-4 py-2"
+                    style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', minWidth: 280 }}
+                  >
+                    <Search size={15} style={{ color: 'var(--text-muted)' }} />
+                    <input
+                      type="text"
+                      value={previewSearch}
+                      onChange={(e) => setPreviewSearch(e.target.value)}
+                      placeholder="Search in preview by labour name or ID"
+                      className="w-full bg-transparent text-sm outline-none"
+                      style={{ color: 'var(--text-primary)' }}
+                    />
+                  </div>
                 </div>
                 <div className="flex gap-2 flex-wrap">
                   {designationTabs.map((tab) => (
@@ -857,7 +885,7 @@ export default function SalaryGenerationPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {activeRows.map((row, index) => {
+                    {filteredActiveRows.map((row, index) => {
                       const isEditing = editingEntryId === row.id;
                       const draft = drafts[row.id];
                       const monthlySalary = isEditing ? (draft?.monthlySalary ?? row.monthly_salary) : row.monthly_salary;
@@ -1012,19 +1040,19 @@ export default function SalaryGenerationPage() {
                         Totals
                       </td>
                       <td className="px-3 py-3 text-right font-semibold" style={{ color: 'var(--text-primary)' }}>
-                        {fmt(activeRows.reduce((sum, row) => sum + (Number(row.total_worked_hours) || 0), 0))}
+                        {fmt(filteredActiveRows.reduce((sum, row) => sum + (Number(row.total_worked_hours) || 0), 0))}
                       </td>
                       <td className="px-3 py-3 text-right font-semibold" style={{ color: 'var(--green-text)' }}>
-                        {fmt(activeRows.reduce((sum, row) => sum + (Number(row.overtime_hours) || 0), 0))}
+                        {fmt(filteredActiveRows.reduce((sum, row) => sum + (Number(row.overtime_hours) || 0), 0))}
                       </td>
                       <td className="px-3 py-3 text-right font-semibold" style={{ color: 'var(--text-primary)' }}>
-                        {fmtOMR(activeRows.reduce((sum, row) => sum + (Number(row.total_salary) || 0), 0))}
+                        {fmtOMR(filteredActiveRows.reduce((sum, row) => sum + (Number(row.total_salary) || 0), 0))}
                       </td>
                       <td className="px-3 py-3 text-right font-semibold" style={{ color: '#dc2626' }}>
-                        {fmtOMR(activeRows.reduce((sum, row) => sum + (Number(row.deduction) || 0), 0))}
+                        {fmtOMR(filteredActiveRows.reduce((sum, row) => sum + (Number(row.deduction) || 0), 0))}
                       </td>
                       <td className="px-3 py-3 text-right font-semibold" style={{ color: 'var(--orange)' }}>
-                        {fmtOMR(activeRows.reduce((sum, row) => sum + ((Number(row.total_salary) || 0) - (Number(row.deduction) || 0)), 0))}
+                        {fmtOMR(filteredActiveRows.reduce((sum, row) => sum + ((Number(row.total_salary) || 0) - (Number(row.deduction) || 0)), 0))}
                       </td>
                       <td colSpan={3} className="px-3 py-3" />
                     </tr>
