@@ -8,7 +8,16 @@ export function useSupabaseUser() {
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => setUser(data.user));
+
+    // Prefer local session read to avoid hard failures when network is temporarily unavailable.
+    supabase.auth.getSession()
+      .then(({ data }) => {
+        setUser(data.session?.user ?? null);
+      })
+      .catch(() => {
+        setUser(null);
+      });
+
     const { data: listener } = supabase.auth.onAuthStateChange((_, session) => {
       setUser(session?.user ?? null);
     });

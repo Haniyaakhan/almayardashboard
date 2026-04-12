@@ -4,7 +4,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useSupabaseUser } from '@/hooks/useSupabaseUser';
 import { createClient } from '@/lib/supabase/client';
 import {
-  LayoutDashboard, ClipboardList, Users, Truck,
+  LayoutDashboard, ClipboardList, Truck,
   Wrench, FileBarChart, LogOut, Briefcase, DollarSign,
 } from 'lucide-react';
 

@@ -1,7 +1,7 @@
 import ExcelJS from 'exceljs';
 import { DayEntry } from '@/types/timesheet';
 import { formatDate, MONTH_NAMES } from '@/lib/dateUtils';
-import type { Laborer, SalaryRecord } from '@/types/database';
+import type { Laborer } from '@/types/database';
 import { toDisplayDesignation } from '@/lib/designation';
 
 async function downloadWorkbook(workbook: ExcelJS.Workbook, filename: string): Promise<void> {
@@ -110,75 +110,6 @@ export async function exportToExcel(
   } catch (error) {
     console.error('Excel export error:', error);
     throw new Error('Failed to export Excel file');
-  }
-}
-
-export async function exportSalaryReportToExcel(month: number, year: number, records: SalaryRecord[]): Promise<void> {
-  try {
-    const monthName = MONTH_NAMES[month] ?? String(month + 1);
-    const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Salary');
-
-    worksheet.addRow(['Salary Report']);
-    worksheet.addRow(['ALMYAR UNITED TRADING LLC']);
-    worksheet.addRow([`Month: ${monthName}`, `Year: ${year}`]);
-    worksheet.addRow([]);
-
-    worksheet.addRow([
-      'Labor Name',
-      'Labor ID',
-      'Bank Name',
-      'Account Number',
-      'Worked Hours',
-      'Hourly Rate',
-      'Basic Salary',
-      'Advances',
-      'Foreman Commission',
-      'Net Salary',
-      'Status',
-    ]);
-
-    records.forEach((row) => {
-      worksheet.addRow([
-        row.laborer?.full_name ?? '',
-        row.laborer?.id_number ?? '',
-        row.laborer?.bank_name ?? '',
-        row.laborer?.bank_account_number ?? '',
-        Number(row.total_worked_hours ?? 0),
-        Number(row.hourly_rate ?? 0),
-        Number(row.basic_salary ?? 0),
-        Number(row.advances_amount ?? 0),
-        Number(row.foreman_commission ?? 0),
-        Number(row.net_salary ?? 0),
-        row.status,
-      ]);
-    });
-
-    const totalNet = records.reduce((sum, row) => sum + Number(row.net_salary ?? 0), 0);
-    worksheet.addRow([]);
-    worksheet.addRow(['', '', '', '', '', '', '', '', 'Total Net Salary', totalNet, '']);
-
-    worksheet.columns = [
-      { width: 24 },
-      { width: 16 },
-      { width: 18 },
-      { width: 22 },
-      { width: 14 },
-      { width: 12 },
-      { width: 14 },
-      { width: 12 },
-      { width: 18 },
-      { width: 14 },
-      { width: 12 },
-    ];
-
-    const headerRow = worksheet.getRow(5);
-    headerRow.font = { bold: true };
-
-    await downloadWorkbook(workbook, `Salary_${monthName}_${year}.xlsx`);
-  } catch (error) {
-    console.error('Salary Excel export error:', error);
-    throw new Error('Failed to export salary report');
   }
 }
 

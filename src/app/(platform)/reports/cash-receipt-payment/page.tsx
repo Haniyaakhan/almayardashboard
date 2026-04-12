@@ -4,7 +4,6 @@ import React, { useRef, useState } from 'react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Download } from 'lucide-react';
-import { PageHeader } from '@/components/ui/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 
@@ -99,7 +98,6 @@ export default function CashReceiptPaymentPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <PageHeader title="Cash Receipt" subtitle="Settings on left, printable A4 receipt on right" />
 
       <div style={{ display: 'grid', gridTemplateColumns: '330px 1fr', gap: 18, alignItems: 'start' }}>
         <div className="space-y-3">
@@ -295,3 +293,4 @@ export default function CashReceiptPaymentPage() {
     </div>
   );
 }
+

@@ -1,8 +1,6 @@
 'use client';
 import React from 'react';
 import { usePathname } from 'next/navigation';
-import { Sun, Moon } from 'lucide-react';
-import { useTheme } from '@/contexts/ThemeContext';
 import { useSupabaseUser } from '@/hooks/useSupabaseUser';
 
 const titles: Record<string, string> = {
@@ -21,36 +19,58 @@ const titles: Record<string, string> = {
   '/operations/labor': 'Labour Registry',
   '/operations/vehicle': 'Operations Vehicle',
   '/vehicle-operations': 'Vehicle Operations',
-  '/operations/advances': 'Operations Advances',
   '/operations/timesheet': 'Operations Timesheet',
   '/operations/salary': 'Operations Salary',
   '/operations/npc-invoice': 'NPC Invoice',
   '/reports': 'Reports',
+  '/reports/bank-accounts': 'Bank Account Report',
+  '/reports/by-designation': 'Employees By Designation',
+  '/reports/salary-bank-report': 'Salary Bank Report',
+  '/reports/salary-sheet-coverage': 'Salary Sheet Coverage',
   '/payment-modules': 'Payment Modules',
   '/payment-modules/cash-receipt-payment': 'Cash Receipt Payment',
   '/payment-modules/invoice-generation': 'Invoice Generation',
   '/payment-modules/salary-generation': 'Salary Generation',
 };
 
+function toTitleCase(value: string): string {
+  return value
+    .split(' ')
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+function titleFromPath(pathname: string): string {
+  const cleanPath = pathname.split('?')[0].split('#')[0];
+  const segments = cleanPath.split('/').filter(Boolean);
+  if (!segments.length) return 'Dashboard';
+
+  const last = decodeURIComponent(segments[segments.length - 1]);
+  const isIdLike = /^[0-9]+$/.test(last) || /^[0-9a-fA-F-]{16,}$/.test(last);
+
+  if (isIdLike && segments.length > 1) {
+    return `${toTitleCase(segments[segments.length - 2].replace(/-/g, ' '))} Detail`;
+  }
+
+  return toTitleCase(last.replace(/-/g, ' '));
+}
+
 function getTitle(pathname: string): string {
   if (titles[pathname]) return titles[pathname];
-  if (pathname.startsWith('/labor/') && pathname.endsWith('/edit')) return 'Edit Laborer';
   if (pathname.startsWith('/labor/')) return 'Laborer Profile';
-  if (pathname.startsWith('/vendors/') && pathname.endsWith('/edit')) return 'Edit Contractor';
   if (pathname.startsWith('/vendors/')) return 'Contractor Profile';
-  if (pathname.startsWith('/machines/') && pathname.endsWith('/edit')) return 'Edit Vehicle';
   if (pathname.startsWith('/machines/') && pathname.includes('/usage')) return 'Log Vehicle Usage';
   if (pathname.startsWith('/machines/')) return 'Vehicle Detail';
   if (pathname.startsWith('/timesheet/history/')) return 'View Labor Timesheet';
   if (pathname.startsWith('/vehicle-timesheet/history/')) return 'View Vehicle Timesheet';
   if (pathname.startsWith('/operations/foreman/')) return 'Foreman Profile';
-  return 'Platform';
+  return titleFromPath(pathname);
 }
 
 export function Topbar() {
   const pathname = usePathname();
   const title = getTitle(pathname);
-  const { theme, toggleTheme } = useTheme();
   const user = useSupabaseUser();
   const initials = user?.email ? user.email.slice(0, 2).toUpperCase() : 'AM';
 

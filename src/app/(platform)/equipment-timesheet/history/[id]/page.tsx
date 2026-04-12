@@ -45,8 +45,6 @@ export default function EquipmentTimesheetDetailPage() {
   return (
     <div className="p-6 space-y-6">
       <PageHeader
-        title={`${MONTHS[ts.month]} ${ts.year}`}
-        subtitle={(ts.laborer as any)?.full_name ?? ts.supplier_name ?? 'Equipment Timesheet'}
         action={
           <div className="flex gap-2 items-center">
             {timesheetStatusBadge(ts.status)}

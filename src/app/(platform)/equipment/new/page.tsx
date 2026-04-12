@@ -3,7 +3,6 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import { createMachine } from '@/hooks/useMachines';
 import { MachineForm } from '@/components/machines/MachineForm';
-import { PageHeader } from '@/components/ui/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { useToast } from '@/components/ui/Toast';
 
@@ -12,7 +11,6 @@ export default function NewEquipmentPage() {
   const toast = useToast();
   return (
     <div className="p-6">
-      <PageHeader title="Add Equipment" subtitle="Register new equipment" />
       <Card>
         <MachineForm
           initial={{ category: 'equipment' }}
@@ -27,3 +25,4 @@ export default function NewEquipmentPage() {
     </div>
   );
 }
+

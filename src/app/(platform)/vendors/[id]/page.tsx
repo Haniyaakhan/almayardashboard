@@ -2,29 +2,33 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { getVendorById } from '@/hooks/useVendors';
+import { getVendorById, updateVendor } from '@/hooks/useVendors';
+import { VendorForm } from '@/components/vendors/VendorForm';
 import { useMachines } from '@/hooks/useMachines';
 import { PageSpinner } from '@/components/ui/Spinner';
 import { machineStatusBadge } from '@/components/ui/Badge';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { FormModal } from '@/components/ui/FormModal';
+import { useToast } from '@/components/ui/Toast';
 import { Edit } from 'lucide-react';
 import type { Vendor } from '@/types/database';
 
 export default function VendorDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [vendor, setVendor] = useState<Vendor | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
   const { machines } = useMachines();
   const vendorMachines = machines.filter(m => m.vendor_id === id);
+  const toast = useToast();
 
   useEffect(() => { getVendorById(id).then(setVendor); }, [id]);
   if (!vendor) return <PageSpinner />;
 
   return (
     <div style={{ padding: '20px 24px' }} className="space-y-5">
-      <PageHeader title={vendor.name} subtitle="Contractor Profile"
-        action={<Link href={`/vendors/${id}/edit`}><Button size="sm" variant="secondary" icon={<Edit size={13}/>}>Edit</Button></Link>} />
+      <PageHeader action={<Button size="sm" variant="secondary" icon={<Edit size={13}/>} onClick={() => setShowEditModal(true)}>Edit</Button>} />
       <Card>
         <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">Contact Details</h3>
         <div className="grid grid-cols-2 gap-4 text-sm">
@@ -60,6 +64,20 @@ export default function VendorDetailPage() {
           </table>
         )}
       </Card>
+      <FormModal open={showEditModal} title="Edit Contractor" onClose={() => setShowEditModal(false)}>
+        <VendorForm
+          initial={vendor}
+          submitLabel="Update Contractor"
+          onSubmit={async data => {
+            const err = await updateVendor(id, data);
+            if (err) throw err;
+            toast.success('Contractor updated successfully');
+            const updated = await getVendorById(id);
+            if (updated) setVendor(updated);
+            setShowEditModal(false);
+          }}
+        />
+      </FormModal>
     </div>
   );
 }

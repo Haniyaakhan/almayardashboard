@@ -145,42 +145,6 @@ create table public.timesheet_entries (
 );
 create unique index timesheet_entries_sheet_day_idx on public.timesheet_entries(timesheet_id, day);
 
--- LABOR ADVANCES
-create table public.labor_advances (
-  id             uuid primary key default uuid_generate_v4(),
-  laborer_id     uuid not null references public.laborers(id) on delete cascade,
-  advance_date   date not null,
-  amount         numeric(10,2) not null check (amount >= 0),
-  notes          text,
-  created_at     timestamptz not null default now(),
-  updated_at     timestamptz not null default now()
-);
-create index labor_advances_laborer_date_idx on public.labor_advances(laborer_id, advance_date);
-
--- SALARY RECORDS
-create table public.salary_records (
-  id                 uuid primary key default uuid_generate_v4(),
-  laborer_id         uuid not null references public.laborers(id) on delete cascade,
-  timesheet_id       uuid not null references public.timesheets(id) on delete cascade,
-  month              int not null check (month between 0 and 11),
-  year               int not null,
-  regular_hours      numeric(8,2) not null default 0,
-  overtime_hours     numeric(8,2) not null default 0,
-  total_worked_hours numeric(8,2) not null default 0,
-  hourly_rate        numeric(10,4) not null default 0,
-  basic_salary       numeric(10,2) not null default 0,
-  advances_amount    numeric(10,2) not null default 0,
-  foreman_commission numeric(10,2) not null default 0,
-  net_salary         numeric(10,2) not null default 0,
-  status             text not null default 'draft' check (status in ('draft','approved')),
-  approved_at        timestamptz,
-  created_at         timestamptz not null default now(),
-  updated_at         timestamptz not null default now(),
-  unique (timesheet_id)
-);
-create index salary_records_month_year_idx on public.salary_records(month, year);
-create index salary_records_laborer_month_year_idx on public.salary_records(laborer_id, month, year);
-
 -- SALARY SHEETS (MANUAL MONTHLY SALARY GENERATION)
 create table public.salary_sheets (
   id                 uuid primary key default uuid_generate_v4(),
@@ -255,8 +219,6 @@ create trigger foremen_updated_at    before update on public.foremen    for each
 create trigger vendors_updated_at    before update on public.vendors    for each row execute procedure public.handle_updated_at();
 create trigger machines_updated_at   before update on public.machines   for each row execute procedure public.handle_updated_at();
 create trigger timesheets_updated_at before update on public.timesheets for each row execute procedure public.handle_updated_at();
-create trigger labor_advances_updated_at before update on public.labor_advances for each row execute procedure public.handle_updated_at();
-create trigger salary_records_updated_at before update on public.salary_records for each row execute procedure public.handle_updated_at();
 create trigger salary_sheets_updated_at before update on public.salary_sheets for each row execute procedure public.handle_updated_at();
 create trigger salary_sheet_entries_updated_at before update on public.salary_sheet_entries for each row execute procedure public.handle_updated_at();
 create trigger npc_invoices_updated_at before update on public.npc_invoices for each row execute procedure public.handle_updated_at();
@@ -269,8 +231,6 @@ alter table public.machines          enable row level security;
 alter table public.machine_usage_logs enable row level security;
 alter table public.timesheets        enable row level security;
 alter table public.timesheet_entries enable row level security;
-alter table public.labor_advances    enable row level security;
-alter table public.salary_records    enable row level security;
 alter table public.salary_sheets     enable row level security;
 alter table public.salary_sheet_entries enable row level security;
 alter table public.npc_invoices      enable row level security;
@@ -283,8 +243,6 @@ create policy "auth_all" on public.machines           for all to authenticated u
 create policy "auth_all" on public.machine_usage_logs for all to authenticated using (true) with check (true);
 create policy "auth_all" on public.timesheets         for all to authenticated using (true) with check (true);
 create policy "auth_all" on public.timesheet_entries  for all to authenticated using (true) with check (true);
-create policy "auth_all" on public.labor_advances     for all to authenticated using (true) with check (true);
-create policy "auth_all" on public.salary_records     for all to authenticated using (true) with check (true);
 create policy "auth_all" on public.salary_sheets     for all to authenticated using (true) with check (true);
 create policy "auth_all" on public.salary_sheet_entries for all to authenticated using (true) with check (true);
 create policy "auth_all" on public.npc_invoices       for all to authenticated using (true) with check (true);

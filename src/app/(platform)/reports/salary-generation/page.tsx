@@ -14,7 +14,6 @@ import {
   X,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
-import { PageHeader } from '@/components/ui/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { PageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -608,17 +607,6 @@ export default function SalaryGenerationPage() {
 
   return (
     <div className="space-y-6 p-4 md:p-6">
-      <PageHeader
-        title="Salary Generation"
-        subtitle="Create, review and approve month-wise salary sheets with locked approvals."
-        action={
-          <div className="flex items-center gap-2">
-            <Badge color={sheet?.status === 'approved' ? 'green' : 'orange'}>
-              {selectedMonthLabel} - {sheet?.status === 'approved' ? 'Approved' : 'Draft'}
-            </Badge>
-          </div>
-        }
-      />
 
       {(laborersError || sheetError) ? (
         <Card>
@@ -633,7 +621,9 @@ export default function SalaryGenerationPage() {
               <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)', fontFamily: "'Sora', sans-serif" }}>
                 Salary Month
               </h2>
-              <Badge color="orange">Manual selection mode</Badge>
+              <Badge color={sheet?.status === 'approved' ? 'green' : 'orange'}>
+                {selectedMonthLabel} - {sheet?.status === 'approved' ? 'Approved' : 'Draft'}
+              </Badge>
             </div>
 
             <label className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: 'var(--text-muted)' }}>
@@ -1131,3 +1121,4 @@ export default function SalaryGenerationPage() {
     </div>
   );
 }
+

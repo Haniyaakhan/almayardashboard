@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { CreditCard, FileText, Calculator } from 'lucide-react';
-import { PageHeader } from '@/components/ui/PageHeader';
 import { Card } from '@/components/ui/Card';
 
 const PAYMENT_MODULES = [
@@ -29,8 +28,6 @@ const PAYMENT_MODULES = [
 export default function PaymentModulesPage() {
   return (
     <div className="p-6 space-y-6">
-      <PageHeader title="Payment Modules" subtitle="Standalone payment and invoice tools" />
-
       <div>
         <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
           Available Payment Modules

@@ -2,8 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Users, Clock, DollarSign, CreditCard, ClipboardList } from 'lucide-react';
-import { PageHeader } from '@/components/ui/PageHeader';
+import { Users, Clock, CreditCard, ClipboardList, Banknote, UserCheck } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 
 const REPORTS = [
@@ -20,12 +19,6 @@ const REPORTS = [
     href: '/reports/monthly-hours',
   },
   {
-    title: 'Monthly Salary Report',
-    description: 'Salary summaries and employee payment details per month',
-    icon: DollarSign,
-    href: '/reports/monthly-salary',
-  },
-  {
     title: 'Employees by Designation',
     description: 'Workforce distribution and employee directory by role',
     icon: Users,
@@ -37,13 +30,23 @@ const REPORTS = [
     icon: ClipboardList,
     href: '/reports/section-report',
   },
+  {
+    title: 'Salary Bank Report',
+    description: 'Approved salary sheet split by employees with and without bank accounts',
+    icon: Banknote,
+    href: '/reports/salary-bank-report',
+  },
+  {
+    title: 'Salary Sheet Coverage',
+    description: 'Employees added in the salary sheet and employees not added',
+    icon: UserCheck,
+    href: '/reports/salary-sheet-coverage',
+  },
 ];
 
 export default function ReportsPage() {
   return (
     <div className="p-6 space-y-6">
-      <PageHeader title="Reports" subtitle="Generate summaries and detailed reports" />
-
       <div>
         <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
           Available Reports

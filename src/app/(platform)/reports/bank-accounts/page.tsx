@@ -1,6 +1,5 @@
 'use client';
 import React, { useMemo, useState } from 'react';
-import { PageHeader } from '@/components/ui/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { Spinner } from '@/components/ui/Spinner';
 import { Badge } from '@/components/ui/Badge';
@@ -46,7 +45,6 @@ export default function BankAccountReportPage() {
   if (error || !report) {
     return (
       <div className="p-6">
-        <PageHeader title="Bank Account Report" subtitle="Employee bank account status" />
         <Card className="border-red-200">
           <p className="text-red-600">{error || 'Failed to load report'}</p>
         </Card>
@@ -77,10 +75,6 @@ export default function BankAccountReportPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <PageHeader 
-        title="Bank Account Report" 
-        subtitle="Employees with and without bank account information"
-      />
 
       <Card>
         <div
@@ -193,3 +187,4 @@ export default function BankAccountReportPage() {
     </div>
   );
 }
+

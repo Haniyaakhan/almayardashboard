@@ -2,13 +2,15 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { getMachineById, deactivateMachine, reactivateMachine } from '@/hooks/useMachines';
+import { getMachineById, updateMachine, deactivateMachine, reactivateMachine } from '@/hooks/useMachines';
+import { MachineForm } from '@/components/machines/MachineForm';
 import { useMachineUsage } from '@/hooks/useMachineUsage';
 import { PageSpinner } from '@/components/ui/Spinner';
 import { machineStatusBadge } from '@/components/ui/Badge';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { FormModal } from '@/components/ui/FormModal';
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/Toast';
 import { Edit, Plus, Power } from 'lucide-react';
@@ -20,6 +22,7 @@ export default function MachineDetailPage() {
   const { logs, loading: logsLoading } = useMachineUsage(id);
   const totalHours = logs.reduce((s, l) => s + l.hours_used, 0);
 
+  const [showEditModal, setShowEditModal] = useState(false);
   const { confirm, dialog } = useConfirmDialog();
   const toast = useToast();
 
@@ -49,18 +52,15 @@ export default function MachineDetailPage() {
 
   return (
     <div style={{ padding: '20px 24px' }} className="space-y-5">
-      <PageHeader title={machine.name}
-        subtitle={`${machine.type}${machine.model ? ' · ' + machine.model : ''}`}
-        action={
+      <PageHeader action={
           <div className="flex gap-2 items-center">
             {machineStatusBadge(machine.status)}
-            <Link href={`/machines/${id}/edit`}><Button size="sm" variant="secondary" icon={<Edit size={13}/>}>Edit</Button></Link>
+            <Button size="sm" variant="secondary" icon={<Edit size={13}/>} onClick={() => setShowEditModal(true)}>Edit</Button>
             <Button size="sm" variant={machine.is_active ? 'danger' : 'secondary'} icon={<Power size={13}/>} onClick={handleToggleActive}>
               {machine.is_active ? 'Deactivate' : 'Reactivate'}
             </Button>
           </div>
-        }
-      />
+        } />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
@@ -135,6 +135,21 @@ export default function MachineDetailPage() {
         )}
       </Card>
       {dialog}
+
+      <FormModal open={showEditModal} title="Edit Vehicle" onClose={() => setShowEditModal(false)}>
+        <MachineForm
+          initial={machine}
+          submitLabel="Update Vehicle"
+          onSubmit={async data => {
+            const err = await updateMachine(id, data);
+            if (err) throw err;
+            toast.success('Vehicle updated successfully');
+            const updated = await getMachineById(id);
+            if (updated) setMachine(updated);
+            setShowEditModal(false);
+          }}
+        />
+      </FormModal>
     </div>
   );
 }

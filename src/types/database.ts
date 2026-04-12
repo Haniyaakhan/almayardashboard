@@ -126,19 +126,6 @@ export interface Foreman {
   updated_at: string;
 }
 
-export interface LaborAdvance {
-  id: string;
-  laborer_id: string;
-  advance_date: string;
-  amount: number;
-  notes: string | null;
-  created_at: string;
-  updated_at: string;
-  laborer?: Laborer;
-}
-
-export type SalaryStatus = 'draft' | 'approved';
-
 export type SalarySheetStatus = 'draft' | 'approved';
 
 export interface SalarySheet {
@@ -170,28 +157,6 @@ export interface SalarySheetEntry {
   deduction: number;
   created_at: string;
   updated_at: string;
-}
-
-export interface SalaryRecord {
-  id: string;
-  laborer_id: string;
-  timesheet_id: string;
-  month: number;
-  year: number;
-  regular_hours: number;
-  overtime_hours: number;
-  total_worked_hours: number;
-  hourly_rate: number;
-  basic_salary: number;
-  advances_amount: number;
-  foreman_commission: number;
-  net_salary: number;
-  status: SalaryStatus;
-  approved_at: string | null;
-  created_at: string;
-  updated_at: string;
-  laborer?: Laborer;
-  timesheet?: Timesheet;
 }
 
 export interface NPCInvoice {

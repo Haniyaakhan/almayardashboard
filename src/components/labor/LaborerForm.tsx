@@ -148,8 +148,21 @@ export function LaborerForm({ initial, onSubmit, submitLabel = 'Save' }: Props) 
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const idNumber = (form.id_number || '').trim();
+    if (!idNumber) {
+      const msg = 'Labour ID is required';
+      setError(msg);
+      toast.error(msg);
+      return;
+    }
+    if (!/^\d+$/.test(idNumber)) {
+      const msg = 'Labour ID must be numeric only';
+      setError(msg);
+      toast.error(msg);
+      return;
+    }
     setLoading(true); setError('');
-    try { await onSubmit(form); } catch (err: any) { setError(err.message); toast.error(err.message); }
+    try { await onSubmit({ ...form, id_number: idNumber }); } catch (err: any) { setError(err.message); toast.error(err.message); }
     setLoading(false);
   }
 
@@ -175,8 +188,14 @@ export function LaborerForm({ initial, onSubmit, submitLabel = 'Save' }: Props) 
           {/* ID | Nationality */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
-              <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>ID / Iqama No.</label>
-              <input type="text" value={form.id_number ?? ''} onChange={e => set('id_number', e.target.value || null)}
+              <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>ID / Iqama No. <span style={{ color: '#e8762b' }}>*</span></label>
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                required
+                value={form.id_number ?? ''}
+                onChange={e => set('id_number', e.target.value.replace(/\D/g, '') || null)}
                 className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
             </div>
             <div>

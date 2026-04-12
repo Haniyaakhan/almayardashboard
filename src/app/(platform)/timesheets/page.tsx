@@ -106,15 +106,6 @@ export default function TimesheetsPage() {
 
   return (
     <div style={{ padding: '20px 24px' }}>
-      <div style={{ marginBottom: 16 }}>
-        <h2 style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 2 }}>
-          Timesheets
-        </h2>
-        <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-          Create and manage timesheets for Labor, Vehicles, and Equipment — no pre-registration required.
-        </p>
-      </div>
-
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
         {([
           { label: 'New Labor Timesheet',     href: '/timesheet',           color: '#3b82f6' },

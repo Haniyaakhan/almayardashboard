@@ -32,6 +32,58 @@ BEGIN
 	END IF;
 END $$;
 
+-- 5b. Enforce numeric + unique Labour ID at DB level
+-- Normalize existing values first (trim spaces)
+UPDATE public.laborers
+SET id_number = trim(id_number)
+WHERE id_number IS DISTINCT FROM trim(id_number);
+
+-- Stop migration if invalid data exists, so constraints do not fail silently
+DO $$
+DECLARE
+	invalid_count int;
+	duplicate_count int;
+BEGIN
+	SELECT count(*)
+	INTO invalid_count
+	FROM public.laborers
+	WHERE coalesce(id_number, '') = ''
+		OR id_number !~ '^[0-9]+$';
+
+	IF invalid_count > 0 THEN
+		RAISE EXCEPTION 'Cannot enforce labour ID constraints: % invalid id_number value(s) found (must be non-empty numeric).', invalid_count;
+	END IF;
+
+	SELECT count(*)
+	INTO duplicate_count
+	FROM (
+		SELECT id_number
+		FROM public.laborers
+		GROUP BY id_number
+		HAVING count(*) > 1
+	) d;
+
+	IF duplicate_count > 0 THEN
+		RAISE EXCEPTION 'Cannot enforce labour ID uniqueness: % duplicate id_number group(s) found.', duplicate_count;
+	END IF;
+END $$;
+
+DO $$
+BEGIN
+	IF NOT EXISTS (
+		SELECT 1
+		FROM pg_constraint
+		WHERE conname = 'laborers_id_number_numeric_check'
+			AND conrelid = 'public.laborers'::regclass
+	) THEN
+		ALTER TABLE public.laborers
+			ADD CONSTRAINT laborers_id_number_numeric_check
+			CHECK (id_number ~ '^[0-9]+$');
+	END IF;
+END $$;
+
+CREATE UNIQUE INDEX IF NOT EXISTS laborers_id_number_unique_idx ON public.laborers(id_number);
+
 -- 14. Monthly salary sheet model used by salary-generation page
 CREATE TABLE IF NOT EXISTS public.salary_sheets (
 	id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -204,41 +256,28 @@ BEGIN
 	END IF;
 END $$;
 
--- 9. Labor advances
-CREATE TABLE IF NOT EXISTS public.labor_advances (
-	id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-	laborer_id uuid NOT NULL REFERENCES public.laborers(id) ON DELETE CASCADE,
-	advance_date date NOT NULL,
-	amount numeric(10,2) NOT NULL CHECK (amount >= 0),
-	notes text,
-	created_at timestamptz NOT NULL DEFAULT now(),
-	updated_at timestamptz NOT NULL DEFAULT now()
-);
-CREATE INDEX IF NOT EXISTS labor_advances_laborer_date_idx ON public.labor_advances(laborer_id, advance_date);
+-- 9. Remove labor advances model
+DO $$
+BEGIN
+	IF to_regclass('public.labor_advances') IS NOT NULL THEN
+		DROP POLICY IF EXISTS "auth_all" ON public.labor_advances;
+		DROP TRIGGER IF EXISTS labor_advances_updated_at ON public.labor_advances;
+		DROP INDEX IF EXISTS public.labor_advances_laborer_date_idx;
+		DROP TABLE IF EXISTS public.labor_advances;
+	END IF;
+END $$;
 
--- 10. Salary records (computed from approved labor timesheets only)
-CREATE TABLE IF NOT EXISTS public.salary_records (
-	id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-	laborer_id uuid NOT NULL REFERENCES public.laborers(id) ON DELETE CASCADE,
-	timesheet_id uuid NOT NULL REFERENCES public.timesheets(id) ON DELETE CASCADE,
-	month int NOT NULL CHECK (month between 0 and 11),
-	year int NOT NULL,
-	regular_hours numeric(8,2) NOT NULL DEFAULT 0,
-	overtime_hours numeric(8,2) NOT NULL DEFAULT 0,
-	total_worked_hours numeric(8,2) NOT NULL DEFAULT 0,
-	hourly_rate numeric(10,4) NOT NULL DEFAULT 0,
-	basic_salary numeric(10,2) NOT NULL DEFAULT 0,
-	advances_amount numeric(10,2) NOT NULL DEFAULT 0,
-	foreman_commission numeric(10,2) NOT NULL DEFAULT 0,
-	net_salary numeric(10,2) NOT NULL DEFAULT 0,
-	status text NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','approved')),
-	approved_at timestamptz,
-	created_at timestamptz NOT NULL DEFAULT now(),
-	updated_at timestamptz NOT NULL DEFAULT now(),
-	UNIQUE (timesheet_id)
-);
-CREATE INDEX IF NOT EXISTS salary_records_month_year_idx ON public.salary_records(month, year);
-CREATE INDEX IF NOT EXISTS salary_records_laborer_month_year_idx ON public.salary_records(laborer_id, month, year);
+-- 10. Remove legacy salary records model (replaced by salary_sheets + salary_sheet_entries)
+DO $$
+BEGIN
+	IF to_regclass('public.salary_records') IS NOT NULL THEN
+		DROP POLICY IF EXISTS "auth_all" ON public.salary_records;
+		DROP TRIGGER IF EXISTS salary_records_updated_at ON public.salary_records;
+		DROP INDEX IF EXISTS public.salary_records_laborer_month_year_idx;
+		DROP INDEX IF EXISTS public.salary_records_month_year_idx;
+		DROP TABLE IF EXISTS public.salary_records;
+	END IF;
+END $$;
 
 -- 11. NPC invoices
 CREATE TABLE IF NOT EXISTS public.npc_invoices (
@@ -276,16 +315,6 @@ BEGIN
 		FOR EACH ROW EXECUTE PROCEDURE public.handle_updated_at();
 	END IF;
 
-	IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'labor_advances_updated_at') THEN
-		CREATE TRIGGER labor_advances_updated_at BEFORE UPDATE ON public.labor_advances
-		FOR EACH ROW EXECUTE PROCEDURE public.handle_updated_at();
-	END IF;
-
-	IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'salary_records_updated_at') THEN
-		CREATE TRIGGER salary_records_updated_at BEFORE UPDATE ON public.salary_records
-		FOR EACH ROW EXECUTE PROCEDURE public.handle_updated_at();
-	END IF;
-
 	IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'npc_invoices_updated_at') THEN
 		CREATE TRIGGER npc_invoices_updated_at BEFORE UPDATE ON public.npc_invoices
 		FOR EACH ROW EXECUTE PROCEDURE public.handle_updated_at();
@@ -294,8 +323,6 @@ END $$;
 
 -- 13. RLS + policy for new tables
 ALTER TABLE public.foremen ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.labor_advances ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.salary_records ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.npc_invoices ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.npc_invoice_items ENABLE ROW LEVEL SECURITY;
 
@@ -303,12 +330,6 @@ DO $$
 BEGIN
 	IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'foremen' AND policyname = 'auth_all') THEN
 		CREATE POLICY "auth_all" ON public.foremen FOR ALL TO authenticated USING (true) WITH CHECK (true);
-	END IF;
-	IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'labor_advances' AND policyname = 'auth_all') THEN
-		CREATE POLICY "auth_all" ON public.labor_advances FOR ALL TO authenticated USING (true) WITH CHECK (true);
-	END IF;
-	IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'salary_records' AND policyname = 'auth_all') THEN
-		CREATE POLICY "auth_all" ON public.salary_records FOR ALL TO authenticated USING (true) WITH CHECK (true);
 	END IF;
 	IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'npc_invoices' AND policyname = 'auth_all') THEN
 		CREATE POLICY "auth_all" ON public.npc_invoices FOR ALL TO authenticated USING (true) WITH CHECK (true);

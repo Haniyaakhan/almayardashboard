@@ -7,7 +7,6 @@ import { getForemanById } from '@/hooks/useForemen';
 import { useLaborers } from '@/hooks/useLaborers';
 import type { Foreman } from '@/types/database';
 import { PageSpinner } from '@/components/ui/Spinner';
-import { PageHeader } from '@/components/ui/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 
@@ -48,8 +47,6 @@ export default function ForemanProfilePage() {
 
   return (
     <div>
-      <PageHeader title={foreman.full_name} subtitle="Foreman profile and assigned labour details." />
-
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
         <Card padding="p-4">
           <h3 style={sectionTitleStyle}>Personal Info</h3>

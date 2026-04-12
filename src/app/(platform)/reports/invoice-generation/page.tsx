@@ -3,7 +3,6 @@ import React, { useRef, useState } from 'react';
 import { Download, Plus, Trash2 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-import { PageHeader } from '@/components/ui/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 
@@ -84,7 +83,6 @@ export default function InvoiceGenerationPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <PageHeader title="Invoice Generation" subtitle="Manual invoice creation with left settings and A4 preview" />
 
       <div style={{ display: 'grid', gridTemplateColumns: '330px 1fr', gap: 18, alignItems: 'start' }}>
         {/* LEFT PANEL */}
@@ -410,3 +408,4 @@ export default function InvoiceGenerationPage() {
     </div>
   );
 }
+

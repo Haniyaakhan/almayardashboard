@@ -6,7 +6,6 @@ import { usePathname } from 'next/navigation';
 const tabs = [
   { href: '/operations/labor', label: 'Labor' },
   { href: '/operations/foreman', label: 'Foreman' },
-  { href: '/operations/advances', label: 'Advances' },
   { href: '/operations/timesheet', label: 'Timesheet' },
   { href: '/operations/salary', label: 'Salary' },
   { href: '/operations/npc-invoice', label: 'NPC Invoice' },

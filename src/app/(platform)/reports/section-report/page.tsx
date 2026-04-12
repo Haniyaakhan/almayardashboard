@@ -3,7 +3,6 @@
 import React, { useMemo, useState } from 'react';
 import jsPDF from 'jspdf';
 import ExcelJS from 'exceljs';
-import { PageHeader } from '@/components/ui/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Plus, Trash2, FileSpreadsheet, FileText } from 'lucide-react';
@@ -307,7 +306,6 @@ export default function SectionReportPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <PageHeader title="Section Report" subtitle="SL/No., Date, Description, Plate No, Invoice No, Amount, VAT, Total Amount" />
 
       <Card>
         <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -452,3 +450,4 @@ export default function SectionReportPage() {
     </div>
   );
 }
+

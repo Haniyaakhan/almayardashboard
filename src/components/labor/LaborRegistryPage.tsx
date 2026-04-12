@@ -1,17 +1,19 @@
 'use client';
 import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Users, Plus, Search, Pencil, Trash2, RotateCcw, X, Download } from 'lucide-react';
+import { Users, Plus, Search, Pencil, Trash2, RotateCcw, Download } from 'lucide-react';
 import { exportLaborersToExcel } from '@/lib/excelExport';
-import { useLaborers, createLaborer, deactivateLaborer, reactivateLaborer } from '@/hooks/useLaborers';
+import { useLaborers, createLaborer, updateLaborer, deactivateLaborer, reactivateLaborer } from '@/hooks/useLaborers';
 import { useForemen } from '@/hooks/useForemen';
 import { PageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Badge } from '@/components/ui/Badge';
+import { FormModal } from '@/components/ui/FormModal';
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/Toast';
 import { LaborerForm } from '@/components/labor/LaborerForm';
 import { normalizeDesignationKey, toDisplayDesignation } from '@/lib/designation';
+import type { Laborer } from '@/types/database';
 
 export function LaborRegistryPage() {
   const { laborers, loading, refetch } = useLaborers(false);
@@ -19,6 +21,7 @@ export function LaborRegistryPage() {
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const toast = useToast();
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editLaborer, setEditLaborer] = useState<Laborer | null>(null);
   const [exporting, setExporting] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | 'Active' | 'Inactive'>('All');
@@ -212,9 +215,13 @@ export function LaborRegistryPage() {
                     </td>
                     <td style={tdStyle}>
                       <div className="flex items-center gap-1.5">
-                        <Link href={`/labor/${l.id}/edit`} title="Edit" style={actionBtnStyle}>
+                        <button
+                          onClick={() => setEditLaborer(l)}
+                          title="Edit"
+                          style={actionBtnStyle}
+                        >
                           <Pencil size={13} />
-                        </Link>
+                        </button>
                         {l.is_active ? (
                           <button
                             onClick={async () => {
@@ -266,53 +273,48 @@ export function LaborRegistryPage() {
 
       {confirmDialog}
 
-      {/* Add Labour Modal */}
-      {showAddModal && (
-        <div
-          onClick={e => { if (e.target === e.currentTarget) setShowAddModal(false); }}
-          style={{
-            position: 'fixed', inset: 0, zIndex: 999,
-            background: 'rgba(0,0,0,0.45)',
-            display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
-            padding: '40px 16px', overflowY: 'auto',
+      <FormModal
+        open={showAddModal}
+        title="Add New Labour"
+        subtitle="Register a new worker to the registry"
+        onClose={() => setShowAddModal(false)}
+        maxWidth={760}
+        zIndex={999}
+      >
+        <LaborerForm
+          submitLabel="Create Laborer"
+          onSubmit={async (data) => {
+            const err = await createLaborer(data);
+            if (err) throw err;
+            toast.success('Laborer created successfully');
+            setShowAddModal(false);
+            refetch();
           }}
-        >
-          <div style={{
-            background: 'var(--bg-card)', borderRadius: 16,
-            width: '100%', maxWidth: 760,
-            boxShadow: '0 24px 64px rgba(0,0,0,0.18)',
-            position: 'relative', padding: '28px 32px 32px',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-              <div>
-                <p style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Add New Labour</p>
-                <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '2px 0 0' }}>Register a new worker to the registry</p>
-              </div>
-              <button
-                onClick={() => setShowAddModal(false)}
-                style={{
-                  width: 32, height: 32, borderRadius: 8, border: '1px solid var(--border)',
-                  background: 'var(--bg-card)', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: 'var(--text-muted)',
-                }}
-              >
-                <X size={16} />
-              </button>
-            </div>
-            <LaborerForm
-              submitLabel="Create Laborer"
-              onSubmit={async (data) => {
-                const err = await createLaborer(data);
-                if (err) throw err;
-                toast.success('Laborer created successfully');
-                setShowAddModal(false);
-                refetch();
-              }}
-            />
-          </div>
-        </div>
-      )}
+        />
+      </FormModal>
+
+      <FormModal
+        open={!!editLaborer}
+        title="Edit Labour"
+        subtitle={editLaborer?.full_name}
+        onClose={() => setEditLaborer(null)}
+        maxWidth={760}
+        zIndex={999}
+      >
+        {editLaborer ? (
+          <LaborerForm
+            initial={editLaborer}
+            submitLabel="Update Laborer"
+            onSubmit={async (data) => {
+              const err = await updateLaborer(editLaborer.id, data);
+              if (err) throw err;
+              toast.success('Laborer updated successfully');
+              setEditLaborer(null);
+              refetch();
+            }}
+          />
+        ) : null}
+      </FormModal>
     </div>
   );
 }

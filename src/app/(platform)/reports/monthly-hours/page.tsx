@@ -1,6 +1,5 @@
 'use client';
 import React, { useState } from 'react';
-import { PageHeader } from '@/components/ui/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { Spinner } from '@/components/ui/Spinner';
 import { Badge } from '@/components/ui/Badge';
@@ -45,7 +44,6 @@ export default function MonthlyHoursByDesignationPage() {
   if (error || !report) {
     return (
       <div className="p-6">
-        <PageHeader title="Monthly Hours by Designation" subtitle="Worked hours breakdown" />
         <Card className="border-red-200">
           <p className="text-red-600">{error || 'Failed to load report'}</p>
         </Card>
@@ -70,10 +68,6 @@ export default function MonthlyHoursByDesignationPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <PageHeader 
-        title="Monthly Hours by Designation" 
-        subtitle="Worked hours breakdown based on employee designations"
-      />
 
       {/* Period Selection */}
       <Card>
@@ -176,3 +170,4 @@ export default function MonthlyHoursByDesignationPage() {
     </div>
   );
 }
+
