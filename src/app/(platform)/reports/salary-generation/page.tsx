@@ -53,6 +53,12 @@ function fmtOMR(n: number) {
   return fmt(n);
 }
 
+function laborSearchLabel(labor: { full_name?: string | null; id_number?: string | null; id: string }) {
+  const name = (labor.full_name || '').trim() || 'Unnamed Labour';
+  const identity = (labor.id_number || '').trim() || labor.id;
+  return `${name} (${identity})`;
+}
+
 function monthKey(month: number, year: number) {
   return `${year}-${String(month).padStart(2, '0')}`;
 }
@@ -172,7 +178,7 @@ export default function SalaryGenerationPage() {
 
   async function loadLaborForSalary(labor: (typeof laborers)[number]) {
     setSelectedLaborId(labor.id);
-    setSearch(labor.full_name || labor.id_number || labor.id);
+    setSearch(laborSearchLabel(labor));
     setLaborSearchStatus('idle');
   }
 
@@ -185,6 +191,12 @@ export default function SalaryGenerationPage() {
 
     const lowered = trimmed.toLowerCase();
 
+    const exactLabelMatch = laborers.find((labor) => laborSearchLabel(labor).toLowerCase() === lowered);
+    if (exactLabelMatch) {
+      await loadLaborForSalary(exactLabelMatch);
+      return;
+    }
+
     const exactIdMatch = laborers.find((labor) => {
       const idNumber = (labor.id_number || '').trim().toLowerCase();
       const uid = (labor.id || '').trim().toLowerCase();
@@ -196,9 +208,15 @@ export default function SalaryGenerationPage() {
       return;
     }
 
-    const exactNameMatch = laborers.find((labor) => (labor.full_name || '').trim().toLowerCase() === lowered);
-    if (exactNameMatch) {
-      await loadLaborForSalary(exactNameMatch);
+    const exactNameMatches = laborers.filter((labor) => (labor.full_name || '').trim().toLowerCase() === lowered);
+    if (exactNameMatches.length === 1) {
+      await loadLaborForSalary(exactNameMatches[0]);
+      return;
+    }
+
+    if (exactNameMatches.length > 1) {
+      setLaborSearchStatus('idle');
+      toast.warning('Multiple labour records share this name. Select by ID number.');
       return;
     }
 
@@ -211,6 +229,12 @@ export default function SalaryGenerationPage() {
 
     if (partialMatches.length === 1) {
       await loadLaborForSalary(partialMatches[0]);
+      return;
+    }
+
+    if (partialMatches.length > 1) {
+      setLaborSearchStatus('idle');
+      toast.warning('Multiple matches found. Please choose the exact labour ID.');
       return;
     }
 
@@ -703,7 +727,7 @@ export default function SalaryGenerationPage() {
             </div>
             <datalist id="salary-labor-search-options">
               {laborers.map((labor) => (
-                <option key={labor.id} value={labor.full_name || labor.id_number || labor.id}>
+                <option key={labor.id} value={laborSearchLabel(labor)}>
                   {`${labor.full_name || '-'} (${labor.id_number || labor.id})`}
                 </option>
               ))}
