@@ -411,16 +411,28 @@ export default function SalaryGenerationPage() {
     }
 
     const groupedByDesignation = entries.reduce((acc, entry) => {
-      const designation = toDisplayDesignation(entry.designation);
-      if (!acc[designation]) acc[designation] = [];
-      acc[designation].push(entry);
-      return acc;
-    }, {} as Record<string, SalarySheetEntry[]>);
+      const designationKey = normalizeDesignationKey(entry.designation);
+      if (!acc[designationKey]) {
+        acc[designationKey] = {
+          label: toDisplayDesignation(entry.designation),
+          rows: [],
+        };
+      }
 
-    const sectionHtml = Object.keys(groupedByDesignation)
-      .sort((a, b) => a.localeCompare(b))
-      .map((designation) => {
-        const rows = groupedByDesignation[designation];
+      acc[designationKey].rows.push(entry);
+      return acc;
+    }, {} as Record<string, { label: string; rows: SalarySheetEntry[] }>);
+
+    const orderedDesignationKeys = Object.keys(groupedByDesignation).sort((a, b) => {
+      const countDiff = groupedByDesignation[a].rows.length - groupedByDesignation[b].rows.length;
+      if (countDiff !== 0) return countDiff;
+      return groupedByDesignation[a].label.localeCompare(groupedByDesignation[b].label);
+    });
+
+    const sectionHtml = orderedDesignationKeys
+      .map((designationKey) => {
+        const section = groupedByDesignation[designationKey];
+        const rows = section.rows;
         const rowsHtml = rows
           .map((entry) => `
             <tr>
@@ -441,7 +453,7 @@ export default function SalaryGenerationPage() {
         const sectionNetTotal = rows.reduce((sum, item) => sum + ((Number(item.total_salary) || 0) - (Number(item.deduction) || 0)), 0);
 
         return `
-          <h2>${designation}</h2>
+          <h2>${section.label}</h2>
           <table>
             <thead>
               <tr>
@@ -459,7 +471,7 @@ export default function SalaryGenerationPage() {
             </thead>
             <tbody>${rowsHtml}</tbody>
           </table>
-          <div class="section-total">${designation} Total (Net): ${fmtOMR(sectionNetTotal)}</div>
+          <div class="section-total">${section.label} Total (Net): ${fmtOMR(sectionNetTotal)}</div>
         `;
       })
       .join('');
