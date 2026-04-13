@@ -50,7 +50,7 @@ function fmt(n: number) {
 }
 
 function fmtOMR(n: number) {
-  return `OMR ${fmt(n)}`;
+  return fmt(n);
 }
 
 function monthKey(month: number, year: number) {
@@ -429,8 +429,6 @@ export default function SalaryGenerationPage() {
               <td>${fmtOMR(entry.monthly_salary)}</td>
               <td>${fmt(entry.hourly_rate)}</td>
               <td>${fmt(entry.actual_worked_hours)}</td>
-              <td>${fmt(entry.total_worked_hours)}</td>
-              <td>${fmt(entry.overtime_hours)}</td>
               <td>${fmtOMR(entry.total_salary)}</td>
               <td>${fmtOMR(Number(entry.deduction) || 0)}</td>
               <td>${fmtOMR((Number(entry.total_salary) || 0) - (Number(entry.deduction) || 0))}</td>
@@ -449,14 +447,12 @@ export default function SalaryGenerationPage() {
               <tr>
                 <th>Name</th>
                 <th>ID</th>
-                <th>M/Salary</th>
+                <th>M/Salary (OMR)</th>
                 <th>H/Rate</th>
                 <th>AW-Hours</th>
-                <th>TW-Hours</th>
-                <th>OT</th>
-                <th>Total Salary</th>
-                <th>Deduction</th>
-                <th>Net Salary</th>
+                <th>Total Salary (OMR)</th>
+                <th>Deduction (OMR)</th>
+                <th>Net Salary (OMR)</th>
                 <th>Bank Name</th>
                 <th>Account Number</th>
               </tr>
@@ -467,6 +463,12 @@ export default function SalaryGenerationPage() {
         `;
       })
       .join('');
+
+    const totalWorkers = entries.length;
+    const grandNetTotal = entries.reduce(
+      (sum, item) => sum + ((Number(item.total_salary) || 0) - (Number(item.deduction) || 0)),
+      0,
+    );
 
     const printWindow = window.open('', '_blank', 'width=1200,height=860');
     if (!printWindow) {
@@ -494,7 +496,7 @@ export default function SalaryGenerationPage() {
           <h1>Salary Sheet</h1>
           <p>${MONTH_NAMES[month]} ${year} - ${sheet?.status === 'approved' ? 'Approved' : 'Draft'}</p>
           ${sectionHtml}
-          <div class="total">Grand Total (Net): ${fmtOMR(entries.reduce((sum, item) => sum + ((Number(item.total_salary) || 0) - (Number(item.deduction) || 0)), 0))}</div>
+          <div class="total">Total Workers: ${totalWorkers} | Grand Total Net Salary (OMR): ${fmtOMR(grandNetTotal)}</div>
         </body>
       </html>
     `);
@@ -852,14 +854,12 @@ export default function SalaryGenerationPage() {
                       {[
                         'Name',
                         'ID',
-                        'M/Salary',
+                        'M/Salary (OMR)',
                         'H/Rate',
                         'AW-Hours',
-                        'TW-Hours',
-                        'OT',
-                        'Total Salary',
-                        'Deduction',
-                        'Net Salary',
+                        'Total Salary (OMR)',
+                        'Deduction (OMR)',
+                        'Net Salary (OMR)',
                         'Bank Name',
                         'Account Number',
                         'Action',
@@ -911,39 +911,7 @@ export default function SalaryGenerationPage() {
 
                           <td className="px-3 py-3 text-right" style={{ color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>{fmt(hourlyRate)}</td>
 
-                          <td className="px-3 py-3 text-right" style={{ color: 'var(--text-primary)' }}>
-                            <span>{fmt(actualWorkedHours)}</span>
-                          </td>
-
-                          <td className="px-3 py-3">
-                            {isEditing ? (
-                              <input
-                                type="number"
-                                step="0.01"
-                                value={totalWorkedHours}
-                                onChange={(e) => changeDraft(row.id, 'totalWorkedHours', Number(e.target.value) || 0)}
-                                className="w-28 rounded-xl px-3 py-2 text-sm outline-none text-right"
-                                style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
-                              />
-                            ) : (
-                              <span style={{ color: 'var(--text-primary)' }}>{fmt(row.total_worked_hours)}</span>
-                            )}
-                          </td>
-
-                          <td className="px-3 py-3">
-                            {isEditing ? (
-                              <input
-                                type="number"
-                                step="0.01"
-                                value={overtime}
-                                onChange={(e) => changeDraft(row.id, 'overtimeHours', Number(e.target.value) || 0)}
-                                className="w-24 rounded-xl px-3 py-2 text-sm outline-none text-right"
-                                style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
-                              />
-                            ) : (
-                              <span style={{ color: row.overtime_hours > 0 ? 'var(--green-text)' : 'var(--text-primary)', fontWeight: row.overtime_hours > 0 ? 700 : 500 }}>{fmt(row.overtime_hours)}</span>
-                            )}
-                          </td>
+                          <td className="px-3 py-3 text-right" style={{ color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>{fmt(actualWorkedHours)}</td>
 
                           <td className="px-3 py-3 text-right font-semibold" style={{ color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>{fmtOMR(totalSalary)}</td>
 
@@ -1020,12 +988,6 @@ export default function SalaryGenerationPage() {
                         Totals
                       </td>
                       <td className="px-3 py-3 text-right font-semibold" style={{ color: 'var(--text-primary)' }}>
-                        {fmt(filteredActiveRows.reduce((sum, row) => sum + (Number(row.total_worked_hours) || 0), 0))}
-                      </td>
-                      <td className="px-3 py-3 text-right font-semibold" style={{ color: 'var(--green-text)' }}>
-                        {fmt(filteredActiveRows.reduce((sum, row) => sum + (Number(row.overtime_hours) || 0), 0))}
-                      </td>
-                      <td className="px-3 py-3 text-right font-semibold" style={{ color: 'var(--text-primary)' }}>
                         {fmtOMR(filteredActiveRows.reduce((sum, row) => sum + (Number(row.total_salary) || 0), 0))}
                       </td>
                       <td className="px-3 py-3 text-right font-semibold" style={{ color: '#dc2626' }}>
@@ -1034,7 +996,7 @@ export default function SalaryGenerationPage() {
                       <td className="px-3 py-3 text-right font-semibold" style={{ color: 'var(--orange)' }}>
                         {fmtOMR(filteredActiveRows.reduce((sum, row) => sum + ((Number(row.total_salary) || 0) - (Number(row.deduction) || 0)), 0))}
                       </td>
-                      <td colSpan={3} className="px-3 py-3" />
+                      <td colSpan={2} className="px-3 py-3" />
                     </tr>
                   </tbody>
                 </table>
