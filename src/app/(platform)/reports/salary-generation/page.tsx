@@ -59,39 +59,15 @@ function laborSearchLabel(labor: { full_name?: string | null; id_number?: string
   return `${name} (${identity})`;
 }
 
-function monthKey(month: number, year: number) {
-  return `${year}-${String(month).padStart(2, '0')}`;
-}
-
-function parseMonthKey(value: string) {
-  const [yearRaw, monthRaw] = value.split('-');
-  return {
-    year: Number(yearRaw),
-    month: Number(monthRaw),
-  };
-}
-
-function getMonthOptions() {
-  const now = new Date();
-  const options: Array<{ month: number; year: number; label: string }> = [];
-
-  for (let offset = -3; offset <= 3; offset += 1) {
-    const d = new Date(now.getFullYear(), now.getMonth() + offset, 1);
-    options.push({
-      month: d.getMonth(),
-      year: d.getFullYear(),
-      label: `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`,
-    });
-  }
-
-  return options;
-}
+const ALL_MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
 
 export default function SalaryGenerationPage() {
   const toast = useToast();
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const previousMonth = getPreviousMonthYear();
-  const monthOptions = useMemo(() => getMonthOptions(), []);
 
   const [month, setMonth] = useState(previousMonth.month);
   const [year, setYear] = useState(previousMonth.year);
@@ -542,23 +518,6 @@ export default function SalaryGenerationPage() {
     printWindow.print();
   }
 
-  async function handleMonthChange(nextValue: string) {
-    const next = parseMonthKey(nextValue);
-
-    if (editingEntryId) {
-      const entry = entries.find((item) => item.id === editingEntryId);
-      if (entry) {
-        await saveEntryDraft(entry);
-      }
-    }
-
-    setMonth(next.month);
-    setYear(next.year);
-    setActiveTab('');
-    setEditingEntryId('');
-    setDrafts({});
-  }
-
   function startRowEdit(entry: SalarySheetEntry) {
     if (readOnly) return;
     setEditingEntryId(entry.id);
@@ -664,20 +623,55 @@ export default function SalaryGenerationPage() {
               </Badge>
             </div>
 
+            {readOnly && (
+              <div style={{ padding: '10px 14px', background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: 10, fontSize: 12, color: '#92400e' }}>
+                <strong>Locked.</strong> This salary sheet is approved and cannot be edited or regenerated. The snapshot is frozen.
+              </div>
+            )}
+
             <label className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: 'var(--text-muted)' }}>
-              Selected Month
-              <select
-                value={monthKey(month, year)}
-                onChange={(e) => handleMonthChange(e.target.value)}
-                className="mt-2 w-full rounded-xl px-3 py-2 text-sm outline-none"
-                style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
-              >
-                {monthOptions.map((option) => (
-                  <option key={`${option.year}-${option.month}`} value={monthKey(option.month, option.year)}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+              Month &amp; Year
+              <div className="flex gap-2 mt-2">
+                <select
+                  value={month}
+                  onChange={(e) => {
+                    const nextMonth = Number(e.target.value);
+                    if (editingEntryId) {
+                      const entry = entries.find((item) => item.id === editingEntryId);
+                      if (entry) saveEntryDraft(entry);
+                    }
+                    setMonth(nextMonth);
+                    setActiveTab('');
+                    setEditingEntryId('');
+                    setDrafts({});
+                  }}
+                  className="flex-1 rounded-xl px-3 py-2 text-sm outline-none"
+                  style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+                >
+                  {ALL_MONTH_NAMES.map((m, idx) => (
+                    <option key={m} value={idx}>{m}</option>
+                  ))}
+                </select>
+                <input
+                  type="number"
+                  value={year}
+                  min={2020}
+                  max={2099}
+                  onChange={(e) => {
+                    const nextYear = Number(e.target.value) || year;
+                    if (editingEntryId) {
+                      const entry = entries.find((item) => item.id === editingEntryId);
+                      if (entry) saveEntryDraft(entry);
+                    }
+                    setYear(nextYear);
+                    setActiveTab('');
+                    setEditingEntryId('');
+                    setDrafts({});
+                  }}
+                  className="w-24 rounded-xl px-3 py-2 text-sm outline-none"
+                  style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+                />
+              </div>
             </label>
 
             <Button variant="secondary" icon={<CheckCircle2 size={14} />} onClick={approveSheet} disabled={readOnly || !entries.length} className="w-full justify-center">

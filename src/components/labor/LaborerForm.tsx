@@ -8,6 +8,10 @@ import { Upload, X, Image as ImageIcon, Plus } from 'lucide-react';
 import type { Laborer } from '@/types/database';
 import { createForeman } from '@/hooks/useForemen';
 import { useLaborers } from '@/hooks/useLaborers';
+import { OMAN_BANK_LIST, resolveSwift } from '@/lib/omanBanks';
+
+// Oman bank list for the dropdown
+const OMAN_BANKS = OMAN_BANK_LIST.map((b) => b.name);
 
 type FormData = Omit<Laborer, 'id' | 'created_at' | 'updated_at'>;
 
@@ -390,14 +394,28 @@ export function LaborerForm({ initial, onSubmit, submitLabel = 'Save' }: Props) 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div>
             <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Bank Name</label>
-            <input type="text" value={form.bank_name ?? ''} onChange={e => set('bank_name', e.target.value || null)}
-              className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+            <select value={form.bank_name ?? ''} onChange={e => set('bank_name', e.target.value || null)}
+              className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={inputStyle} onFocus={onFocus} onBlur={onBlur}>
+              <option value="">— Select Bank —</option>
+              {OMAN_BANKS.map(b => <option key={b} value={b}>{b}</option>)}
+            </select>
           </div>
           <div>
-            <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Account No.</label>
-            <input type="text" value={form.bank_account_number ?? ''} onChange={e => set('bank_account_number', e.target.value || null)}
-              className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+            <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>SWIFT Code</label>
+            <input
+              type="text"
+              readOnly
+              value={resolveSwift(form.bank_name)}
+              placeholder="Auto-resolved from bank name"
+              className="w-full px-3 py-2 rounded-lg text-sm outline-none"
+              style={{ ...inputStyle, background: 'var(--bg-subtle, #f8fafc)', color: resolveSwift(form.bank_name) ? 'var(--text-primary)' : 'var(--text-muted)', cursor: 'default', fontFamily: 'monospace' }}
+            />
           </div>
+        </div>
+        <div style={{ marginTop: 12 }}>
+          <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Account No.</label>
+          <input type="text" value={form.bank_account_number ?? ''} onChange={e => set('bank_account_number', e.target.value || null)}
+            className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
         </div>
       </section>
 

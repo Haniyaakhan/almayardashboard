@@ -1,5 +1,5 @@
 'use client';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Calculator, FileSpreadsheet, Printer, CheckCircle, AlertCircle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Card } from '@/components/ui/Card';
@@ -9,8 +9,12 @@ import { PageSpinner } from '@/components/ui/Spinner';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
 import { MONTH_NAMES } from '@/lib/dateUtils';
+import { normalizeDesignationKey, toDisplayDesignation } from '@/lib/designation';
 import { exportManualSalarySheetToExcel } from '@/lib/excelExport';
+import { OMAN_BANK_LIST, resolveSwift } from '@/lib/omanBanks';
 import type { SalarySheet, SalarySheetEntry } from '@/types/database';
+
+// ─── OMAN_BANK_SWIFT and resolveSwiftCode moved to @/lib/omanBanks ─────────
 
 function currentMonthYear() {
   const now = new Date();
@@ -26,18 +30,21 @@ export default function OperationsSalaryPage() {
   const [entries, setEntries] = useState<SalarySheetEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const initDoneRef = useRef(false);
 
-  const refetch = useCallback(async () => {
+  const refetch = useCallback(async (m: number, y: number) => {
     setLoading(true);
     setError('');
 
     const supabase = createClient();
-    const { data: approvedSheet, error: sheetError } = await supabase
+    const { data: anySheet, error: sheetError } = await supabase
       .from('salary_sheets')
       .select('*')
-      .eq('month', month)
-      .eq('year', year)
-      .eq('status', 'approved')
+      .eq('month', m)
+      .eq('year', y)
+      .in('status', ['approved', 'draft'])
+      .order('status', { ascending: true })
+      .limit(1)
       .maybeSingle();
 
     if (sheetError) {
@@ -48,7 +55,7 @@ export default function OperationsSalaryPage() {
       return;
     }
 
-    if (!approvedSheet) {
+    if (!anySheet) {
       setSheet(null);
       setEntries([]);
       setLoading(false);
@@ -58,25 +65,51 @@ export default function OperationsSalaryPage() {
     const { data: rows, error: rowsError } = await supabase
       .from('salary_sheet_entries')
       .select('*')
-      .eq('sheet_id', approvedSheet.id)
+      .eq('sheet_id', anySheet.id)
+      .order('designation', { ascending: true })
       .order('labor_name', { ascending: true });
 
     if (rowsError) {
       setError(rowsError.message);
-      setSheet(approvedSheet as SalarySheet);
+      setSheet(anySheet as SalarySheet);
       setEntries([]);
       setLoading(false);
       return;
     }
 
-    setSheet(approvedSheet as SalarySheet);
+    setSheet(anySheet as SalarySheet);
     setEntries((rows ?? []) as SalarySheetEntry[]);
     setLoading(false);
-  }, [month, year]);
+  }, []);
 
+  // On mount: find the most recent sheet, set selectors to it, then load it directly
   useEffect(() => {
-    refetch();
-  }, [refetch]);
+    const supabase = createClient();
+    supabase
+      .from('salary_sheets')
+      .select('month, year, salary_sheet_entries!inner(id)')
+      .in('status', ['approved', 'draft'])
+      .order('year', { ascending: false })
+      .order('month', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        const m = data?.month ?? now.month;
+        const y = data?.year ?? now.year;
+        setMonth(m);
+        setYear(y);
+        refetch(m, y);
+        // Set after state updates so the [month,year] effect can tell init is done
+        setTimeout(() => { initDoneRef.current = true; }, 0);
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Re-load when user changes the month/year selector
+  useEffect(() => {
+    if (!initDoneRef.current) return;
+    refetch(month, year);
+  }, [month, year, refetch]);
 
   const totals = useMemo(() => {
     return entries.reduce(
@@ -152,85 +185,174 @@ export default function OperationsSalaryPage() {
 
   function onPrintPDF() {
     if (!entries.length) {
-      toast.warning('No approved salaries to print');
+      toast.warning('No entries to print');
       return;
     }
+
+    const groupedByDesignation = entries.reduce((acc, entry) => {
+      const key = normalizeDesignationKey(entry.designation);
+      if (!acc[key]) acc[key] = { label: toDisplayDesignation(entry.designation), rows: [] };
+      acc[key].rows.push(entry);
+      return acc;
+    }, {} as Record<string, { label: string; rows: SalarySheetEntry[] }>);
+
+    const orderedKeys = Object.keys(groupedByDesignation).sort((a, b) => {
+      const diff = groupedByDesignation[a].rows.length - groupedByDesignation[b].rows.length;
+      return diff !== 0 ? diff : groupedByDesignation[a].label.localeCompare(groupedByDesignation[b].label);
+    });
+
+    const sectionHtml = orderedKeys.map((key) => {
+      const { label, rows } = groupedByDesignation[key];
+      const rowsHtml = rows.map((entry) => {
+        const gross = Number(entry.total_salary || 0);
+        const deduction = Number(entry.deduction || 0);
+        return `<tr>
+          <td>${entry.labor_name || '-'}</td>
+          <td>${entry.labor_code || '-'}</td>
+          <td>${Number(entry.monthly_salary || 0).toFixed(3)}</td>
+          <td>${Number(entry.hourly_rate || 0).toFixed(3)}</td>
+          <td>${Number(entry.actual_worked_hours || 0).toFixed(2)}</td>
+          <td>${gross.toFixed(3)}</td>
+          <td>${deduction.toFixed(3)}</td>
+          <td>${(gross - deduction).toFixed(3)}</td>
+          <td>${entry.bank_name || '-'}</td>
+          <td>${entry.bank_account_number || '-'}</td>
+        </tr>`;
+      }).join('');
+      const sectionNet = rows.reduce((sum, r) => sum + ((Number(r.total_salary) || 0) - (Number(r.deduction) || 0)), 0);
+      return `
+        <h2>${label}</h2>
+        <table>
+          <thead><tr>
+            <th>Name</th><th>ID</th><th>M/Salary (OMR)</th><th>H/Rate</th><th>AW-Hours</th>
+            <th>Total Salary (OMR)</th><th>Deduction (OMR)</th><th>Net Salary (OMR)</th>
+            <th>Bank Name</th><th>Account Number</th>
+          </tr></thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+        <div class="section-total">${label} Total (Net): ${sectionNet.toFixed(3)} OMR</div>
+      `;
+    }).join('');
+
+    const grandNet = entries.reduce(
+      (sum, r) => sum + ((Number(r.total_salary) || 0) - (Number(r.deduction) || 0)),
+      0,
+    );
 
     const printWindow = window.open('', '_blank', 'width=1200,height=860');
-    if (!printWindow) {
-      toast.error('Popup blocked. Allow popups and try again.');
-      return;
-    }
-
-    const rowsHtml = entries
-      .map((row) => {
-        const gross = Number(row.total_salary || 0);
-        const deduction = Number(row.deduction || 0);
-        const net = gross - deduction;
-
-        return `
-          <tr>
-            <td>${row.labor_name || '-'}</td>
-            <td>${row.labor_code || '-'}</td>
-            <td>${row.designation || '-'}</td>
-            <td>${row.bank_name || '-'}</td>
-            <td>${row.bank_account_number || '-'}</td>
-            <td>${Number(row.total_worked_hours || 0).toFixed(2)}</td>
-            <td>${Number(row.overtime_hours || 0).toFixed(2)}</td>
-            <td>${Number(row.hourly_rate || 0).toFixed(3)}</td>
-            <td>${gross.toFixed(3)} OMR</td>
-            <td>${deduction.toFixed(3)} OMR</td>
-            <td>${net.toFixed(3)} OMR</td>
-          </tr>
-        `;
-      })
-      .join('');
+    if (!printWindow) { toast.error('Popup blocked. Allow popups and try again.'); return; }
 
     printWindow.document.write(`
       <html>
         <head>
-          <title>Approved Salaries - ${MONTH_NAMES[month]} ${year}</title>
+          <title>Salary Sheet - ${MONTH_NAMES[month]} ${year}</title>
           <style>
             body { font-family: Arial, sans-serif; padding: 22px; color: #111827; }
-            h1 { margin: 0 0 6px; font-size: 20px; }
+            h1 { margin: 0 0 4px; font-size: 20px; }
             p { margin: 0 0 14px; color: #4b5563; }
+            h2 { margin: 18px 0 8px; font-size: 14px; color: #1f2937; }
             table { width: 100%; border-collapse: collapse; font-size: 11px; }
             th, td { border: 1px solid #e5e7eb; padding: 6px; text-align: left; }
             th { background: #f8fafc; text-transform: uppercase; font-size: 10px; letter-spacing: 0.04em; }
-            .total { margin-top: 14px; font-weight: 700; font-size: 13px; }
+            .section-total { margin: 8px 0 14px; font-weight: 600; font-size: 12px; }
+            .total { margin-top: 14px; font-weight: 700; font-size: 14px; }
           </style>
         </head>
         <body>
-          <h1>Approved Salaries</h1>
-          <p>${MONTH_NAMES[month]} ${year}</p>
-          <table>
-            <thead>
-              <tr>
-                <th>Labor</th>
-                <th>ID</th>
-                <th>Designation</th>
-                <th>Bank</th>
-                <th>Account No</th>
-                <th>Worked Hrs</th>
-                <th>OT Hrs</th>
-                <th>Hourly Rate</th>
-                <th>Gross Salary</th>
-                <th>Deduction</th>
-                <th>Net Salary</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rowsHtml}
-            </tbody>
-          </table>
-          <div class="total">Totals: Gross ${totals.gross.toFixed(3)} OMR, Deduction ${totals.deduction.toFixed(3)} OMR, Net ${totals.net.toFixed(3)} OMR</div>
+          <h1>Salary Sheet</h1>
+          <p>${MONTH_NAMES[month]} ${year} — ${sheet?.status === 'approved' ? 'Approved' : 'Draft'}</p>
+          ${sectionHtml}
+          <div class="total">Total Workers: ${entries.length} | Grand Total Net Salary (OMR): ${grandNet.toFixed(3)}</div>
         </body>
       </html>
     `);
-
     printWindow.document.close();
     printWindow.focus();
     printWindow.print();
+  }
+
+  const [syncing, setSyncing] = useState(false);
+
+  async function syncBankFromRegistry() {
+    if (!sheet || sheet.status === 'approved') return;
+    setSyncing(true);
+    const supabase = createClient();
+    // Fetch all laborers' current bank details
+    const { data: laborers, error: labErr } = await supabase
+      .from('laborers')
+      .select('id_number, bank_name, bank_account_number');
+    if (labErr) { toast.error(`Failed to fetch laborers: ${labErr.message}`); setSyncing(false); return; }
+
+    let syncCount = 0;
+    for (const lab of (laborers ?? [])) {
+      const patch: Record<string, string> = {};
+      if (lab.bank_name) patch.bank_name = lab.bank_name;
+      if (lab.bank_account_number) patch.bank_account_number = lab.bank_account_number;
+      if (!Object.keys(patch).length) continue;
+      const { error } = await supabase
+        .from('salary_sheet_entries')
+        .update(patch)
+        .eq('labor_code', lab.id_number)
+        .eq('sheet_id', sheet.id);
+      if (!error) syncCount++;
+    }
+    toast.success(`Synced bank details for ${syncCount} entries`);
+    setSyncing(false);
+    refetch(month, year);
+  }
+
+  async function exportBankUpload() {
+    const bankEntries = entries.filter((e) => {
+      const acc = (e.bank_account_number ?? '').trim().toUpperCase();
+      return acc.length > 0 && acc !== '-' && acc !== 'NO ACCOUNT NUMBER';
+    });
+    if (!bankEntries.length) {
+      toast.warning('No entries with bank account numbers to export');
+      return;
+    }
+    try {
+      const ExcelJS = (await import('exceljs')).default;
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet('Bank Upload');
+
+      ws.columns = [
+        { header: 'Beneficiary Account No', key: 'account_no', width: 32 },
+        { header: 'AMOUNT', key: 'amount', width: 17 },
+        { header: 'Ben Bank SWIFT Code', key: 'swift', width: 22 },
+        { header: 'Ben Name', key: 'ben_name', width: 37 },
+        { header: 'Ben Add1', key: 'ben_add1', width: 37 },
+      ];
+
+      // Style header row
+      ws.getRow(1).eachCell((cell) => {
+        cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A5F' } };
+        cell.alignment = { horizontal: 'center' };
+      });
+
+      bankEntries.forEach((e) => {
+        const net = (Number(e.total_salary) || 0) - (Number(e.deduction) || 0);
+        ws.addRow({
+          account_no: (e.bank_account_number ?? '').trim(),
+          amount: Number(net.toFixed(3)),
+          swift: resolveSwift(e.bank_name),
+          ben_name: (e.labor_name ?? '').trim(),
+          ben_add1: '',
+        });
+      });
+
+      const buffer = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Bank_Upload_${MONTH_NAMES[month]}_${year}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success(`Bank upload file generated (${bankEntries.length} entries)`);
+    } catch {
+      toast.error('Failed to generate bank upload file');
+    }
   }
 
   if (loading) return <PageSpinner />;
@@ -244,14 +366,19 @@ export default function OperationsSalaryPage() {
               {MONTH_NAMES.map((m, idx) => <option key={m} value={idx}>{m}</option>)}
             </select>
             <input value={year} onChange={(e) => setYear(Number(e.target.value) || now.year)} style={inputStyle} />
-            <Badge color={sheet ? 'green' : 'gray'}>
-              {sheet ? 'Approved Sheet Found' : 'No Approved Sheet'}
+            <Badge color={sheet ? (sheet.status === 'approved' ? 'green' : 'amber') : 'gray'}>
+              {sheet ? (sheet.status === 'approved' ? 'Approved' : 'Draft / Pending Approval') : 'No Sheet Found'}
             </Badge>
           </div>
           <div className="flex items-center gap-2" style={{ flexWrap: 'wrap' }}>
+            {sheet?.status === 'draft' && (
+              <Button variant="secondary" size="sm" onClick={syncBankFromRegistry} disabled={syncing || !entries.length}>
+                {syncing ? 'Syncing…' : 'Sync Bank from Registry'}
+              </Button>
+            )}
             <Button variant="secondary" size="sm" onClick={onExportExcel} disabled={!entries.length}>Export Excel</Button>
             <Button variant="secondary" size="sm" onClick={onPrintPDF} disabled={!entries.length}>Print / PDF</Button>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Read-only view from Salary Generation approvals</div>
+            <Button variant="secondary" size="sm" onClick={exportBankUpload} disabled={!entries.length}>Bank Upload File</Button>
           </div>
         </div>
       </Card>
@@ -293,8 +420,8 @@ export default function OperationsSalaryPage() {
         <Card>
           <EmptyState
             icon={<Calculator size={24} />}
-            title="No approved salaries"
-            description="No approved salary sheet found for this month. Approve the month in Salary Generation first."
+            title="No salary sheet found"
+            description="No salary sheet (approved or draft) was found for this month. Generate one in Salary Generation first."
           />
         </Card>
       ) : (
@@ -318,6 +445,7 @@ export default function OperationsSalaryPage() {
             year={year}
             toast={toast}
             sectionTotals={sectionTotals}
+            showLetters
           />
         </div>
       )}
@@ -336,6 +464,7 @@ function SectionCard({
   year,
   toast,
   sectionTotals,
+  showLetters,
 }: {
   rows: SalarySheetEntry[];
   title: string;
@@ -345,6 +474,7 @@ function SectionCard({
   year: number;
   toast: ReturnType<typeof useToast>;
   sectionTotals: (rows: SalarySheetEntry[]) => { gross: number; deduction: number; net: number };
+  showLetters?: boolean;
 }) {
   const t = sectionTotals(rows);
 
@@ -406,20 +536,55 @@ function SectionCard({
   function printSection() {
     const printWindow = window.open('', '_blank', 'width=1200,height=800');
     if (!printWindow) { toast.error('Popup blocked. Allow popups and try again.'); return; }
-    const rowsHtml = rows.map((row) => {
-      const gross = Number(row.total_salary || 0);
-      const deduction = Number(row.deduction || 0);
-      const net = gross - deduction;
-      return `<tr>
-        <td>${row.labor_name || '-'}</td><td>${row.labor_code || '-'}</td>
-        <td>${row.designation || '-'}</td><td>${row.bank_name || '-'}</td>
-        <td>${row.bank_account_number || '-'}</td>
-        <td>${Number(row.total_worked_hours || 0).toFixed(2)}</td>
-        <td>${Number(row.overtime_hours || 0).toFixed(2)}</td>
-        <td>${Number(row.hourly_rate || 0).toFixed(3)}</td>
-        <td>${gross.toFixed(3)}</td><td>${deduction.toFixed(3)}</td><td>${net.toFixed(3)}</td>
+
+    // Group by designation then sort lowest count → highest count (tie-break: alpha)
+    const designationGroups: Record<string, SalarySheetEntry[]> = {};
+    rows.forEach((row) => {
+      const desig = (row.designation || 'Unspecified').trim();
+      if (!designationGroups[desig]) designationGroups[desig] = [];
+      designationGroups[desig].push(row);
+    });
+
+    const sortedGroups = Object.entries(designationGroups).sort(([aName, aRows], [bName, bRows]) => {
+      const diff = aRows.length - bRows.length; // lowest count first
+      return diff !== 0 ? diff : aName.localeCompare(bName);
+    });
+
+    let bodyHtml = '';
+    sortedGroups.forEach(([designation, groupRows]) => {
+      const gt = sectionTotals(groupRows);
+      const groupRowsHtml = groupRows.map((row) => {
+        const gross = Number(row.total_salary || 0);
+        const deduction = Number(row.deduction || 0);
+        const net = gross - deduction;
+        return `<tr>
+          <td>${row.labor_name || '-'}</td><td>${row.labor_code || '-'}</td>
+          <td>${row.bank_name || '-'}</td><td>${row.bank_account_number || '-'}</td>
+          <td>${Number(row.total_worked_hours || 0).toFixed(2)}</td>
+          <td>${Number(row.overtime_hours || 0).toFixed(2)}</td>
+          <td>${Number(row.hourly_rate || 0).toFixed(3)}</td>
+          <td>${gross.toFixed(3)}</td><td>${deduction.toFixed(3)}</td><td>${net.toFixed(3)}</td>
+        </tr>`;
+      }).join('');
+      bodyHtml += `
+        <tr class="desig-header"><td colspan="10">${designation} &nbsp;(${groupRows.length} employees)</td></tr>
+        ${groupRowsHtml}
+        <tr class="subtotal">
+          <td colspan="7"><strong>Subtotal — ${designation}</strong></td>
+          <td><strong>${gt.gross.toFixed(3)}</strong></td>
+          <td><strong>${gt.deduction.toFixed(3)}</strong></td>
+          <td><strong>${gt.net.toFixed(3)}</strong></td>
+        </tr>
+      `;
+    });
+    bodyHtml += `
+      <tr class="total">
+        <td colspan="7"><strong>Grand Total (${rows.length} employees)</strong></td>
+        <td><strong>${t.gross.toFixed(3)}</strong></td>
+        <td><strong>${t.deduction.toFixed(3)}</strong></td>
+        <td><strong>${t.net.toFixed(3)}</strong></td>
       </tr>`;
-    }).join('');
+
     printWindow.document.write(`
       <html><head>
         <title>${title} — ${MONTH_NAMES[month]} ${year}</title>
@@ -430,32 +595,97 @@ function SectionCard({
           table { width: 100%; border-collapse: collapse; font-size: 10px; }
           th, td { border: 1px solid #e5e7eb; padding: 5px 7px; text-align: left; }
           th { background: #1e3a5f; color: #fff; text-transform: uppercase; font-size: 9px; }
-          .total td { background: #f0f4f8; font-weight: 700; }
+          .desig-header td { background: #dbeafe; font-weight: 700; font-size: 10px; color: #1e3a5f; padding: 6px 7px; }
+          .subtotal td { background: #f0f4f8; font-weight: 600; }
+          .total td { background: #e0e7ef; font-weight: 700; }
         </style>
       </head><body>
         <h1>${title}</h1>
         <p>${MONTH_NAMES[month]} ${year} &nbsp;|&nbsp; ${rows.length} employees &nbsp;|&nbsp; Net: ${t.net.toFixed(3)} OMR</p>
         <table>
           <thead><tr>
-            <th>Labor</th><th>ID</th><th>Designation</th><th>Bank</th>
-            <th>Account No</th><th>Worked Hrs</th><th>OT Hrs</th>
-            <th>Hourly Rate</th><th>Gross (OMR)</th><th>Deduction</th><th>Net (OMR)</th>
+            <th>Labor</th><th>ID</th><th>Bank</th><th>Account No</th>
+            <th>Worked Hrs</th><th>OT Hrs</th><th>Hourly Rate</th>
+            <th>Gross (OMR)</th><th>Deduction</th><th>Net (OMR)</th>
           </tr></thead>
-          <tbody>
-            ${rowsHtml}
-            <tr class="total">
-              <td colspan="8"><strong>Total (${rows.length})</strong></td>
-              <td><strong>${t.gross.toFixed(3)}</strong></td>
-              <td><strong>${t.deduction.toFixed(3)}</strong></td>
-              <td><strong>${t.net.toFixed(3)}</strong></td>
-            </tr>
-          </tbody>
+          <tbody>${bodyHtml}</tbody>
         </table>
       </body></html>
     `);
     printWindow.document.close();
     printWindow.focus();
     setTimeout(() => printWindow.print(), 400);
+  }
+
+  function printLetters() {
+    const printWindow = window.open('', '_blank', 'width=900,height=800');
+    if (!printWindow) { toast.error('Popup blocked. Allow popups and try again.'); return; }
+
+    const lettersHtml = rows.map((row) => {
+      const gross = Number(row.total_salary || 0);
+      const deduction = Number(row.deduction || 0);
+      const net = gross - deduction;
+      return `
+        <div class="letter">
+          <div class="company-header">AL MAYAR</div>
+          <h2 class="letter-title">Salary Receipt Acknowledgment</h2>
+          <p class="letter-date">Date: ${new Date().toLocaleDateString('en-GB')}</p>
+          <table class="info-table">
+            <tr><td class="label">Employee Name</td><td>${row.labor_name || '-'}</td></tr>
+            <tr><td class="label">Employee ID</td><td>${row.labor_code || '-'}</td></tr>
+            <tr><td class="label">Designation</td><td>${row.designation || '-'}</td></tr>
+            <tr><td class="label">Salary Month</td><td>${MONTH_NAMES[month]} ${year}</td></tr>
+            <tr><td class="label">Gross Salary</td><td>${gross.toFixed(3)} OMR</td></tr>
+            <tr><td class="label">Deduction</td><td>${deduction.toFixed(3)} OMR</td></tr>
+            <tr><td class="label net-row">Net Salary Received</td><td class="net-row">${net.toFixed(3)} OMR</td></tr>
+          </table>
+          <p class="body-text">
+            I, the undersigned, hereby acknowledge and confirm that I have received my full salary
+            for the month of <strong>${MONTH_NAMES[month]} ${year}</strong> in cash,
+            amounting to <strong>${net.toFixed(3)} OMR</strong>.
+          </p>
+          <div class="signatures">
+            <div class="sig-block">
+              <div class="sig-line"></div>
+              <div class="sig-label">Employee Signature</div>
+              <div class="sig-name">${row.labor_name || ''}</div>
+            </div>
+            <div class="sig-block">
+              <div class="sig-line"></div>
+              <div class="sig-label">Authorized Signatory</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    printWindow.document.write(`
+      <html><head>
+        <title>Salary Receipt Letters — ${MONTH_NAMES[month]} ${year}</title>
+        <style>
+          @page { margin: 15mm; }
+          body { font-family: Arial, sans-serif; color: #111827; }
+          .letter { border: 1px solid #d1d5db; padding: 28px 34px; max-width: 680px; margin: 0 auto; page-break-after: always; }
+          .letter:last-child { page-break-after: avoid; }
+          .company-header { font-size: 22px; font-weight: 800; color: #1e3a5f; text-align: center; letter-spacing: 2px; margin-bottom: 2px; }
+          .letter-title { text-align: center; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin: 2px 0 6px; color: #374151; }
+          .letter-date { text-align: right; font-size: 11px; color: #6b7280; margin-bottom: 12px; }
+          .info-table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 11px; }
+          .info-table td { padding: 5px 8px; border: 1px solid #e5e7eb; }
+          .info-table .label { background: #f8fafc; font-weight: 600; width: 40%; color: #374151; }
+          .info-table .net-row { background: #eff6ff; font-weight: 700; font-size: 12px; }
+          .body-text { font-size: 11px; line-height: 1.75; color: #374151; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 4px; padding: 10px 14px; margin-bottom: 26px; }
+          .signatures { display: flex; justify-content: space-between; margin-top: 24px; }
+          .sig-block { width: 42%; text-align: center; }
+          .sig-line { border-bottom: 1px solid #374151; height: 34px; margin-bottom: 6px; }
+          .sig-label { font-size: 10px; font-weight: 600; text-transform: uppercase; color: #4b5563; }
+          .sig-name { font-size: 10px; color: #9ca3af; margin-top: 2px; }
+        </style>
+      </head><body>${lettersHtml}</body></html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => printWindow.print(), 500);
   }
 
   return (
@@ -472,8 +702,13 @@ function SectionCard({
               <FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Excel
             </Button>
             <Button variant="ghost" size="sm" onClick={printSection}>
-              <Printer className="w-3.5 h-3.5 mr-1" /> Print
+              <Printer className="w-3.5 h-3.5 mr-1" /> Print PDF
             </Button>
+            {showLetters && (
+              <Button variant="ghost" size="sm" onClick={printLetters}>
+                <Printer className="w-3.5 h-3.5 mr-1" /> Receipt Letters
+              </Button>
+            )}
           </div>
         )}
       </div>
