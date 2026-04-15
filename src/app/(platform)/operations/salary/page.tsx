@@ -272,22 +272,38 @@ export default function OperationsSalaryPage() {
   }
 
   const [syncing, setSyncing] = useState(false);
+  const [totalSheetsManual, setTotalSheetsManual] = useState<number | ''>('');
+  const [notes, setNotes] = useState('');
+  const [savingNotes, setSavingNotes] = useState(false);
+
+  // Load notes + manual total from sheet when it changes
+  useEffect(() => {
+    if (sheet) {
+      setNotes((sheet as any).notes ?? '');
+      setTotalSheetsManual((sheet as any).total_sheets_manual ?? '');
+    } else {
+      setNotes('');
+      setTotalSheetsManual('');
+    }
+  }, [sheet?.id]);
 
   async function syncBankFromRegistry() {
     if (!sheet || sheet.status === 'approved') return;
     setSyncing(true);
     const supabase = createClient();
-    // Fetch all laborers' current bank details
     const { data: laborers, error: labErr } = await supabase
       .from('laborers')
-      .select('id_number, bank_name, bank_account_number');
+      .select('id_number, full_name, designation, bank_name, bank_account_number, monthly_salary');
     if (labErr) { toast.error(`Failed to fetch laborers: ${labErr.message}`); setSyncing(false); return; }
 
     let syncCount = 0;
     for (const lab of (laborers ?? [])) {
-      const patch: Record<string, string> = {};
-      if (lab.bank_name) patch.bank_name = lab.bank_name;
-      if (lab.bank_account_number) patch.bank_account_number = lab.bank_account_number;
+      const patch: Record<string, any> = {};
+      if (lab.full_name)            patch.labor_name          = lab.full_name;
+      if (lab.designation)          patch.designation         = lab.designation;
+      if (lab.bank_name)            patch.bank_name           = lab.bank_name;
+      if (lab.bank_account_number)  patch.bank_account_number = lab.bank_account_number;
+      if (lab.monthly_salary != null) patch.monthly_salary    = lab.monthly_salary;
       if (!Object.keys(patch).length) continue;
       const { error } = await supabase
         .from('salary_sheet_entries')
@@ -296,7 +312,7 @@ export default function OperationsSalaryPage() {
         .eq('sheet_id', sheet.id);
       if (!error) syncCount++;
     }
-    toast.success(`Synced bank details for ${syncCount} entries`);
+    toast.success(`Synced ${syncCount} entr${syncCount !== 1 ? 'ies' : 'y'} from registry`);
     setSyncing(false);
     refetch(month, year);
   }
@@ -373,7 +389,7 @@ export default function OperationsSalaryPage() {
           <div className="flex items-center gap-2" style={{ flexWrap: 'wrap' }}>
             {sheet?.status === 'draft' && (
               <Button variant="secondary" size="sm" onClick={syncBankFromRegistry} disabled={syncing || !entries.length}>
-                {syncing ? 'Syncing…' : 'Sync Bank from Registry'}
+                {syncing ? 'Syncing…' : 'Sync from Registry'}
               </Button>
             )}
             <Button variant="secondary" size="sm" onClick={onExportExcel} disabled={!entries.length}>Export Excel</Button>
@@ -389,31 +405,24 @@ export default function OperationsSalaryPage() {
         </Card>
       ) : null}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10, marginBottom: 12 }}>
-        <Card padding="p-3">
-          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Total Employees</div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', marginTop: 4 }}>{employeeCount}</div>
-        </Card>
-        <Card padding="p-3">
-          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Total Net Salaries</div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', marginTop: 4 }}>{totals.net.toFixed(3)} OMR</div>
-        </Card>
-        <Card padding="p-3">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-            <CheckCircle className="w-4 h-4 text-green-600" />
-            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>With Bank Account</div>
-          </div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: '#16a34a' }}>{withBank.length}</div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{sectionTotals(withBank).net.toFixed(3)} OMR net</div>
-        </Card>
-        <Card padding="p-3">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-            <AlertCircle className="w-4 h-4 text-red-500" />
-            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Without Bank Account</div>
-          </div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: '#ef4444' }}>{withoutBank.length}</div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{sectionTotals(withoutBank).net.toFixed(3)} OMR net</div>
-        </Card>
+      <div style={{ marginBottom: 12 }}>
+        <SalarySummaryCard
+          sheet={sheet}
+          entries={entries}
+          withBank={withBank}
+          withoutBank={withoutBank}
+          totals={totals}
+          sectionTotals={sectionTotals}
+          month={month}
+          year={year}
+          totalSheetsManual={totalSheetsManual}
+          setTotalSheetsManual={setTotalSheetsManual}
+          notes={notes}
+          setNotes={setNotes}
+          savingNotes={savingNotes}
+          setSavingNotes={setSavingNotes}
+          toast={toast}
+        />
       </div>
 
       {!entries.length ? (
@@ -450,6 +459,316 @@ export default function OperationsSalaryPage() {
         </div>
       )}
     </div>
+  );
+}
+
+// ─── Salary Summary Card ─────────────────────────────────────────────────────
+
+function SalarySummaryCard({
+  sheet,
+  entries,
+  withBank,
+  withoutBank,
+  totals,
+  sectionTotals,
+  month,
+  year,
+  totalSheetsManual,
+  setTotalSheetsManual,
+  notes,
+  setNotes,
+  savingNotes,
+  setSavingNotes,
+  toast,
+}: {
+  sheet: SalarySheet | null;
+  entries: SalarySheetEntry[];
+  withBank: SalarySheetEntry[];
+  withoutBank: SalarySheetEntry[];
+  totals: { gross: number; deduction: number; net: number };
+  sectionTotals: (rows: SalarySheetEntry[]) => { gross: number; deduction: number; net: number };
+  month: number;
+  year: number;
+  totalSheetsManual: number | '';
+  setTotalSheetsManual: (v: number | '') => void;
+  notes: string;
+  setNotes: (v: string) => void;
+  savingNotes: boolean;
+  setSavingNotes: (v: boolean) => void;
+  toast: ReturnType<typeof useToast>;
+}) {
+  const [notesExpanded, setNotesExpanded] = useState(false);
+  const generated = entries.length;
+  const remaining = typeof totalSheetsManual === 'number' ? Math.max(0, totalSheetsManual - generated) : null;
+
+  const designationGroups = useMemo(() => {
+    const groups: Record<string, { label: string; rows: SalarySheetEntry[] }> = {};
+    entries.forEach((e) => {
+      const key = normalizeDesignationKey(e.designation);
+      if (!groups[key]) groups[key] = { label: toDisplayDesignation(e.designation), rows: [] };
+      groups[key].rows.push(e);
+    });
+    return Object.values(groups).sort((a, b) => b.rows.length - a.rows.length);
+  }, [entries]);
+
+  async function saveNotes() {
+    if (!sheet) return;
+    setSavingNotes(true);
+    const supabase = createClient();
+    const patch: any = { notes };
+    if (typeof totalSheetsManual === 'number') patch.total_sheets_manual = totalSheetsManual;
+    const { error } = await supabase.from('salary_sheets').update(patch).eq('id', sheet.id);
+    if (error) toast.error(`Failed to save: ${error.message}`);
+    else toast.success('Summary saved');
+    setSavingNotes(false);
+  }
+
+  function printSummaryPDF() {
+    const win = window.open('', '_blank', 'width=860,height=700');
+    if (!win) { toast.error('Popup blocked. Allow popups and try again.'); return; }
+    const designRows = designationGroups.map((g) => {
+      const t = sectionTotals(g.rows);
+      return `<tr><td>${g.label}</td><td>${g.rows.length}</td><td>${t.net.toFixed(3)} OMR</td></tr>`;
+    }).join('');
+    win.document.write(`
+      <html><head>
+        <title>Salary Summary — ${MONTH_NAMES[month]} ${year}</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 28px; color: #111827; }
+          h1 { font-size: 20px; margin: 0 0 2px; color: #1e3a5f; }
+          .sub { font-size: 12px; color: #6b7280; margin: 0 0 20px; }
+          .section { margin-bottom: 20px; }
+          .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.7px; color: #9ca3af; margin: 0 0 8px; }
+          table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 10px; }
+          th, td { border: 1px solid #e5e7eb; padding: 6px 10px; text-align: left; }
+          th { background: #f8fafc; font-size: 10px; text-transform: uppercase; color: #6b7280; }
+          .kv { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 8px; }
+          .kv-item { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 8px 16px; min-width: 120px; }
+          .kv-label { font-size: 10px; color: #9ca3af; text-transform: uppercase; }
+          .kv-val { font-size: 18px; font-weight: 700; color: #111827; margin-top: 2px; }
+          .kv-val.green { color: #16a34a; }
+          .kv-val.amber { color: #d97706; }
+          .kv-val.red { color: #dc2626; }
+          .notes-box { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px 14px; font-size: 12px; white-space: pre-wrap; color: #374151; }
+        </style>
+      </head><body>
+        <h1>Salary Summary</h1>
+        <div class="sub">${MONTH_NAMES[month]} ${year}${sheet ? ` &nbsp;|&nbsp; ${sheet.status === 'approved' ? 'Approved' : 'Draft'}` : ''}</div>
+        <div class="section">
+          <div class="section-title">Overview</div>
+          <div class="kv">
+            <div class="kv-item"><div class="kv-label">Generated</div><div class="kv-val">${generated}</div></div>
+            ${typeof totalSheetsManual === 'number' ? `
+            <div class="kv-item"><div class="kv-label">Received</div><div class="kv-val">${totalSheetsManual}</div></div>
+            <div class="kv-item"><div class="kv-label">Remaining</div><div class="kv-val ${remaining === 0 ? 'green' : 'amber'}">${remaining}</div></div>
+            ` : ''}
+          </div>
+        </div>
+        <div class="section">
+          <div class="section-title">Bank Details</div>
+          <table>
+            <tr><th>Category</th><th>Count</th><th>Net Salary</th></tr>
+            <tr><td>With Bank</td><td>${withBank.length}</td><td>${sectionTotals(withBank).net.toFixed(3)} OMR</td></tr>
+            <tr><td>Without Bank (Cash)</td><td>${withoutBank.length}</td><td>${sectionTotals(withoutBank).net.toFixed(3)} OMR</td></tr>
+          </table>
+        </div>
+        <div class="section">
+          <div class="section-title">Designation Summary</div>
+          <table>
+            <tr><th>Designation</th><th>Count</th><th>Net Salary (OMR)</th></tr>
+            ${designRows}
+          </table>
+        </div>
+        <div class="section">
+          <div class="section-title">Net Salary</div>
+          <div class="kv">
+            <div class="kv-item"><div class="kv-label">Gross</div><div class="kv-val">${totals.gross.toFixed(3)} OMR</div></div>
+            <div class="kv-item"><div class="kv-label">Deduction</div><div class="kv-val">${totals.deduction.toFixed(3)} OMR</div></div>
+            <div class="kv-item"><div class="kv-label">Net Total</div><div class="kv-val green">${totals.net.toFixed(3)} OMR</div></div>
+          </div>
+        </div>
+        ${notes ? `<div class="section"><div class="section-title">Notes</div><div class="notes-box">${notes.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div></div>` : ''}
+      </body></html>
+    `);
+    win.document.close();
+    win.focus();
+    setTimeout(() => win.print(), 400);
+  }
+
+  if (!entries.length) return null;
+
+  // Shared micro-styles
+  const divider: React.CSSProperties = { borderBottom: '1px solid var(--border)', margin: '0 -12px', width: 'calc(100% + 24px)' };
+  const rowStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 16, padding: '8px 12px', flexWrap: 'wrap' };
+  const label: React.CSSProperties = { fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)', marginBottom: 1 };
+  const val = (color?: string): React.CSSProperties => ({ fontSize: 15, fontWeight: 700, color: color ?? 'var(--text-primary)', lineHeight: 1 });
+  const sep: React.CSSProperties = { width: 1, height: 28, background: 'var(--border)', flexShrink: 0 };
+
+  return (
+    <Card padding="p-0">
+      {/* ── Header row ── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', borderBottom: '1px solid var(--border)' }}>
+        <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>Salary Summary</span>
+        <button
+          onClick={printSummaryPDF}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 11px', borderRadius: 7, border: '1px solid var(--border2)', background: 'var(--bg-card)', fontSize: 11, fontWeight: 600, color: 'var(--text-light)', cursor: 'pointer' }}
+        >
+          <Printer size={11} /> PDF
+        </button>
+      </div>
+
+      {/* ── Row 1: Overview ── */}
+      <div style={rowStyle}>
+        {/* Generated */}
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <span style={label}>Generated</span>
+          <span style={val()}>{generated}</span>
+        </div>
+
+        {/* Received input */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <span style={label}>Received from Site</span>
+          <input
+            type="number"
+            min={0}
+            value={totalSheetsManual}
+            onChange={(e) => setTotalSheetsManual(e.target.value === '' ? '' : Number(e.target.value))}
+            placeholder="—"
+            style={{ border: '1px solid var(--border2)', borderRadius: 6, padding: '3px 8px', fontSize: 13, fontWeight: 700, background: 'var(--input-bg)', color: 'var(--text-primary)', outline: 'none', width: 72, textAlign: 'center' }}
+          />
+        </div>
+
+        {typeof totalSheetsManual === 'number' && (
+          <>
+            <div style={sep} />
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span style={label}>Remaining</span>
+              <span style={{
+                ...val(remaining === 0 ? '#16a34a' : '#d97706'),
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+              }}>
+                {remaining}
+                {remaining !== null && remaining > 0 && <span style={{ fontSize: 11 }}>⚠</span>}
+                {remaining === 0 && <span style={{ fontSize: 11 }}>✓</span>}
+              </span>
+            </div>
+          </>
+        )}
+
+        <div style={{ marginLeft: 'auto' }}>
+          <button
+            onClick={saveNotes}
+            disabled={savingNotes || !sheet}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 13px', borderRadius: 7, border: 'none', background: savingNotes ? '#9ca3af' : '#1e3a5f', color: '#fff', fontSize: 11, fontWeight: 600, cursor: savingNotes || !sheet ? 'not-allowed' : 'pointer' }}
+          >
+            {savingNotes ? 'Saving…' : 'Save'}
+          </button>
+        </div>
+      </div>
+
+      <div style={divider} />
+
+      {/* ── Row 2: Bank + Net ── */}
+      <div style={rowStyle}>
+        {/* Bank status */}
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <span style={label}>Bank</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ color: '#16a34a' }}>✔ {withBank.length}</span>
+            <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>|</span>
+            <span style={{ color: '#ef4444' }}>✘ {withoutBank.length}</span>
+          </span>
+        </div>
+
+        <div style={sep} />
+
+        {/* Net hero */}
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span style={label}>Gross</span>
+            <span style={val()}>{totals.gross.toFixed(3)}</span>
+          </div>
+          <span style={{ color: 'var(--text-muted)', fontSize: 13, paddingBottom: 2 }}>−</span>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span style={label}>Deduction</span>
+            <span style={val('#ef4444')}>{totals.deduction.toFixed(3)}</span>
+          </div>
+          <span style={{ color: 'var(--text-muted)', fontSize: 13, paddingBottom: 2 }}>=</span>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span style={label}>Net Total (OMR)</span>
+            <span style={{ ...val('#16a34a'), fontSize: 18 }}>{totals.net.toFixed(3)}</span>
+          </div>
+        </div>
+      </div>
+
+      <div style={divider} />
+
+      {/* ── Row 3: Designation chips ── */}
+      <div style={{ padding: '7px 12px', overflowX: 'auto', whiteSpace: 'nowrap', display: 'flex', gap: 6, alignItems: 'center' }}>
+        <span style={{ ...label, flexShrink: 0, marginBottom: 0 }}>By Role</span>
+        {designationGroups.map((g) => {
+          const t = sectionTotals(g.rows);
+          return (
+            <span
+              key={g.label}
+              title={`${g.label}: ${g.rows.length} employees · ${t.net.toFixed(3)} OMR net`}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+                background: 'var(--input-bg)', border: '1px solid var(--border)',
+                borderRadius: 20, padding: '3px 10px', fontSize: 11.5, fontWeight: 600,
+                color: 'var(--text-secondary)', cursor: 'default', flexShrink: 0,
+              }}
+            >
+              {g.label}
+              <span style={{ background: 'var(--navy)', color: '#fff', borderRadius: 10, padding: '1px 6px', fontSize: 10, fontWeight: 700 }}>{g.rows.length}</span>
+            </span>
+          );
+        })}
+      </div>
+
+      <div style={divider} />
+
+      {/* ── Row 4: Notes ── */}
+      <div style={{ padding: '7px 12px' }}>
+        {!notesExpanded ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ ...label, marginBottom: 0, flexShrink: 0 }}>Notes</span>
+            <span
+              style={{ fontSize: 12, color: 'var(--text-muted)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'text' }}
+              onClick={() => setNotesExpanded(true)}
+            >
+              {notes ? notes.replace(/\n/g, ' ') : <span style={{ fontStyle: 'italic', color: 'var(--text-muted)' }}>No notes…</span>}
+            </span>
+            <button
+              onClick={() => setNotesExpanded(true)}
+              style={{ fontSize: 11, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0, padding: '2px 6px' }}
+            >
+              Edit ⌄
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={label}>Notes</span>
+              <button
+                onClick={() => setNotesExpanded(false)}
+                style={{ fontSize: 11, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px' }}
+              >
+                Collapse ⌃
+              </button>
+            </div>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              autoFocus
+              placeholder="Add notes for this salary sheet…"
+              rows={3}
+              style={{ width: '100%', border: '1px solid var(--border2)', borderRadius: 8, padding: '8px 11px', fontSize: 12.5, background: 'var(--input-bg)', color: 'var(--text-primary)', resize: 'vertical', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
+            />
+          </div>
+        )}
+      </div>
+    </Card>
   );
 }
 
