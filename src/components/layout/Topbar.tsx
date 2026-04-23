@@ -31,6 +31,7 @@ const titles: Record<string, string> = {
   '/payment-modules/cash-receipt-payment': 'Cash Receipt Payment',
   '/payment-modules/invoice-generation': 'Invoice Generation',
   '/payment-modules/salary-generation': 'Salary Generation',
+  '/payment-modules/lpo-generation': 'LPO Generation',
 };
 
 function toTitleCase(value: string): string {

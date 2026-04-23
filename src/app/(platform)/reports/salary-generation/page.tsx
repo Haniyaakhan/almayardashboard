@@ -12,6 +12,7 @@ import {
   Search,
   Trash2,
   X,
+  FileDown,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
@@ -34,6 +35,8 @@ import {
 import { MONTH_NAMES, getPreviousMonthYear } from '@/lib/dateUtils';
 import { normalizeDesignationKey, toDisplayDesignation } from '@/lib/designation';
 import { exportManualSalarySheetToExcel } from '@/lib/excelExport';
+import { downloadSalarySlip } from '@/lib/salarySlipGenerator';
+import { downloadSalaryReceiptLetter } from '@/lib/salaryReceiptLetterGenerator';
 import type { SalarySheetEntry } from '@/types/database';
 
 type EntryDraft = {
@@ -441,6 +444,8 @@ export default function SalaryGenerationPage() {
               <td>${fmtOMR(entry.monthly_salary)}</td>
               <td>${fmt(entry.hourly_rate)}</td>
               <td>${fmt(entry.actual_worked_hours)}</td>
+              <td>${fmt(Number(entry.total_worked_hours) || 0)}</td>
+              <td>${fmt(Number(entry.overtime_hours) || 0)}</td>
               <td>${fmtOMR(entry.total_salary)}</td>
               <td>${fmtOMR(Number(entry.deduction) || 0)}</td>
               <td>${fmtOMR((Number(entry.total_salary) || 0) - (Number(entry.deduction) || 0))}</td>
@@ -462,6 +467,8 @@ export default function SalaryGenerationPage() {
                 <th>M/Salary (OMR)</th>
                 <th>H/Rate</th>
                 <th>AW-Hours</th>
+                <th>Total Hours</th>
+                <th>OT Hours</th>
                 <th>Total Salary (OMR)</th>
                 <th>Deduction (OMR)</th>
                 <th>Net Salary (OMR)</th>
@@ -966,13 +973,29 @@ export default function SalaryGenerationPage() {
                           <td className="px-3 py-3" style={{ color: 'var(--text-primary)' }}>{row.bank_name || '-'}</td>
                           <td className="px-3 py-3" style={{ color: 'var(--text-primary)' }}>{row.bank_account_number || '-'}</td>
                           <td className="px-3 py-3">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                onClick={() => downloadSalarySlip(row, month, year)}
+                                className="rounded-lg px-2.5 py-1.5 text-xs font-medium whitespace-nowrap inline-flex items-center gap-1"
+                                style={{ border: '1px solid #c7d2fe', background: '#eef2ff', color: '#4338ca' }}
+                                title="Download Salary Slip PDF"
+                              >
+                                <FileDown size={13} /> Slip
+                              </button>
+                              <button
+                                onClick={() => downloadSalaryReceiptLetter(row, month, year)}
+                                className="rounded-lg px-2.5 py-1.5 text-xs font-medium whitespace-nowrap inline-flex items-center gap-1"
+                                style={{ border: '1px solid #ddd6fe', background: '#f3e8ff', color: '#7c3aed' }}
+                                title="Download Receipt Letter PDF"
+                              >
+                                <FileText size={13} /> Letter
+                              </button>
                               {!readOnly && (
                                 isEditing ? (
                                   <>
                                     <button
                                       onClick={() => saveEntryDraft(row)}
-                                      className="rounded-xl px-3 py-2"
+                                      className="rounded-lg px-2 py-2"
                                       style={{ border: '1px solid #bbf7d0', background: '#f0fdf4', color: '#15803d' }}
                                       title="Save"
                                     >
@@ -980,7 +1003,7 @@ export default function SalaryGenerationPage() {
                                     </button>
                                     <button
                                       onClick={() => cancelRowEdit(row.id)}
-                                      className="rounded-xl px-3 py-2"
+                                      className="rounded-lg px-2 py-2"
                                       style={{ border: '1px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text-secondary)' }}
                                       title="Cancel"
                                     >
@@ -990,7 +1013,7 @@ export default function SalaryGenerationPage() {
                                 ) : (
                                   <button
                                     onClick={() => startRowEdit(row)}
-                                    className="rounded-xl px-3 py-2"
+                                    className="rounded-lg px-2 py-2"
                                     style={{ border: '1px solid #c7d2fe', background: '#eef2ff', color: '#4338ca' }}
                                     title="Edit"
                                   >
@@ -1001,7 +1024,7 @@ export default function SalaryGenerationPage() {
                               {!readOnly && (
                                 <button
                                   onClick={() => removeRow(row.id, row.labor_name)}
-                                  className="rounded-xl px-3 py-2"
+                                  className="rounded-lg px-2 py-2"
                                   style={{ border: '1px solid #fca5a5', background: '#fef2f2', color: '#dc2626' }}
                                   title="Remove labour"
                                 >

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { CreditCard, FileText, Calculator } from 'lucide-react';
+import { CreditCard, FileText, Calculator, FileSpreadsheet } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 
 const PAYMENT_MODULES = [
@@ -22,6 +22,12 @@ const PAYMENT_MODULES = [
     description: 'Search labor by ID/name and generate salary view grouped by designation.',
     icon: Calculator,
     href: '/payment-modules/salary-generation',
+  },
+  {
+    title: 'LPO Generation',
+    description: 'Create editable LPOs with vendor/buyer details, line items, and A4 print/PDF export.',
+    icon: FileSpreadsheet,
+    href: '/payment-modules/lpo-generation',
   },
 ];
 

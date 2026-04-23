@@ -1,6 +1,6 @@
 'use client';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Calculator, FileSpreadsheet, Printer, CheckCircle, AlertCircle } from 'lucide-react';
+import { Calculator, FileSpreadsheet, Printer, CheckCircle, AlertCircle, FileDown, Download } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -12,6 +12,8 @@ import { MONTH_NAMES } from '@/lib/dateUtils';
 import { normalizeDesignationKey, toDisplayDesignation } from '@/lib/designation';
 import { exportManualSalarySheetToExcel } from '@/lib/excelExport';
 import { OMAN_BANK_LIST, resolveSwift } from '@/lib/omanBanks';
+import { downloadSalarySlip } from '@/lib/salarySlipGenerator';
+import { downloadSalaryReceiptLetter } from '@/lib/salaryReceiptLetterGenerator';
 import type { SalarySheet, SalarySheetEntry } from '@/types/database';
 
 // ─── OMAN_BANK_SWIFT and resolveSwiftCode moved to @/lib/omanBanks ─────────
@@ -212,6 +214,8 @@ export default function OperationsSalaryPage() {
           <td>${Number(entry.monthly_salary || 0).toFixed(3)}</td>
           <td>${Number(entry.hourly_rate || 0).toFixed(3)}</td>
           <td>${Number(entry.actual_worked_hours || 0).toFixed(2)}</td>
+          <td>${Number(entry.total_worked_hours || 0).toFixed(2)}</td>
+          <td>${Number(entry.overtime_hours || 0).toFixed(2)}</td>
           <td>${gross.toFixed(3)}</td>
           <td>${deduction.toFixed(3)}</td>
           <td>${(gross - deduction).toFixed(3)}</td>
@@ -225,7 +229,7 @@ export default function OperationsSalaryPage() {
         <table>
           <thead><tr>
             <th>Name</th><th>ID</th><th>M/Salary (OMR)</th><th>H/Rate</th><th>AW-Hours</th>
-            <th>Total Salary (OMR)</th><th>Deduction (OMR)</th><th>Net Salary (OMR)</th>
+            <th>Total Hours</th><th>OT Hours</th><th>Gross (OMR)</th><th>Deduction</th><th>Net (OMR)</th>
             <th>Bank Name</th><th>Account Number</th>
           </tr></thead>
           <tbody>${rowsHtml}</tbody>
@@ -500,6 +504,9 @@ function SalarySummaryCard({
   const [notesExpanded, setNotesExpanded] = useState(false);
   const generated = entries.length;
   const remaining = typeof totalSheetsManual === 'number' ? Math.max(0, totalSheetsManual - generated) : null;
+  const getEntryTotalHours = useCallback((row: SalarySheetEntry) => {
+    return Number(row.total_worked_hours || row.actual_worked_hours || 0);
+  }, []);
 
   const designationGroups = useMemo(() => {
     const groups: Record<string, { label: string; rows: SalarySheetEntry[] }> = {};
@@ -510,6 +517,23 @@ function SalarySummaryCard({
     });
     return Object.values(groups).sort((a, b) => b.rows.length - a.rows.length);
   }, [entries]);
+
+  const designationSummaries = useMemo(() => {
+    return designationGroups.map((group) => {
+      const summary = sectionTotals(group.rows);
+      const totalHours = group.rows.reduce((sum, row) => sum + getEntryTotalHours(row), 0);
+      return {
+        label: group.label,
+        count: group.rows.length,
+        totalHours,
+        net: summary.net,
+      };
+    });
+  }, [designationGroups, sectionTotals, getEntryTotalHours]);
+
+  const allDesignationHours = useMemo(() => {
+    return designationSummaries.reduce((sum, group) => sum + group.totalHours, 0);
+  }, [designationSummaries]);
 
   async function saveNotes() {
     if (!sheet) return;
@@ -526,9 +550,8 @@ function SalarySummaryCard({
   function printSummaryPDF() {
     const win = window.open('', '_blank', 'width=860,height=700');
     if (!win) { toast.error('Popup blocked. Allow popups and try again.'); return; }
-    const designRows = designationGroups.map((g) => {
-      const t = sectionTotals(g.rows);
-      return `<tr><td>${g.label}</td><td>${g.rows.length}</td><td>${t.net.toFixed(3)} OMR</td></tr>`;
+    const designRows = designationSummaries.map((g) => {
+      return `<tr><td>${g.label}</td><td>${g.count}</td><td>${g.totalHours.toFixed(2)}</td><td>${g.net.toFixed(3)} OMR</td></tr>`;
     }).join('');
     win.document.write(`
       <html><head>
@@ -575,8 +598,14 @@ function SalarySummaryCard({
         <div class="section">
           <div class="section-title">Designation Summary</div>
           <table>
-            <tr><th>Designation</th><th>Count</th><th>Net Salary (OMR)</th></tr>
+            <tr><th>Designation</th><th>Count</th><th>Total Hours</th><th>Net Salary (OMR)</th></tr>
             ${designRows}
+            <tr>
+              <td><strong>Net Total</strong></td>
+              <td><strong>${generated}</strong></td>
+              <td><strong>${allDesignationHours.toFixed(2)}</strong></td>
+              <td><strong>${totals.net.toFixed(3)} OMR</strong></td>
+            </tr>
           </table>
         </div>
         <div class="section">
@@ -703,27 +732,55 @@ function SalarySummaryCard({
 
       <div style={divider} />
 
-      {/* ── Row 3: Designation chips ── */}
-      <div style={{ padding: '7px 12px', overflowX: 'auto', whiteSpace: 'nowrap', display: 'flex', gap: 6, alignItems: 'center' }}>
-        <span style={{ ...label, flexShrink: 0, marginBottom: 0 }}>By Role</span>
-        {designationGroups.map((g) => {
-          const t = sectionTotals(g.rows);
-          return (
-            <span
+      {/* ── Row 3: By role summary ── */}
+      <div style={{ padding: '10px 12px 12px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
+          <span style={{ ...label, marginBottom: 0 }}>By Role</span>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 600, background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: 999, padding: '3px 9px' }}>
+              Roles: {designationSummaries.length}
+            </span>
+            <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 600, background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: 999, padding: '3px 9px' }}>
+              Hours: {allDesignationHours.toFixed(2)}
+            </span>
+            <span style={{ fontSize: 11, color: '#166534', fontWeight: 700, background: '#ecfdf3', border: '1px solid #bbf7d0', borderRadius: 999, padding: '3px 9px' }}>
+              Net: {totals.net.toFixed(3)} OMR
+            </span>
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 8 }}>
+          {designationSummaries.map((g) => (
+            <div
               key={g.label}
-              title={`${g.label}: ${g.rows.length} employees · ${t.net.toFixed(3)} OMR net`}
+              title={`${g.label}: ${g.count} employees · ${g.totalHours.toFixed(2)} hours · ${g.net.toFixed(3)} OMR net`}
               style={{
-                display: 'inline-flex', alignItems: 'center', gap: 5,
-                background: 'var(--input-bg)', border: '1px solid var(--border)',
-                borderRadius: 20, padding: '3px 10px', fontSize: 11.5, fontWeight: 600,
-                color: 'var(--text-secondary)', cursor: 'default', flexShrink: 0,
+                border: '1px solid var(--border)',
+                borderRadius: 10,
+                padding: '8px 10px',
+                background: 'linear-gradient(180deg, var(--input-bg), transparent)',
               }}
             >
-              {g.label}
-              <span style={{ background: 'var(--navy)', color: '#fff', borderRadius: 10, padding: '1px 6px', fontSize: 10, fontWeight: 700 }}>{g.rows.length}</span>
-            </span>
-          );
-        })}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 5 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{g.label}</span>
+                <span style={{ background: 'var(--navy)', color: '#fff', borderRadius: 999, padding: '1px 7px', fontSize: 10, fontWeight: 700 }}>
+                  {g.count} emp
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10 }}>
+                <div>
+                  <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Hours</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-secondary)' }}>{g.totalHours.toFixed(2)}</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Net</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#16a34a' }}>{g.net.toFixed(3)} OMR</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div style={divider} />
@@ -936,6 +993,19 @@ function SectionCard({
     setTimeout(() => printWindow.print(), 400);
   }
 
+  async function downloadAllSlips() {
+    try {
+      for (const row of rows) {
+        // Add delay to avoid overwhelming the browser
+        await new Promise(resolve => setTimeout(resolve, 250));
+        downloadSalarySlip(row, month, year);
+      }
+      toast.success(`Downloaded ${rows.length} salary slips for ${title}`);
+    } catch (error) {
+      toast.error('Failed to download salary slips');
+    }
+  }
+
   function printLetters() {
     const printWindow = window.open('', '_blank', 'width=900,height=800');
     if (!printWindow) { toast.error('Popup blocked. Allow popups and try again.'); return; }
@@ -1020,6 +1090,9 @@ function SectionCard({
             <Button variant="ghost" size="sm" onClick={downloadExcel}>
               <FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Excel
             </Button>
+            <Button variant="ghost" size="sm" onClick={downloadAllSlips}>
+              <Download className="w-3.5 h-3.5 mr-1" /> All Slips
+            </Button>
             <Button variant="ghost" size="sm" onClick={printSection}>
               <Printer className="w-3.5 h-3.5 mr-1" /> Print PDF
             </Button>
@@ -1039,7 +1112,7 @@ function SectionCard({
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: 'var(--thead-bg)' }}>
-                {['Labor', 'ID', 'Designation', 'Bank', 'Account No', 'Worked Hrs', 'OT Hrs', 'Hourly Rate', 'Gross', 'Deduction', 'Net Salary'].map((h) => (
+                {['Labor', 'ID', 'Designation', 'Bank', 'Account No', 'Worked Hrs', 'OT Hrs', 'Hourly Rate', 'Gross', 'Deduction', 'Net Salary', 'Action'].map((h) => (
                   <th key={h} style={thStyle}>{h}</th>
                 ))}
               </tr>
@@ -1062,6 +1135,26 @@ function SectionCard({
                     <td style={tdStyle}>{gross.toFixed(3)} OMR</td>
                     <td style={tdStyle}>{deduction.toFixed(3)} OMR</td>
                     <td style={{ ...tdStyle, fontWeight: 700, color: 'var(--orange)' }}>{net.toFixed(3)} OMR</td>
+                    <td style={{ ...tdStyle, whiteSpace: 'nowrap' }}>
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        <button
+                          onClick={() => downloadSalarySlip(row, month, year)}
+                          style={{ padding: '5px 10px', border: '1px solid #c7d2fe', background: '#eef2ff', color: '#4338ca', borderRadius: 6, cursor: 'pointer', fontSize: '11px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                          title="Download Salary Slip"
+                        >
+                          <FileDown size={12} /> Slip
+                        </button>
+                        {showLetters && (
+                          <button
+                            onClick={() => downloadSalaryReceiptLetter(row, month, year)}
+                            style={{ padding: '5px 10px', border: '1px solid #ddd6fe', background: '#f3e8ff', color: '#7c3aed', borderRadius: 6, cursor: 'pointer', fontSize: '11px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                            title="Download Receipt Letter"
+                          >
+                            <FileDown size={12} /> Letter
+                          </button>
+                        )}
+                      </div>
+                    </td>
                   </tr>
                 );
               })}
@@ -1070,6 +1163,7 @@ function SectionCard({
                 <td style={{ ...tdStyle, fontWeight: 700 }}>{t.gross.toFixed(3)} OMR</td>
                 <td style={{ ...tdStyle, fontWeight: 700 }}>{t.deduction.toFixed(3)} OMR</td>
                 <td style={{ ...tdStyle, fontWeight: 700, color: 'var(--orange)' }}>{t.net.toFixed(3)} OMR</td>
+                <td></td>
               </tr>
             </tbody>
           </table>
