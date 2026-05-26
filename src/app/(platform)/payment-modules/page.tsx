@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { CreditCard, FileText, Calculator, FileSpreadsheet } from 'lucide-react';
+import { CreditCard, FileText, Calculator, FileSpreadsheet, Receipt } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 
 const PAYMENT_MODULES = [
@@ -22,6 +22,12 @@ const PAYMENT_MODULES = [
     description: 'Search labor by ID/name and generate salary view grouped by designation.',
     icon: Calculator,
     href: '/payment-modules/salary-generation',
+  },
+  {
+    title: 'Salary Receipt Letters',
+    description: 'Generate salary receipt letters for cash-paid laborers and download PDF acknowledgments.',
+    icon: Receipt,
+    href: '/payment-modules/receipt-letters',
   },
   {
     title: 'LPO Generation',

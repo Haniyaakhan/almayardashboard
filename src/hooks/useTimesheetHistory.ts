@@ -37,14 +37,20 @@ export async function getTimesheetWithEntries(id: string): Promise<Timesheet | n
   return data as Timesheet | null;
 }
 
-export async function getTimesheetByLaborer(laborerId: string, month: number, year: number): Promise<Timesheet | null> {
+export async function getTimesheetByLaborer(laborerId: string, month: number, year: number, sheetType?: 'labor' | 'vehicle' | 'equipment' | 'tunnel_employee'): Promise<Timesheet | null> {
   const supabase = createClient();
-  const { data } = await supabase
+  let query = supabase
     .from('timesheets')
     .select('*, entries:timesheet_entries(*)')
     .eq('laborer_id', laborerId)
     .eq('month', month)
-    .eq('year', year)
+    .eq('year', year);
+
+  if (sheetType) {
+    query = query.eq('sheet_type', sheetType);
+  }
+
+  const { data } = await query
     .order('created_at', { ascending: false })
     .limit(1);
   return (data && data.length > 0 ? data[0] : null) as Timesheet | null;
@@ -77,7 +83,7 @@ export async function countTimesheetsForEntity(entityId: string, month: number, 
 export async function saveTimesheet(payload: {
   timesheetId?: string | null;   // pass to update a specific existing record (vehicle/equipment edits)
   laborer_id: string | null;
-  sheet_type?: 'labor' | 'vehicle' | 'equipment';
+  sheet_type?: 'labor' | 'vehicle' | 'equipment' | 'tunnel_employee';
   labor_name?: string;
   month: number; year: number;
   project_name: string; supplier_name: string;
@@ -110,14 +116,19 @@ export async function saveTimesheet(payload: {
       .from('timesheets').update(header).eq('id', timesheetId).select().single();
     if (tsErr || !ts) return tsErr ?? new Error('Failed to update timesheet');
     tsId = ts.id;
-  } else if (payload.sheet_type === 'labor' && payload.laborer_id) {
-    // Labour: 1 per person per month — find existing and update, or insert
-    const { data: existing } = await supabase
+  } else if ((payload.sheet_type === 'labor' || payload.sheet_type === 'tunnel_employee') && payload.laborer_id) {
+    // Labour / Tunnel Employee: 1 per person per month — find existing same-type sheet and update, or insert
+    let query = supabase
       .from('timesheets').select('id, status')
       .eq('laborer_id', payload.laborer_id)
       .eq('month', payload.month)
-      .eq('year', payload.year)
-      .order('created_at', { ascending: false })
+      .eq('year', payload.year);
+
+    if (payload.sheet_type) {
+      query = query.eq('sheet_type', payload.sheet_type);
+    }
+
+    const { data: existing } = await query
       .limit(1)
       .maybeSingle();
 

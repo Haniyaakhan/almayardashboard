@@ -12,6 +12,7 @@ interface WorkTableProps {
   onUpdateDayEntry: (day: number, field: keyof DayEntry, value: string | number) => void;
   vehicleMode?: boolean;
   readOnly?: boolean;
+  columnLabels?: string[];
 }
 
 export default function WorkTable({
@@ -24,6 +25,7 @@ export default function WorkTable({
   onUpdateDayEntry,
   vehicleMode,
   readOnly = false,
+  columnLabels,
 }: WorkTableProps) {
   const COLS = 10;
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, rowIndex: number, colIndex: number) => {
@@ -53,42 +55,102 @@ export default function WorkTable({
     if (target) { target.focus(); }
   };
 
+  const labels = columnLabels ?? [
+    'Date', 'Time In', 'Time Out', 'Lunch Break\nTime 01:00 to\n03:00', 'Time In', 'Time Out',
+    'Total Worked\nDone(Hrs)', 'Over\nTime', 'Actual\nWorked(Hrs)', 'Approver\nSignature', 'Remarks'
+  ];
+
   return (
     <table className="w-full border-collapse mb-0">
       <thead>
         <tr>
           <th className="border border-black p-0.5 text-center text-sm-minus w-[75px] bg-header-bg font-bold leading-tight align-middle">
-            Date
+            {labels[0].split('\n').map((line, index) => (
+              <React.Fragment key={index}>
+                {line}
+                {index < labels[0].split('\n').length - 1 && <br />}
+              </React.Fragment>
+            ))}
           </th>
           <th className="border border-black p-0.5 text-center text-sm-minus w-[32px] bg-header-bg font-bold leading-tight align-middle">
-            Time<br />In
+            {labels[1].split('\n').map((line, index) => (
+              <React.Fragment key={index}>
+                {line}
+                {index < labels[1].split('\n').length - 1 && <br />}
+              </React.Fragment>
+            ))}
           </th>
           <th className="border border-black p-0.5 text-center text-sm-minus w-[42px] bg-header-bg font-bold leading-tight align-middle">
-            Time Out
+            {labels[2].split('\n').map((line, index) => (
+              <React.Fragment key={index}>
+                {line}
+                {index < labels[2].split('\n').length - 1 && <br />}
+              </React.Fragment>
+            ))}
           </th>
           <th className="border border-black p-0.5 text-center text-sm-minus w-[53px] bg-header-bg font-bold leading-tight align-middle">
-            Lunch Break<br />Time 01:00 to<br />03:00
+            {labels[3].split('\n').map((line, index) => (
+              <React.Fragment key={index}>
+                {line}
+                {index < labels[3].split('\n').length - 1 && <br />}
+              </React.Fragment>
+            ))}
           </th>
           <th className="border border-black p-0.5 text-center text-sm-minus w-[32px] bg-header-bg font-bold leading-tight align-middle">
-            Time<br />In
+            {labels[4].split('\n').map((line, index) => (
+              <React.Fragment key={index}>
+                {line}
+                {index < labels[4].split('\n').length - 1 && <br />}
+              </React.Fragment>
+            ))}
           </th>
           <th className="border border-black p-0.5 text-center text-sm-minus w-[32px] bg-header-bg font-bold leading-tight align-middle">
-            Time<br />Out
+            {labels[5].split('\n').map((line, index) => (
+              <React.Fragment key={index}>
+                {line}
+                {index < labels[5].split('\n').length - 1 && <br />}
+              </React.Fragment>
+            ))}
           </th>
           <th className="border border-black p-0.5 text-center text-sm-minus w-[50px] bg-header-bg font-bold leading-tight align-middle">
-            Total Worked<br />Done(Hrs)
+            {labels[6].split('\n').map((line, index) => (
+              <React.Fragment key={index}>
+                {line}
+                {index < labels[6].split('\n').length - 1 && <br />}
+              </React.Fragment>
+            ))}
           </th>
           <th className="border border-black p-0.5 text-center text-sm-minus w-[32px] bg-header-bg font-bold leading-tight align-middle">
-            Over<br />Time
+            {labels[7].split('\n').map((line, index) => (
+              <React.Fragment key={index}>
+                {line}
+                {index < labels[7].split('\n').length - 1 && <br />}
+              </React.Fragment>
+            ))}
           </th>
           <th className="border border-black p-0.5 text-center text-sm-minus w-[45px] bg-header-bg font-bold leading-tight align-middle">
-            Actual<br />Worked<br />(Hrs)
+            {labels[8].split('\n').map((line, index) => (
+              <React.Fragment key={index}>
+                {line}
+                {index < labels[8].split('\n').length - 1 && <br />}
+              </React.Fragment>
+            ))}
           </th>
           <th className="border border-black p-0.5 text-center text-sm-minus w-[48px] bg-header-bg font-bold leading-tight align-middle">
-            Approver<br />Signature
+            {labels[9].split('\n').map((line, index) => (
+              <React.Fragment key={index}>
+                {line}
+                {index < labels[9].split('\n').length - 1 && <br />}
+              </React.Fragment>
+            ))}
           </th>
           <th className="border border-black p-0.5 text-center text-sm-minus w-[42px] bg-header-bg font-bold leading-tight align-middle">
-            Remarks
+            {labels[10].split('\n').map((line, index) => (
+              <React.Fragment key={index}>
+                {line}
+                {index < labels[10].split('\n').length - 1 && <br />}
+              </React.Fragment>
+            ))}
           </th>
         </tr>
       </thead>

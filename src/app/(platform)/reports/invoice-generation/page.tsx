@@ -12,6 +12,7 @@ interface InvoiceRow {
   description: string;
   quantity: number;
   rate: number;
+  amount: number;
 }
 
 function fmtNum(n: number) {
@@ -23,28 +24,24 @@ export default function InvoiceGenerationPage() {
   const today = new Date().toISOString().slice(0, 10);
 
   const [billTo, setBillTo] = useState('');
-  const [npcSpcVatNo, setNpcSpcVatNo] = useState('');
-  const [companyName, setCompanyName] = useState('');
-  const [vatNo1, setVatNo1] = useState('');
-  const [project, setProject] = useState('');
   const [invoiceNo, setInvoiceNo] = useState('');
   const [invoiceDate, setInvoiceDate] = useState(today);
-  const [vatNo2, setVatNo2] = useState('');
   const [vatPercent, setVatPercent] = useState('5');
   const [bankName, setBankName] = useState('');
   const [accountNo, setAccountNo] = useState('');
+  const [bankAccountTitle, setBankAccountTitle] = useState('');
   const [iban, setIban] = useState('');
   const [description, setDescription] = useState('');
 
   const [rows, setRows] = useState<InvoiceRow[]>([
-    { id: '1', siNo: 1, description: '', quantity: 0, rate: 0 },
+    { id: '1', siNo: 1, description: '', quantity: 0, rate: 0, amount: 0 },
   ]);
 
   function addRow() {
     const newId = String(Math.max(...rows.map(r => Number(r.id) || 0)) + 1);
     setRows([
       ...rows,
-      { id: newId, siNo: rows.length + 1, description: '', quantity: 0, rate: 0 },
+      { id: newId, siNo: rows.length + 1, description: '', quantity: 0, rate: 0, amount: 0 },
     ]);
   }
 
@@ -58,7 +55,7 @@ export default function InvoiceGenerationPage() {
     setRows(updated.map((r, idx) => ({ ...r, siNo: idx + 1 })));
   }
 
-  const subtotal = rows.reduce((s, r) => s + (Number(r.quantity) || 0) * (Number(r.rate) || 0), 0);
+  const subtotal = rows.reduce((s, r) => s + (Number(r.amount) || 0), 0);
   const vatPercentNumber = Number(vatPercent) || 0;
   const vatAmount = (subtotal * vatPercentNumber) / 100;
   const grandTotal = subtotal + vatAmount;
@@ -93,11 +90,6 @@ export default function InvoiceGenerationPage() {
               {([
                 ['Invoice No', invoiceNo, setInvoiceNo],
                 ['Bill To', billTo, setBillTo],
-                ['NPC SPC VAT NO', npcSpcVatNo, setNpcSpcVatNo],
-                ['Company Name', companyName, setCompanyName],
-                ['VAT NO (1)', vatNo1, setVatNo1],
-                ['Project', project, setProject],
-                ['VAT NO (2)', vatNo2, setVatNo2],
               ] as [string, string, (v: string) => void][]).map(([label, value, setter]) => (
                 <label key={label} className="text-xs" style={{ color: 'var(--text-secondary)' }}>
                   {label}
@@ -139,6 +131,7 @@ export default function InvoiceGenerationPage() {
             <div className="grid grid-cols-1 gap-3">
               {([
                 ['Bank Name', bankName, setBankName],
+                ['Bank Account Title', bankAccountTitle, setBankAccountTitle],
                 ['Account No', accountNo, setAccountNo],
                 ['IBAN', iban, setIban],
               ] as [string, string, (v: string) => void][]).map(([label, value, setter]) => (
@@ -216,23 +209,10 @@ export default function InvoiceGenerationPage() {
                 <span style={{ fontWeight: 700, display: 'inline-block', minWidth: 150 }}>BILL TO :</span> {billTo || '—'}
               </div>
               <div>
-                <span style={{ fontWeight: 700, display: 'inline-block', minWidth: 150 }}>NPC SPC VAT NO :</span> {npcSpcVatNo || '—'}
-              </div>
-              <div>{companyName || '—'}</div>
-              <div>
-                <span style={{ fontWeight: 700, display: 'inline-block', minWidth: 150 }}>VAT NO :</span> {vatNo1 || '—'}
-              </div>
-              <div>
-                <span style={{ fontWeight: 700, display: 'inline-block', minWidth: 150 }}>PROJECT :</span> {project || '—'}
-              </div>
-              <div>
                 <span style={{ fontWeight: 700, display: 'inline-block', minWidth: 150 }}>INVOICE NO :</span> {invoiceNo || '—'}
               </div>
               <div>
                 <span style={{ fontWeight: 700, display: 'inline-block', minWidth: 150 }}>INVOICE DATE :</span> {invoiceDate || '—'}
-              </div>
-              <div>
-                <span style={{ fontWeight: 700, display: 'inline-block', minWidth: 150 }}>VAT NO :</span> {vatNo2 || '—'}
               </div>
             </div>
 
@@ -256,7 +236,6 @@ export default function InvoiceGenerationPage() {
               </thead>
               <tbody>
                 {rows.map((row, idx) => {
-                  const amount = (Number(row.quantity) || 0) * (Number(row.rate) || 0);
                   return (
                     <tr key={row.id}>
                       <td style={{ padding: '6px 8px', fontSize: 12, border: '1px solid #ddd', textAlign: 'center', background: idx % 2 !== 0 ? '#f9f9f9' : '#fff' }}>
@@ -272,7 +251,7 @@ export default function InvoiceGenerationPage() {
                         {fmtNum(Number(row.rate) || 0)}
                       </td>
                       <td style={{ padding: '6px 8px', fontSize: 12, fontWeight: 600, border: '1px solid #ddd', textAlign: 'right', background: idx % 2 !== 0 ? '#f9f9f9' : '#fff' }}>
-                        {fmtNum(amount)}
+                        {fmtNum(Number(row.amount) || 0)}
                       </td>
                     </tr>
                   );
@@ -314,9 +293,7 @@ export default function InvoiceGenerationPage() {
                 Please Remit Payment To:
               </div>
               <div style={{ fontSize: 14, lineHeight: 1.35, color: '#222' }}>
-                <div>
-                  <strong>{companyName || 'Company Name'}</strong>
-                </div>
+                <div>Account Title: {bankAccountTitle || '—'}</div>
                 <div>Account Number: {accountNo || '—'}</div>
                 <div>IBAN: {iban || '—'}</div>
                 <div>Bank: {bankName || '—'}</div>
@@ -343,7 +320,6 @@ export default function InvoiceGenerationPage() {
             </thead>
             <tbody>
               {rows.map((row, idx) => {
-                const amount = (Number(row.quantity) || 0) * (Number(row.rate) || 0);
                 return (
                   <tr key={row.id} style={{ borderBottom: '1px solid var(--border)' }}>
                     <td style={{ padding: '8px', textAlign: 'center' }}>{row.siNo}</td>
@@ -376,7 +352,16 @@ export default function InvoiceGenerationPage() {
                         style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
                       />
                     </td>
-                    <td style={{ padding: '8px', textAlign: 'right', fontWeight: 600 }}>{fmtNum(amount)}</td>
+                    <td style={{ padding: '8px' }}>
+                      <input
+                        type="number"
+                        step="0.001"
+                        value={row.amount || ''}
+                        onChange={e => updateRow(row.id, 'amount', Number(e.target.value) || 0)}
+                        className="w-full px-2 py-1 rounded text-sm outline-none text-right"
+                        style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+                      />
+                    </td>
                     <td style={{ padding: '8px', textAlign: 'center' }}>
                       <button
                         onClick={() => deleteRow(row.id)}

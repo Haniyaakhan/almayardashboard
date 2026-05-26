@@ -28,6 +28,30 @@ export default function ReceiptLettersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedEntryId, setSelectedEntryId] = useState<string>('manual');
+
+  const buildReceiptBody = (monthLabel: string, totalSalary: number, deduction: number) => {
+    const net = totalSalary - deduction;
+    const formattedNet = net.toLocaleString('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+    return `I, the undersigned, hereby acknowledge and confirm that I have received my full salary for the month of ${monthLabel} in cash, amounting to ${formattedNet} OMR. There are no dues remaining.`;
+  };
+
+  const [manualData, setManualData] = useState({
+    labor_name: '',
+    labor_code: '',
+    designation: '',
+    salaryMonthLabel: '',
+    year: now.year,
+    monthly_salary: 0,
+    actual_worked_hours: 0,
+    overtime_hours: 0,
+    total_worked_hours: 0,
+    hourly_rate: 0,
+    total_salary: 0,
+    deduction: 0,
+    receiptBody: '',
+  });
+  const [receiptBodyEdited, setReceiptBodyEdited] = useState(false);
   const initDoneRef = useRef(false);
 
   const refetch = useCallback(async (m: number, y: number) => {
@@ -114,17 +138,17 @@ export default function ReceiptLettersPage() {
     });
   }, [entries, searchQuery]);
 
-  // Only show employees without bank accounts for receipt letters
+  // Show all employees for receipt letter generation, including those with bank accounts who were paid cash
   const cashPaymentEntries = useMemo(
-    () => filteredEntries.filter((e) => !(e.bank_name || '').trim() || (e.bank_name || '').trim() === '-'),
+    () => filteredEntries,
     [filteredEntries]
   );
 
   async function downloadAllLetters(rows: SalarySheetEntry[]) {
     for (const entry of rows) {
       // Add a small delay to avoid overwhelming browser
-      await new Promise(resolve => setTimeout(resolve, 200));
-      downloadSalaryReceiptLetter(entry, month, year);
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      await downloadSalaryReceiptLetter(entry, month, year);
     }
     toast.success(`Downloaded ${rows.length} receipt letters`);
   }
@@ -205,7 +229,7 @@ export default function ReceiptLettersPage() {
         <Card>
           <EmptyState
             title="No receipt letters"
-            description={entries.length === 0 ? 'Create and approve a salary sheet first.' : 'All employees have bank accounts. Receipt letters are for cash payments only.'}
+            description={entries.length === 0 ? 'Create and approve a salary sheet first.' : 'No salary entries found for the selected month and year.'}
           />
         </Card>
       ) : (
@@ -213,10 +237,10 @@ export default function ReceiptLettersPage() {
           <div className="mb-4 flex items-center justify-between">
             <div>
               <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                Cash Payment Receipt Letters
+                Salary Receipt Letters
               </h3>
               <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
-                {cashPaymentEntries.length} employees without bank accounts
+                {cashPaymentEntries.length} employees available for receipt generation
               </p>
             </div>
             <div className="flex gap-2">
@@ -259,7 +283,7 @@ export default function ReceiptLettersPage() {
                       <td className="px-3 py-2 font-semibold" style={{ color: 'var(--orange)' }}>{net.toFixed(3)} OMR</td>
                       <td className="px-3 py-2">
                         <button
-                          onClick={() => downloadSalaryReceiptLetter(entry, month, year)}
+                          onClick={async () => await downloadSalaryReceiptLetter(entry, month, year)}
                           className="px-3 py-1 rounded-lg text-xs whitespace-nowrap"
                           style={{ background: '#f3e8ff', border: '1px solid #ddd6fe', color: '#7c3aed', cursor: 'pointer' }}
                           title="Download Receipt Letter PDF"
@@ -276,10 +300,298 @@ export default function ReceiptLettersPage() {
         </Card>
       )}
 
+      <Card padding="p-4">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div>
+            <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+              Manual Receipt Letter
+            </h3>
+            <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+              Select an employee or type the information manually to create a custom salary receipt letter.
+            </p>
+          </div>
+          <div className="space-y-3">
+            <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+              Select Laborer or Manual Input
+            </label>
+            <select
+              value={selectedEntryId}
+              onChange={(e) => {
+                const value = e.target.value;
+                setSelectedEntryId(value);
+                if (value === 'manual') {
+                  return;
+                }
+                const selected = entries.find((entry) => entry.id === value);
+                if (selected) {
+                  const totalSalary = Number(selected.total_salary) || 0;
+                  const deduction = Number(selected.deduction) || 0;
+                  const monthLabel = `${MONTH_NAMES[month]} ${year}`;
+                  setManualData({
+                    labor_name: selected.labor_name || '',
+                    labor_code: selected.labor_code || '',
+                    designation: selected.designation || '',
+                    salaryMonthLabel: monthLabel,
+                    year,
+                    monthly_salary: Number(selected.monthly_salary) || 0,
+                    actual_worked_hours: Number(selected.actual_worked_hours) || 0,
+                    overtime_hours: Number(selected.overtime_hours) || 0,
+                    total_worked_hours: Number(selected.total_worked_hours) || 0,
+                    hourly_rate: Number(selected.hourly_rate) || 0,
+                    total_salary: totalSalary,
+                    deduction,
+                    receiptBody: buildReceiptBody(monthLabel, totalSalary, deduction),
+                  });
+                  setReceiptBodyEdited(false);
+                }
+              }}
+              className="w-full rounded-lg px-3 py-2 text-sm outline-none"
+              style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+            >
+              <option value="manual">Manual entry</option>
+              {entries.map((entry) => (
+                <option key={entry.id} value={entry.id}>
+                  {entry.labor_name} ({entry.labor_code})
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 mt-4 lg:grid-cols-3">
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+              Salary Month Label
+            </label>
+            <input
+              type="text"
+              value={manualData.salaryMonthLabel}
+              onChange={(e) => {
+                const value = e.target.value;
+                setManualData((prev) => ({
+                  ...prev,
+                  salaryMonthLabel: value,
+                  receiptBody: receiptBodyEdited || !value.trim()
+                    ? prev.receiptBody
+                    : buildReceiptBody(value, prev.total_salary, prev.deduction),
+                }));
+              }}
+              className="w-full rounded-lg px-3 py-2 text-sm outline-none"
+              style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+              placeholder="March 2026"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+              Year
+            </label>
+            <input
+              type="number"
+              value={manualData.year}
+              min={2020}
+              max={2099}
+              onChange={(e) => setManualData({ ...manualData, year: Number(e.target.value) || manualData.year })}
+              className="w-full rounded-lg px-3 py-2 text-sm outline-none"
+              style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+            />
+          </div>
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+              Net Salary
+            </label>
+            <div className="w-full rounded-lg px-3 py-2 text-sm" style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}>
+              {(manualData.total_salary - manualData.deduction).toFixed(3)} OMR
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4">
+          <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+            Receipt Text
+          </label>
+          <textarea
+            value={manualData.receiptBody}
+            onChange={(e) => {
+              setManualData({ ...manualData, receiptBody: e.target.value });
+              setReceiptBodyEdited(true);
+            }}
+            rows={5}
+            className="w-full rounded-lg px-3 py-2 text-sm outline-none"
+            style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+            placeholder="Edit the receipt acknowledgement text"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 mt-4 lg:grid-cols-3">
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+              Name
+            </label>
+            <input
+              type="text"
+              value={manualData.labor_name}
+              onChange={(e) => setManualData({ ...manualData, labor_name: e.target.value })}
+              className="w-full rounded-lg px-3 py-2 text-sm outline-none"
+              style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+            />
+          </div>
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+              ID Number
+            </label>
+            <input
+              type="text"
+              value={manualData.labor_code}
+              onChange={(e) => setManualData({ ...manualData, labor_code: e.target.value })}
+              className="w-full rounded-lg px-3 py-2 text-sm outline-none"
+              style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+            />
+          </div>
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+              Designation
+            </label>
+            <input
+              type="text"
+              value={manualData.designation}
+              onChange={(e) => setManualData({ ...manualData, designation: e.target.value })}
+              className="w-full rounded-lg px-3 py-2 text-sm outline-none"
+              style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 mt-4 lg:grid-cols-4">
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+              Monthly Salary
+            </label>
+            <input
+              type="number"
+              value={manualData.monthly_salary}
+              onChange={(e) => setManualData({ ...manualData, monthly_salary: Number(e.target.value) || 0 })}
+              className="w-full rounded-lg px-3 py-2 text-sm outline-none"
+              style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+              step="0.001"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+              Total Salary
+            </label>
+            <input
+              type="number"
+              value={manualData.total_salary}
+              onChange={(e) => {
+                const value = Number(e.target.value) || 0;
+                setManualData((prev) => ({
+                  ...prev,
+                  total_salary: value,
+                  receiptBody: receiptBodyEdited || !prev.salaryMonthLabel.trim()
+                    ? prev.receiptBody
+                    : buildReceiptBody(prev.salaryMonthLabel, value, prev.deduction),
+                }));
+              }}
+              className="w-full rounded-lg px-3 py-2 text-sm outline-none"
+              style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+              step="0.001"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+              Deduction
+            </label>
+            <input
+              type="number"
+              value={manualData.deduction}
+              onChange={(e) => {
+                const value = Number(e.target.value) || 0;
+                setManualData((prev) => ({
+                  ...prev,
+                  deduction: value,
+                  receiptBody: receiptBodyEdited || !prev.salaryMonthLabel.trim()
+                    ? prev.receiptBody
+                    : buildReceiptBody(prev.salaryMonthLabel, prev.total_salary, value),
+                }));
+              }}
+              className="w-full rounded-lg px-3 py-2 text-sm outline-none"
+              style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+              step="0.001"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+              Hourly Rate
+            </label>
+            <input
+              type="number"
+              value={manualData.hourly_rate}
+              onChange={(e) => setManualData({ ...manualData, hourly_rate: Number(e.target.value) || 0 })}
+              className="w-full rounded-lg px-3 py-2 text-sm outline-none"
+              style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+              step="0.001"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 mt-4 lg:grid-cols-3">
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+              Actual Worked Hours
+            </label>
+            <input
+              type="number"
+              value={manualData.actual_worked_hours}
+              onChange={(e) => setManualData({ ...manualData, actual_worked_hours: Number(e.target.value) || 0 })}
+              className="w-full rounded-lg px-3 py-2 text-sm outline-none"
+              style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+              step="0.1"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+              Overtime Hours
+            </label>
+            <input
+              type="number"
+              value={manualData.overtime_hours}
+              onChange={(e) => setManualData({ ...manualData, overtime_hours: Number(e.target.value) || 0 })}
+              className="w-full rounded-lg px-3 py-2 text-sm outline-none"
+              style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+              step="0.1"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+              Total Worked Hours
+            </label>
+            <input
+              type="number"
+              value={manualData.total_worked_hours}
+              onChange={(e) => setManualData({ ...manualData, total_worked_hours: Number(e.target.value) || 0 })}
+              className="w-full rounded-lg px-3 py-2 text-sm outline-none"
+              style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+              step="0.1"
+            />
+          </div>
+        </div>
+
+        <div className="mt-4 flex justify-end">
+          <Button
+            size="sm"
+            disabled={!manualData.receiptBody.trim()}
+            onClick={async () => await downloadSalaryReceiptLetter(manualData, month, manualData.year, manualData.salaryMonthLabel, manualData.receiptBody)}
+            icon={<Download size={14} />}
+          >
+            Download Manual Letter
+          </Button>
+        </div>
+      </Card>
+
       {/* Info Box */}
       <Card padding="p-4" style={{ background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
         <p className="text-sm" style={{ color: '#166534' }}>
-          <strong>ℹ️ Receipt Letters:</strong> These are salary acknowledgment letters for employees who receive cash payments. Each letter includes employee details, salary breakdown, and acknowledgment statement. Download them individually or in bulk by clicking the buttons above.
+          <strong>ℹ️ Receipt Letters:</strong> These are salary acknowledgment letters for employees who received cash, including those with bank accounts. Use the list above to generate receipts for individual employees or download them in bulk.
         </p>
       </Card>
     </div>

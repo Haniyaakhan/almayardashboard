@@ -9,6 +9,7 @@ const titles: Record<string, string> = {
   '/timesheet/history': 'Labor Timesheets',
   '/vehicle-timesheet': 'Vehicle Timesheet',
   '/vehicle-timesheet/history': 'Vehicle Timesheets',
+  '/tunnelemployeestimesheet': 'Tunnel Employee Timesheet',
   '/vendors': 'Contractors',
   '/vendors/new': 'Add Contractor',
   '/machines': 'Vehicle Management',
@@ -31,6 +32,7 @@ const titles: Record<string, string> = {
   '/payment-modules/cash-receipt-payment': 'Cash Receipt Payment',
   '/payment-modules/invoice-generation': 'Invoice Generation',
   '/payment-modules/salary-generation': 'Salary Generation',
+  '/payment-modules/receipt-letters': 'Salary Receipt Letters',
   '/payment-modules/lpo-generation': 'LPO Generation',
 };
 

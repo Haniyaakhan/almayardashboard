@@ -5,7 +5,7 @@ export default function TimesheetHeader({
   timesheetType = 'labor'
 }: { 
   title?: string;
-  timesheetType?: 'labor' | 'vehicle' | 'equipment';
+  timesheetType?: 'labor' | 'vehicle' | 'equipment' | 'tunnel_employee';
 }) {
   return (
     <div className="mb-0" style={{ fontStyle: 'normal' }}>
@@ -42,7 +42,11 @@ export default function TimesheetHeader({
             {/* Center text area */}
             <div style={{ flex: 1, textAlign: 'right' }}>
               <div style={{ fontSize: '16px', fontStyle: 'normal', fontWeight: 'normal', marginRight: '100px',marginTop:'4px', }}>
-                {timesheetType === 'labor' ? 'Labor Working At Site' : 'Working At Site'}
+                {timesheetType === 'labor'
+                  ? 'Labor Working At Site'
+                  : timesheetType === 'tunnel_employee'
+                    ? 'Tunnel Employee Working At Site'
+                    : 'Working At Site'}
               </div>
             </div>
 

@@ -227,6 +227,7 @@ export default function DashboardPage() {
               <Link href="/timesheet" style={actionBtnStyle('#ff6b2b', 'rgba(255,107,43,0.08)')}>+ Labour</Link>
               <Link href="/vehicle-timesheet" style={actionBtnStyle('#3b82f6', 'rgba(59,130,246,0.08)')}>+ Vehicle</Link>
               <Link href="/equipment-timesheet" style={actionBtnStyle('#14b8a6', 'rgba(20,184,166,0.08)')}>+ Equipment</Link>
+              <Link href="/tunnelemployeestimesheet" style={actionBtnStyle('#7c3aed', 'rgba(124,58,237,0.08)')}>+ Tunnel Employee</Link>
             </div>
           </div>
 
@@ -235,10 +236,11 @@ export default function DashboardPage() {
             <div style={cardHeaderStyle}>
               <span style={cardTitleStyle}>💳 Payment Modules</span>
             </div>
-            <div style={{ padding: '12px 16px', display: 'flex', gap: 8 }}>
+            <div style={{ padding: '12px 16px', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <Link href="/payment-modules/invoice-generation" style={actionBtnStyle('#8b5cf6', 'rgba(139,92,246,0.1)')}>Create Invoice</Link>
               <Link href="/payment-modules/cash-receipt-payment" style={actionBtnStyle('#0ea5e9', 'rgba(14,165,233,0.1)')}>Create Cash Receipt</Link>
               <Link href="/payment-modules/salary-generation" style={actionBtnStyle('#16a34a', 'rgba(22,163,74,0.1)')}>Salary Generation</Link>
+              <Link href="/payment-modules/receipt-letters" style={actionBtnStyle('#f97316', 'rgba(249,115,22,0.1)')}>Receipt Letters</Link>
             </div>
           </div>
 
