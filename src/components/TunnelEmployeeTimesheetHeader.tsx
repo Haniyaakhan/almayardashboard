@@ -11,6 +11,7 @@ interface TunnelEmployeeTimesheetHeaderProps {
   designation: string;
   projectCode?: string;
   lpoNumber?: string;
+  timesheetType?: 'tunnel_employee';
   vehicleUse?: 'site' | 'both';
   month: number;
   year: number;
