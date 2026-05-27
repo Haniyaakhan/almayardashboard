@@ -37,7 +37,7 @@ export async function getTimesheetWithEntries(id: string): Promise<Timesheet | n
   return data as Timesheet | null;
 }
 
-export async function getTimesheetByLaborer(laborerId: string, month: number, year: number, sheetType?: 'labor' | 'vehicle' | 'equipment' | 'tunnel_employee'): Promise<Timesheet | null> {
+export async function getTimesheetByLaborer(laborerId: string, month: number, year: number, sheetType?: 'labor' | 'vehicle' | 'equipment' | 'tunnel_employee' | 'tunnel_vehicle'): Promise<Timesheet | null> {
   const supabase = createClient();
   let query = supabase
     .from('timesheets')
@@ -83,7 +83,7 @@ export async function countTimesheetsForEntity(entityId: string, month: number, 
 export async function saveTimesheet(payload: {
   timesheetId?: string | null;   // pass to update a specific existing record (vehicle/equipment edits)
   laborer_id: string | null;
-  sheet_type?: 'labor' | 'vehicle' | 'equipment' | 'tunnel_employee';
+  sheet_type?: 'labor' | 'vehicle' | 'equipment' | 'tunnel_employee' | 'tunnel_vehicle';
   labor_name?: string;
   month: number; year: number;
   project_name: string; supplier_name: string;

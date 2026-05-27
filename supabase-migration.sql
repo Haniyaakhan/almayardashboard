@@ -17,19 +17,22 @@ ALTER TABLE public.machines ADD COLUMN IF NOT EXISTS category text NOT NULL DEFA
 ALTER TABLE public.timesheets ADD COLUMN IF NOT EXISTS sheet_type text NOT NULL DEFAULT 'labor';
 ALTER TABLE public.timesheets ADD COLUMN IF NOT EXISTS labor_name text;
 
--- 5. Ensure sheet_type only allows supported values
+-- 5. Ensure sheet_type only allows supported values (include tunnel_vehicle)
 DO $$
 BEGIN
-	IF NOT EXISTS (
+	-- Drop existing constraint if present so we can recreate with updated allowed values
+	IF EXISTS (
 		SELECT 1
 		FROM pg_constraint
 		WHERE conname = 'timesheets_sheet_type_check'
 			AND conrelid = 'public.timesheets'::regclass
 	) THEN
-		ALTER TABLE public.timesheets
-			ADD CONSTRAINT timesheets_sheet_type_check
-			CHECK (sheet_type IN ('labor','vehicle','equipment'));
+		ALTER TABLE public.timesheets DROP CONSTRAINT timesheets_sheet_type_check;
 	END IF;
+
+	ALTER TABLE public.timesheets
+		ADD CONSTRAINT timesheets_sheet_type_check
+		CHECK (sheet_type IN ('labor','vehicle','equipment','tunnel_vehicle'));
 END $$;
 
 -- 5b. Enforce numeric + unique Labour ID at DB level

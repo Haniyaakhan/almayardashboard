@@ -27,6 +27,14 @@ interface TunnelEmployeeTimesheetHeaderProps {
   readOnly?: boolean;
 }
 
+// Width of the right-column value boxes — all four boxes share this exact width
+const RIGHT_BOX_WIDTH = 220;
+
+// Logo image height — used for header container and title strip offset
+const LOGO_HEIGHT = 52;
+// Logo image width — title strip left offset matches this
+const LOGO_WIDTH = 260;
+
 export default function TunnelEmployeeTimesheetHeader({
   title = 'Labour Time Sheet',
   projectName,
@@ -83,51 +91,56 @@ export default function TunnelEmployeeTimesheetHeader({
     display: 'flex',
     alignItems: 'center',
     width: '100%',
-    height: 24,
+    minHeight: 24,
+  };
+
+  // Shared right-column layout: label pushes left, box is fixed RIGHT_BOX_WIDTH
+  const rightColStyle: React.CSSProperties = {
+    width: '52%',
+    display: 'flex',
+    alignItems: 'center',
+    height: '100%',
+  };
+
+  const rightLabelStyle: React.CSSProperties = {
+    ...labelStyle,
+    flexGrow: 1,
+    marginRight: 6,
+    textAlign: 'right',
   };
 
   return (
     <div style={{ width: '100%', fontFamily: 'Arial, Helvetica, sans-serif' }}>
 
       {/* ── HEADER TOP TRACK ── */}
-      <div style={{ display: 'flex', alignItems: 'center', position: 'relative', height: 56 }}>
+      <div style={{ display: 'flex', alignItems: 'center', position: 'relative', height: LOGO_HEIGHT }}>
 
-        {/* Three logos */}
+        {/* Single combined logo image */}
         <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 3,
           zIndex: 2,
           background: '#fcfcfc',
-          paddingRight: 6,
           flexShrink: 0,
         }}>
-          {['/logo1.jpg', '/logo2.jpeg', '/logo3.png'].map((src, index) => (
-            <div key={index} style={{
-              height: 56,
-              width: index < 2 ? 96 : 84,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              overflow: 'hidden',
-            }}>
-              <img
-                src={src}
-                alt={`Logo ${index + 1}`}
-                style={{ height: '100%', width: '100%', objectFit: 'contain' }}
-              />
-            </div>
-          ))}
+          <img
+            src="/TUNNEL-LOGO.jpg"
+            alt="Trojan Tunnelling Logo"
+            style={{
+              height: 60,
+              width: 270,
+              objectFit: 'contain',
+              display: 'block',
+            }}
+          />
         </div>
 
-        {/* Title strip — left: 3×84 + 2×3 gaps + 6 padding = 261px */}
+        {/* Title strip — left edge = LOGO_WIDTH */}
         <div style={{
           background: '#f7cb99',
           fontSize: 12,
           fontWeight: 700,
           color: '#000',
           position: 'absolute',
-          left: 288,
+          left: LOGO_WIDTH,
           right: -12,
           top: 0,
           height: 22,
@@ -140,102 +153,95 @@ export default function TunnelEmployeeTimesheetHeader({
       </div>
 
       {/* ── VEHICLE + LPO BLOCK ── */}
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'flex-end',
-        marginTop: -4,
-        marginBottom: 0,
-      }}>
+      <div style={{ display: 'flex', flexDirection: 'column', width: '100%', marginTop: -20 }}>
 
         {/* Vehicle row */}
-        <div style={{ display: 'flex', alignItems: 'center', width: '58%' }}>
-          <div style={{ ...labelStyle, textAlign: 'right', flexGrow: 1, marginRight: 6 }}>
-            VEHICLE USED FOR SITE WORK
-          </div>
-          <div style={{
-            width: 220,
-            flexShrink: 0,
-            display: 'flex',
-            height: 28,
-            border: '1.5px solid #000',
-            background: '#fff',
-          }}>
+        <div style={{ ...rowStyle, height: 26 }}>
+          <div style={{ width: '48%' }} />
+          <div style={rightColStyle}>
+            <div style={rightLabelStyle}>VEHICLE USED FOR SITE WORK</div>
             <div style={{
-              flex: 1,
+              width: RIGHT_BOX_WIDTH,
+              flexShrink: 0,
               display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 9,
-              fontWeight: 700,
-              borderRight: '1.5px solid #000',
+              height: 24,
+              border: '1.5px solid #000',
               background: '#fff',
-              cursor: readOnly ? 'default' : 'pointer',
             }}>
-              SITE USE
-            </div>
-            <div style={{
-              flex: 1,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 9,
-              fontWeight: 700,
-              background: '#fff',
-              cursor: readOnly ? 'default' : 'pointer',
-            }}>
-              BOTH
+              <div style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 9,
+                fontWeight: 700,
+                borderRight: '1.5px solid #000',
+                background: '#fff',
+                cursor: readOnly ? 'default' : 'pointer',
+              }}>
+                SITE USE
+              </div>
+              <div style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 9,
+                fontWeight: 700,
+                background: '#fff',
+                cursor: readOnly ? 'default' : 'pointer',
+              }}>
+                BOTH
+              </div>
             </div>
           </div>
         </div>
 
         {/* LPO row */}
-          <div style={{ display: 'flex', alignItems: 'center', width: '58%', marginTop: 0 }}>
-          <div style={{ ...labelStyle, textAlign: 'right', flexGrow: 1, marginRight: 6 }}>
-            LPO:
-          </div>
-          <div style={{
-            width: 220,
-            flexShrink: 0,
-            height: 28,
-            border: '1.5px solid #000',
-            background: '#fff',
-            display: 'flex',
-            alignItems: 'center',
-            padding: '0',
-            justifyContent: 'center',
-          }}>
-            <input
-              type="text"
-              value={lpoNumber}
-              onChange={(e) => onLpoNumberChange(e.target.value)}
-              readOnly={readOnly}
-              placeholder=""
-              style={{ ...inputStyle, padding: '0 10px', textAlign: 'center', width: '100%' }}
-            />
+        <div style={{ ...rowStyle, height: 26 }}>
+          <div style={{ width: '48%' }} />
+          <div style={rightColStyle}>
+            <div style={rightLabelStyle}>LPO:</div>
+            <div style={{
+              width: RIGHT_BOX_WIDTH,
+              flexShrink: 0,
+              height: 24,
+              border: '1.5px solid #000',
+              background: '#fff',
+              display: 'flex',
+              alignItems: 'center',
+            }}>
+              <input
+                type="text"
+                value={lpoNumber}
+                onChange={(e) => onLpoNumberChange(e.target.value)}
+                readOnly={readOnly}
+                placeholder=""
+                style={{ ...inputStyle, padding: '0 10px', textAlign: 'center' }}
+              />
+            </div>
           </div>
         </div>
+
       </div>
 
       {/* ── MAIN BODY GRID ── */}
-      <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', width: '100%', marginTop: -6 }}>
 
         {/* ROW 1: TROJAN TUNNELLING LLC  |  Labour Working at Site */}
-        <div style={rowStyle}>
+        <div style={{ ...rowStyle, height: 26 }}>
           <div style={{ width: '48%' }}>
             <div style={{ fontSize: 14, fontWeight: 700, color: '#000' }}>
               TROJAN TUNNELLING LLC
             </div>
           </div>
-          <div style={{ width: '52%', display: 'flex', alignItems: 'center', height: '100%' }}>
-            <div style={{ ...labelStyle, flexGrow: 1, marginRight: 4, textAlign: 'right' }}>
-              Labour Working at Site:
-            </div>
+          <div style={rightColStyle}>
+            <div style={rightLabelStyle}>Labour Working at Site:</div>
             <div style={{
               ...cellStyle,
-              width: 220,
+              width: RIGHT_BOX_WIDTH,
               flexShrink: 0,
-              height: 28,
+              height: 24,
               justifyContent: 'center',
               fontSize: 9,
               fontWeight: 700,
@@ -246,16 +252,18 @@ export default function TunnelEmployeeTimesheetHeader({
         </div>
 
         {/* ROW 2: Project Name */}
-        <div style={rowStyle}>
-          <div style={{ width: '48%', display: 'flex', alignItems: 'center', height: '100%' }}>
-            <div style={{ ...labelStyle, width: 88 }}>Project Name :</div>
-            <div style={{ ...cellStyle, flexGrow: 1, height: 22 }}>
-              <input
-                type="text"
+        <div style={{ ...rowStyle, minHeight: 40 }}>
+          <div style={{ width: '48%', display: 'flex', alignItems: 'stretch', minHeight: 40 }}>
+            <div style={{ ...labelStyle, width: 88, display: 'flex', alignItems: 'center' }}>
+              Project Name :
+            </div>
+            <div style={{ ...cellStyle, flexGrow: 1, minHeight: 40, alignItems: 'flex-start', padding: '2px 0' }}>
+              <textarea
                 value={projectName}
                 onChange={(e) => onProjectNameChange(e.target.value)}
                 readOnly={readOnly}
-                style={inputStyle}
+                rows={2}
+                style={{ ...inputStyle, alignSelf: 'flex-start', paddingTop: 2, resize: 'none', overflow: 'hidden', fontSize: 11 }}
               />
             </div>
           </div>
@@ -263,10 +271,10 @@ export default function TunnelEmployeeTimesheetHeader({
         </div>
 
         {/* ROW 3: Supplier Name  |  Site Engineer / Foreman Name */}
-        <div style={rowStyle}>
+        <div style={{ ...rowStyle, height: 26 }}>
           <div style={{ width: '48%', display: 'flex', alignItems: 'center', height: '100%' }}>
             <div style={{ ...labelStyle, width: 88 }}>Supplier Name:</div>
-            <div style={{ ...cellStyle, flexGrow: 1, height: 22 }}>
+            <div style={{ ...cellStyle, flexGrow: 1, height: 24 }}>
               <input
                 type="text"
                 value={supplierName}
@@ -276,11 +284,9 @@ export default function TunnelEmployeeTimesheetHeader({
               />
             </div>
           </div>
-          <div style={{ width: '52%', display: 'flex', alignItems: 'center', height: '100%' }}>
-            <div style={{ ...labelStyle, flexGrow: 1, marginRight: 4, textAlign: 'right' }}>
-              Site Engineer / Foreman Name:
-            </div>
-            <div style={{ ...cellStyle, width: 220, flexShrink: 0, height: 28 }}>
+          <div style={rightColStyle}>
+            <div style={rightLabelStyle}>Site Engineer / Foreman Name:</div>
+            <div style={{ ...cellStyle, width: RIGHT_BOX_WIDTH, flexShrink: 0, height: 24 }}>
               <div style={{ flexGrow: 1 }}>
                 <input
                   type="text"
@@ -323,16 +329,16 @@ export default function TunnelEmployeeTimesheetHeader({
         </div>
 
         {/* ROW 4: Labour Name */}
-        <div style={rowStyle}>
+        <div style={{ ...rowStyle, height: 36 }}>
           <div style={{ width: '48%', display: 'flex', alignItems: 'center', height: '100%' }}>
             <div style={{ ...labelStyle, width: 88 }}>Labour Name :</div>
-            <div style={{ ...cellStyle, flexGrow: 1, height: 22 }}>
+            <div style={{ ...cellStyle, flexGrow: 1, height: 34 }}>
               <input
                 type="text"
                 value={laborName}
                 onChange={(e) => onLaborNameChange(e.target.value)}
                 readOnly={readOnly}
-                style={inputStyle}
+                style={{ ...inputStyle, fontSize: 11 }}
               />
             </div>
           </div>
@@ -340,10 +346,10 @@ export default function TunnelEmployeeTimesheetHeader({
         </div>
 
         {/* ROW 5: Designation  |  Month */}
-        <div style={rowStyle}>
+        <div style={{ ...rowStyle, height: 36 }}>
           <div style={{ width: '48%', display: 'flex', alignItems: 'center', height: '100%' }}>
             <div style={{ ...labelStyle, width: 88 }}>Designation:</div>
-            <div style={{ ...cellStyle, flexGrow: 1, height: 22 }}>
+            <div style={{ ...cellStyle, flexGrow: 1, height: 34 }}>
               <div style={{
                 width: 72,
                 flexShrink: 0,
@@ -387,9 +393,11 @@ export default function TunnelEmployeeTimesheetHeader({
             </div>
           </div>
 
-          <div style={{ width: '52%', display: 'flex', alignItems: 'center', height: '100%' }}>
-            <div style={{ ...labelStyle, textTransform: 'none', marginRight: 4 }}>Month</div>
-            <div style={{ ...cellStyle, width: 220, flexShrink: 0, height: 28 }}>
+          <div style={rightColStyle}>
+            <div style={rightLabelStyle}>
+              Month
+            </div>
+            <div style={{ ...cellStyle, width: RIGHT_BOX_WIDTH, flexShrink: 0, height: 34 }}>
               <div style={{
                 flexGrow: 1,
                 display: 'flex',

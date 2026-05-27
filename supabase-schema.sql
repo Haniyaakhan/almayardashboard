@@ -109,7 +109,7 @@ create table public.timesheets (
   id                  uuid primary key default uuid_generate_v4(),
   laborer_id          uuid, -- no FK: stores laborer OR machine UUID
   sheet_type          text not null default 'labor'
-                        check (sheet_type in ('labor','vehicle','equipment')),
+                        check (sheet_type in ('labor','vehicle','equipment','tunnel_vehicle')),
   labor_name          text,
   month               int not null check (month between 0 and 11),
   year                int not null,

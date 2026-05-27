@@ -10,6 +10,7 @@ const titles: Record<string, string> = {
   '/vehicle-timesheet': 'Vehicle Timesheet',
   '/vehicle-timesheet/history': 'Vehicle Timesheets',
   '/tunnelemployeestimesheet': 'Tunnel Employee Timesheet',
+  '/tunnel-vehicle-timesheet': 'Tunnel Vehical Timesheet',
   '/vendors': 'Contractors',
   '/vendors/new': 'Add Contractor',
   '/machines': 'Vehicle Management',

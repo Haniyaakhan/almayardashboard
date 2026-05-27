@@ -5,7 +5,7 @@ interface TunnelEmployeeTimesheetFooterProps {
 }
 
 export default function TunnelEmployeeTimesheetFooter({ totalActual }: TunnelEmployeeTimesheetFooterProps) {
-  const minHours = 160;
+  const minHours = 260;
   const diff = Number((totalActual - minHours).toFixed(2));
   const diffLabel = diff === 0 ? 'NIL' : diff > 0 ? `+${diff.toFixed(2)}` : diff.toFixed(2);
 

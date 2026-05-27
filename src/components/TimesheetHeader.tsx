@@ -5,7 +5,7 @@ export default function TimesheetHeader({
   timesheetType = 'labor'
 }: { 
   title?: string;
-  timesheetType?: 'labor' | 'vehicle' | 'equipment' | 'tunnel_employee';
+  timesheetType?: 'labor' | 'vehicle' | 'equipment' | 'tunnel_employee' | 'tunnel_vehicle';
 }) {
   return (
     <div className="mb-0" style={{ fontStyle: 'normal' }}>
@@ -45,7 +45,7 @@ export default function TimesheetHeader({
                 {timesheetType === 'labor'
                   ? 'Labor Working At Site'
                   : timesheetType === 'tunnel_employee'
-                    ? 'Tunnel Employee Working At Site'
+                    ? 'Working At Site'
                     : 'Working At Site'}
               </div>
             </div>
@@ -91,8 +91,9 @@ export default function TimesheetHeader({
                   <td
                     className="border border-black"
                     colSpan={2}
-                    style={{ height: '14px' }}
+                    style={{ height: '14px', textAlign: 'center', fontSize: 11, fontWeight: 700 }}
                   >
+                    {(timesheetType === 'tunnel_employee' || timesheetType === 'tunnel_vehicle') ? 'NPCSPC (TROJAN TUNELL)' : ''}
                   </td>
                 </tr>
               </tbody>

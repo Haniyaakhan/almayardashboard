@@ -14,13 +14,14 @@ import jsPDF from 'jspdf';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-type SheetType = 'labor' | 'vehicle' | 'equipment' | 'tunnel_employee';
+type SheetType = 'labor' | 'vehicle' | 'equipment' | 'tunnel_employee' | 'tunnel_vehicle';
 
 const TYPE_COLORS: Record<SheetType, { bg: string; color: string }> = {
   labor:           { bg: 'rgba(59,130,246,0.1)',   color: '#3b82f6' },
   vehicle:         { bg: 'rgba(245,158,11,0.12)',  color: '#d97706' },
   equipment:       { bg: 'rgba(34,197,94,0.1)',    color: '#16a34a' },
   tunnel_employee: { bg: 'rgba(168,85,247,0.12)',  color: '#7c3aed' },
+  tunnel_vehicle:  { bg: 'rgba(234,88,12,0.12)',   color: '#ea580c' },
 };
 
 export default function TimesheetsPage() {
@@ -48,14 +49,16 @@ export default function TimesheetsPage() {
     if (laborerIds.has(id)) return 'labor';
     if (vehicleIds.has(id)) return 'vehicle';
     if (equipIds.has(id))   return 'equipment';
+    // fallback: if sheet_type is present but not recognized, treat tunnel_vehicle as vehicle
+    if (ts.sheet_type === 'tunnel_vehicle') return 'tunnel_vehicle' as SheetType;
     return 'labor';
   }
 
   function resolveName(ts: (typeof timesheets)[0], type: SheetType): string {
     const id = ts.laborer_id ?? '';
-    if (type === 'labor' || type === 'tunnel_employee')
+      if (type === 'labor' || type === 'tunnel_employee')
       return laborerMap.get(id)?.full_name ?? ts.labor_name ?? ts.designation ?? '—';
-    if (type === 'vehicle')   return vehicleMap.get(id)?.name ?? ts.labor_name ?? ts.designation ?? '—';
+      if (type === 'vehicle' || type === 'tunnel_vehicle')   return vehicleMap.get(id)?.name ?? ts.labor_name ?? ts.designation ?? '—';
     if (type === 'equipment') return equipMap.get(id)?.name ?? ts.labor_name ?? ts.designation ?? '—';
     return '—';
   }
@@ -64,7 +67,8 @@ export default function TimesheetsPage() {
     const id = ts.laborer_id;
     if (type === 'labor')     return `/timesheet?laborer=${id ?? ''}&ts=${ts.id}`;
     if (type === 'tunnel_employee') return `/tunnelemployeestimesheet?laborer=${id ?? ''}&ts=${ts.id}`;
-    if (type === 'vehicle')   return `/vehicle-timesheet?vehicle=${id ?? ''}&ts=${ts.id}`;
+      if (type === 'vehicle')   return `/vehicle-timesheet?vehicle=${id ?? ''}&ts=${ts.id}`;
+      if (type === 'tunnel_vehicle') return `/tunnel-vehicle-timesheet?vehicle=${id ?? ''}&ts=${ts.id}`;
     if (type === 'equipment') return `/equipment-timesheet?equipment=${id ?? ''}&ts=${ts.id}`;
     return `/timesheet?ts=${ts.id}`;
   }
@@ -73,6 +77,7 @@ export default function TimesheetsPage() {
     if (type === 'labor') return `/timesheet?ts=${ts.id}&print=1`;
     if (type === 'tunnel_employee') return `/tunnelemployeestimesheet?ts=${ts.id}&print=1`;
     if (type === 'vehicle') return `/vehicle-timesheet?ts=${ts.id}&print=1`;
+    if (type === 'tunnel_vehicle') return `/tunnel-vehicle-timesheet?ts=${ts.id}&print=1`;
     if (type === 'equipment') return `/equipment-timesheet?ts=${ts.id}&print=1`;
     return `/timesheet?ts=${ts.id}&print=1`;
   }
@@ -323,6 +328,7 @@ export default function TimesheetsPage() {
     { label: 'All',             value: 'All' },
     { label: 'Labor',           value: 'labor' },
     { label: 'Tunnel Employee', value: 'tunnel_employee' },
+    { label: 'Tunnel Vehical',  value: 'tunnel_vehicle' },
     { label: 'Vehicle',         value: 'vehicle' },
     { label: 'Equipment',       value: 'equipment' },
   ];
@@ -337,10 +343,11 @@ export default function TimesheetsPage() {
     <div style={{ padding: '20px 24px' }}>
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
         {([
-          { label: 'New Labor Timesheet',          href: '/timesheet',                 color: '#3b82f6' },
-          { label: 'New Tunnel Employee Timesheet', href: '/tunnelemployeestimesheet', color: '#7c3aed' },
-          { label: 'New Vehicle Timesheet',        href: '/vehicle-timesheet',         color: '#d97706' },
-          { label: 'New Equipment Timesheet',      href: '/equipment-timesheet',       color: '#16a34a' },
+          { label: 'New Labor Timesheet',              href: '/timesheet',                 color: '#3b82f6' },
+          { label: 'New Tunnel Employee Timesheet',   href: '/tunnelemployeestimesheet', color: '#7c3aed' },
+          { label: 'New Vehicle Timesheet',           href: '/vehicle-timesheet',         color: '#d97706' },
+          { label: 'New Tunnel Vehical Timesheet',    href: '/tunnel-vehicle-timesheet',  color: '#ea580c' },
+          { label: 'New Equipment Timesheet',         href: '/equipment-timesheet',       color: '#16a34a' },
         ] as const).map(btn => (
           <Link key={btn.href} href={btn.href} style={{
             display: 'flex', alignItems: 'center', gap: 6,
