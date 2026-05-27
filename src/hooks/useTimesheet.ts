@@ -7,7 +7,7 @@ import { generateDaysInMonth, getPreviousMonthYear, isFriday } from '@/lib/dateU
 type LoadMeta = {
   month: number; year: number;
   laborName?: string; projectName?: string;
-  supplierName?: string; siteEngineerName?: string; designation?: string;
+  supplierName?: string; siteEngineerName?: string; siteEngineerId?: string; lpoNumber?: string; designation?: string;
 };
 
 export function useTimesheet(): UseTimesheetReturn & {
@@ -23,6 +23,8 @@ export function useTimesheet(): UseTimesheetReturn & {
   const [projectName, setProjectName] = useState('I069A -UAE OMAN RAILWAY -PACKAGE 5 B (TUNNEL & STRUCTURES PART)');
   const [supplierName, setSupplierName] = useState('');
   const [siteEngineerName, setSiteEngineerName] = useState('');
+  const [siteEngineerId, setSiteEngineerId] = useState('');
+  const [lpoNumber, setLpoNumber] = useState('');
   const [designation, setDesignation] = useState('');
   const [workData, setWorkData] = useState<DayEntry[]>([]);
   const skipResetRef = useRef(false);
@@ -71,6 +73,8 @@ export function useTimesheet(): UseTimesheetReturn & {
     if (meta.projectName !== undefined) setProjectName(meta.projectName);
     if (meta.supplierName !== undefined) setSupplierName(meta.supplierName);
     if (meta.siteEngineerName !== undefined) setSiteEngineerName(meta.siteEngineerName);
+    if (meta.siteEngineerId !== undefined) setSiteEngineerId(meta.siteEngineerId);
+    if (meta.lpoNumber !== undefined) setLpoNumber(meta.lpoNumber);
     if (meta.designation !== undefined) setDesignation(meta.designation);
     setWorkData(entries);
   }, []);
@@ -124,9 +128,9 @@ export function useTimesheet(): UseTimesheetReturn & {
   }, [workData]);
 
   return {
-    month, year, laborName, projectName, supplierName, siteEngineerName, designation,
+    month, year, laborName, projectName, supplierName, siteEngineerName, siteEngineerId, lpoNumber, designation,
     workData, totalWorked, totalOT, totalActual,
     setMonth, setYear, setLaborName, setProjectName, setSupplierName,
-    setSiteEngineerName, setDesignation, updateDayEntry, loadEntries, clearDayRange, fillDayRange, setWorkData,
+    setSiteEngineerName, setSiteEngineerId, setLpoNumber, setDesignation, updateDayEntry, loadEntries, clearDayRange, fillDayRange, setWorkData,
   };
 }

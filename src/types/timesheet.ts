@@ -19,6 +19,8 @@ export interface TimesheetState {
   projectName: string;
   supplierName: string;
   siteEngineerName: string;
+  siteEngineerId: string;
+  lpoNumber: string;
   designation: string;
   workData: DayEntry[];
 
@@ -35,6 +37,8 @@ export interface TimesheetActions {
   setProjectName: (name: string) => void;
   setSupplierName: (name: string) => void;
   setSiteEngineerName: (name: string) => void;
+  setSiteEngineerId: (id: string) => void;
+  setLpoNumber: (number: string) => void;
   setDesignation: (designation: string) => void;
   updateDayEntry: (day: number, field: keyof DayEntry, value: string | number) => void;
 }
