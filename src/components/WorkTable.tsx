@@ -6,9 +6,9 @@ interface WorkTableProps {
   month: number;
   year: number;
   workData: DayEntry[];
-  totalWorked: number;
-  totalOT: number;
-  totalActual: number;
+  totalWorked?: number;
+  totalOT?: number;
+  totalActual?: number;
   onUpdateDayEntry: (day: number, field: keyof DayEntry, value: string | number) => void;
   readOnly?: boolean;
   columnLabels?: string[];
@@ -18,9 +18,9 @@ export default function WorkTable({
   month,
   year,
   workData,
-  totalWorked,
-  totalOT,
-  totalActual,
+  totalWorked = 0,
+  totalOT = 0,
+  totalActual = 0,
   onUpdateDayEntry,
   readOnly = false,
   columnLabels,

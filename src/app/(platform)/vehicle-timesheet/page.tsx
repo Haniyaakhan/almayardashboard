@@ -448,6 +448,7 @@ function VehicleTimesheetPageInner() {
           <WorkTable
             month={timesheet.month} year={timesheet.year}
             workData={timesheet.workData}
+            totalWorked={timesheet.totalWorked} totalOT={timesheet.totalOT}
             totalActual={timesheet.totalActual}
             onUpdateDayEntry={timesheet.updateDayEntry}
             readOnly={isApproved}

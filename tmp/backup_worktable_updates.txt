@@ -1,0 +1,9 @@
+Backup of planned WorkTable updates:
+- timesheet/page.tsx: add totalWorked and totalOT
+- tunnelemployeestimesheet/page.tsx: add totalWorked and totalOT
+- tunnelemployeestimesheet2/page.tsx: add totalWorked and totalOT
+- vehicle-timesheet/page.tsx: add totalWorked and totalOT
+- equipment-timesheet/page.tsx: add totalWorked and totalOT
+- tunnel-vehicle-timesheet/page.tsx: add totalWorked and totalOT
+
+This is a small backup note created before applying edits.
