@@ -89,7 +89,7 @@ export default function VehicleTimesheetPage() {
             {monthOptions.length > 0 ? (
               monthOptions.map(m => <option key={m} value={m}>{m}</option>)
             ) : (
-              MONTHS.map((m, i) => {
+              MONTHS.map((m, _i) => {
                 const year = new Date().getFullYear();
                 return <option key={`${m}-${year}`} value={`${m} ${year}`}>{m} {year}</option>;
               })

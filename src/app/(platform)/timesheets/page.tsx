@@ -9,7 +9,6 @@ import { timesheetStatusBadge } from '@/components/ui/Badge';
 import { useToast } from '@/components/ui/Toast';
 import { Plus, Search, Trash2, Download } from 'lucide-react';
 import { toDisplayDesignation } from '@/lib/designation';
-import { exportToCSV } from '@/lib/exportUtils';
 import jsPDF from 'jspdf';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -107,219 +106,108 @@ export default function TimesheetsPage() {
     return matchType && matchStatus && matchMonth && matchSearch;
   });
 
-  function handleDownloadCurrentView() {
-    if (!filtered.length) {
-      toast.error('No timesheets to download for current filters');
+  const allMonthKeys = Array.from(new Set(timesheets.map(ts => `${MONTHS[ts.month]} ${ts.year}`)));
+  const sortedMonthKeys = [...allMonthKeys].sort((a, b) => {
+    const [aMonth, aYear] = a.split(' ');
+    const [bMonth, bYear] = b.split(' ');
+    const aIndex = MONTHS.indexOf(aMonth);
+    const bIndex = MONTHS.indexOf(bMonth);
+    const yearDiff = Number(bYear) - Number(aYear);
+    return yearDiff || bIndex - aIndex;
+  });
+  const recentMonthKeys = new Set(sortedMonthKeys.slice(0, 1));
+  const isArchiveSearch = search.trim() !== '' || typeFilter !== 'All' || statusFilter !== 'All' || monthFilter !== 'All';
+  const displayedTimesheets = isArchiveSearch
+    ? filtered
+    : filtered.filter(ts => recentMonthKeys.has(`${MONTHS[ts.month]} ${ts.year}`));
+  const archivedCount = filtered.filter(ts => !recentMonthKeys.has(`${MONTHS[ts.month]} ${ts.year}`)).length;
+
+  const selectedMonthTimesheets = monthFilter === 'All'
+    ? []
+    : timesheets.filter(ts => {
+        const type = resolveType(ts);
+        return (
+          `${MONTHS[ts.month]} ${ts.year}` === monthFilter &&
+          (type === 'labor' || type === 'tunnel_employee')
+        );
+      });
+
+  function handleDownloadDesignationHoursPdf() {
+    if (monthFilter === 'All') {
+      toast.error('Select a month to download designation hours summary');
       return;
     }
 
-    const approvedCount = filtered.filter(ts => (ts.status ?? '').toLowerCase() === 'approved').length;
-    const draftCount = filtered.filter(ts => (ts.status ?? '').toLowerCase() === 'draft').length;
-    const totalHours = filtered.reduce((sum, ts) => sum + Number(ts.total_actual ?? 0), 0);
+    if (!selectedMonthTimesheets.length) {
+      toast.error(`No labour timesheets found for ${monthFilter}`);
+      return;
+    }
 
-    const headers = ['Type', 'Name', 'Designation / ID', 'Month', 'Year', 'Total Hours', 'Status'];
-    const rows: string[][] = filtered.map((ts) => {
+    const totalsByDesignation = new Map<string, number>();
+    selectedMonthTimesheets.forEach(ts => {
       const type = resolveType(ts);
-      const name = resolveName(ts, type);
       const designation = type === 'labor'
         ? toDisplayDesignation(ts.designation || laborerMap.get(ts.laborer_id ?? '')?.designation || 'Unspecified')
-        : (ts.designation || '—');
-
-      return [
-        type,
-        name,
-        designation,
-        MONTHS[ts.month],
-        String(ts.year),
-        String(Number(ts.total_actual ?? 0)),
-        (ts.status ?? 'draft').toUpperCase(),
-      ];
+        : (ts.designation || type.replace(/_/g, ' '));
+      const current = totalsByDesignation.get(designation) ?? 0;
+      totalsByDesignation.set(designation, current + Number(ts.total_actual ?? 0));
     });
 
-    rows.push(
-      ['', '', '', '', '', '', ''],
-      ['Summary', 'Selected Timesheets', String(filtered.length), '', '', '', ''],
-      ['Summary', 'Approved', String(approvedCount), '', '', '', ''],
-      ['Summary', 'Draft', String(draftCount), '', '', '', ''],
-      ['Summary', 'Total Hours', String(totalHours), '', '', '', ''],
-      ['Summary', 'Type Filter', typeFilter, '', '', '', ''],
-      ['Summary', 'Status Filter', statusFilter, '', '', '', ''],
-      ['Summary', 'Month Filter', monthFilter, '', '', '', ''],
-      ['Summary', 'Search Filter', search || 'All', '', '', '', ''],
-    );
+    const rows = Array.from(totalsByDesignation.entries())
+      .map(([designation, hours]) => ({ designation, hours }))
+      .sort((a, b) => b.hours - a.hours || a.designation.localeCompare(b.designation));
 
-    const dateStamp = new Date().toISOString().slice(0, 10);
-    exportToCSV(headers, rows, `timesheets-current-view-${dateStamp}`);
-    toast.success('Downloaded current timesheet view');
-  }
-
-  function handleDownloadCurrentViewPdf() {
-    if (!filtered.length) {
-      toast.error('No timesheets to download for current filters');
-      return;
-    }
-
-    const approvedCount = filtered.filter(ts => (ts.status ?? '').toLowerCase() === 'approved').length;
-    const draftCount = filtered.filter(ts => (ts.status ?? '').toLowerCase() === 'draft').length;
-    const totalHours = filtered.reduce((sum, ts) => sum + Number(ts.total_actual ?? 0), 0);
-
-    const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
-    const marginX = 8;
-    const marginTop = 10;
-    let y = marginTop;
+    const marginX = 12;
+    const marginY = 12;
+    let y = marginY;
 
     pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(13);
-    pdf.text('Timesheets - Current Filtered View by Designation', marginX, y);
-    y += 6;
+    pdf.setFontSize(14);
+    pdf.text('Designation Hours Summary', marginX, y);
+    y += 8;
 
     pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(9);
-    pdf.text(`Generated: ${new Date().toLocaleString()}`, marginX, y);
-    y += 5;
-    pdf.text(`Selected: ${filtered.length} | Approved: ${approvedCount} | Draft: ${draftCount} | Total Hours: ${totalHours.toFixed(2)}`, marginX, y);
-    y += 5;
-    pdf.text(`Filters -> Type: ${typeFilter}, Status: ${statusFilter}, Month: ${monthFilter}, Search: ${search || 'All'}`, marginX, y);
-    y += 7;
+    pdf.setFontSize(10);
+    pdf.text(`Month: ${monthFilter}`, marginX, y);
+    const generatedText = `Generated: ${new Date().toLocaleDateString()}`;
+    const generatedX = pageWidth - marginX - pdf.getTextWidth(generatedText);
+    pdf.text(generatedText, generatedX, y);
+    y += 8;
 
-    const headers = ['Type', 'Name', 'Designation / ID', 'Month', 'Year', 'Hours', 'Status'];
-    const colWidths = [22, 60, 72, 28, 16, 18, 24];
-    const tableWidth = colWidths.reduce((sum, w) => sum + w, 0);
-    const rowHeight = 6;
+    const tableX = marginX;
+    const tableWidth = pageWidth - marginX * 2;
+    const colWidths = [tableWidth * 0.7, tableWidth * 0.3];
+    const rowHeight = 9;
 
-    // Group timesheets by designation
-    const groupedByDesignation = new Map<string, typeof filtered>();
-    filtered.forEach((ts) => {
-      const type = resolveType(ts);
-      const designation = type === 'labor'
-        ? toDisplayDesignation(ts.designation || laborerMap.get(ts.laborer_id ?? '')?.designation || 'Unspecified')
-        : (ts.designation || '—');
-      
-      if (!groupedByDesignation.has(designation)) {
-        groupedByDesignation.set(designation, []);
-      }
-      groupedByDesignation.get(designation)!.push(ts);
-    });
-
-    // Sort designations alphabetically
-    const sortedDesignations = Array.from(groupedByDesignation.keys()).sort();
-
-    function drawTableHeader() {
-      pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(9);
-      pdf.setFillColor(240, 240, 240);
-      pdf.rect(marginX, y - 4.5, tableWidth, rowHeight, 'F');
-      pdf.rect(marginX, y - 4.5, tableWidth, rowHeight);
-
-      let x = marginX;
-      headers.forEach((header, idx) => {
-        pdf.text(header, x + 1, y - 0.5);
-        x += colWidths[idx];
-        if (idx < colWidths.length - 1) {
-          pdf.line(x, y - 4.5, x, y + 1.5);
-        }
-      });
-      y += rowHeight;
-    }
-
-    function ensurePageSpace(requiredHeight: number = 8) {
-      if (y + requiredHeight > pageHeight - 10) {
-        pdf.addPage();
-        y = marginTop;
-      }
-    }
-
-    pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(8.5);
-
-    // Process each designation group
-    sortedDesignations.forEach((designation, designationIdx) => {
-      const groupedRows = groupedByDesignation.get(designation) || [];
-
-      // Draw designation header
-      ensurePageSpace(12);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(10);
-      pdf.setTextColor(37, 99, 235);
-      pdf.text(`${designation} (${groupedRows.length} items)`, marginX, y);
-      pdf.setTextColor(0, 0, 0);
-      y += 5;
-
-      // Draw table header for this group
-      drawTableHeader();
-
-      // Draw rows for this group
-      pdf.setFont('helvetica', 'normal');
-      pdf.setFontSize(8.5);
-
-      groupedRows.forEach((ts) => {
-        const type = resolveType(ts);
-        const name = resolveName(ts, type);
-        const designationCell = type === 'labor'
-          ? toDisplayDesignation(ts.designation || laborerMap.get(ts.laborer_id ?? '')?.designation || 'Unspecified')
-          : (ts.designation || '—');
-
-        const rowValues = [
-          type,
-          name,
-          designationCell,
-          MONTHS[ts.month],
-          String(ts.year),
-          Number(ts.total_actual ?? 0).toFixed(2),
-          (ts.status ?? 'draft').toUpperCase(),
-        ];
-
-        ensurePageSpace(6);
-
-        pdf.rect(marginX, y - 4.5, tableWidth, rowHeight);
-        let x = marginX;
-        rowValues.forEach((cell, idx) => {
-          const safeCell = String(cell ?? '');
-          const lines = pdf.splitTextToSize(safeCell, colWidths[idx] - 2) as string[];
-          pdf.text(lines[0] || '-', x + 1, y - 0.5);
-
-          x += colWidths[idx];
-          if (idx < colWidths.length - 1) {
-            pdf.line(x, y - 4.5, x, y + 1.5);
-          }
-        });
-        y += rowHeight;
-      });
-
-      // Add spacing after each group
-      if (designationIdx < sortedDesignations.length - 1) {
-        y += 3;
-      }
-    });
-
-    // Draw summary at the end
-    ensurePageSpace(12);
-    y += 3;
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(10);
-    pdf.text('Summary', marginX, y);
-    y += 4;
+    pdf.setFillColor(240, 240, 240);
+    pdf.rect(tableX, y - 7, tableWidth, rowHeight, 'F');
+    pdf.rect(tableX, y - 7, tableWidth, rowHeight);
+    pdf.text('Designation', tableX + 2, y - 2);
+    pdf.text('Total Hours', tableX + colWidths[0] + 2, y - 2);
+    y += rowHeight;
 
     pdf.setFont('helvetica', 'normal');
     pdf.setFontSize(9);
-    const summaryRows = [
-      [`Total Selected Timesheets:`, String(filtered.length)],
-      [`Approved:`, String(approvedCount)],
-      [`Draft:`, String(draftCount)],
-      [`Total Hours:`, totalHours.toFixed(2)],
-    ];
 
-    summaryRows.forEach(([label, value]) => {
-      pdf.text(label, marginX, y);
-      pdf.text(value, marginX + 80, y);
-      y += 4;
+    rows.forEach(({ designation, hours }) => {
+      if (y + rowHeight > pageHeight - marginY) {
+        pdf.addPage();
+        y = marginY;
+      }
+      pdf.rect(tableX, y - 7, tableWidth, rowHeight);
+      pdf.text(designation, tableX + 2, y - 2);
+      pdf.text(hours.toFixed(2), tableX + colWidths[0] + 2, y - 2);
+      y += rowHeight;
     });
 
-    const dateStamp = new Date().toISOString().slice(0, 10);
-    pdf.save(`timesheets-by-designation-${dateStamp}.pdf`);
-    toast.success('Downloaded timesheet PDF organized by designation');
+    const filename = `designation-hours-${monthFilter.replace(/\s+/g, '_').toLowerCase()}.pdf`;
+    pdf.save(filename);
+    toast.success(`Downloaded designation hours summary for ${monthFilter}`);
   }
 
   if (tsLoading || labLoading || machLoading) return <PageSpinner />;
@@ -339,21 +227,41 @@ export default function TimesheetsPage() {
     { label: 'Draft',    value: 'draft' },
   ];
 
+  async function handleApproveAll() {
+    const draftTimesheets = displayedTimesheets.filter(
+      ts => (ts.status ?? '').toLowerCase() === 'draft'
+    );
+    if (draftTimesheets.length === 0) {
+      toast.error('No draft timesheets to approve');
+      return;
+    }
+    try {
+      for (const ts of draftTimesheets) {
+        await approveTimesheet(ts.id);
+      }
+      refetch();
+      toast.success(`Approved ${draftTimesheets.length} timesheet(s)`);
+    } catch (err) {
+      toast.error('Failed to approve some timesheets');
+    }
+  }
+
   return (
     <div style={{ padding: '20px 24px' }}>
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
         {([
-          { label: 'New Labor Timesheet',              href: '/timesheet',                 color: '#3b82f6' },
-          { label: 'New Tunnel Employee Timesheet',   href: '/tunnelemployeestimesheet', color: '#7c3aed' },
-          { label: 'New Vehicle Timesheet',           href: '/vehicle-timesheet',         color: '#d97706' },
-          { label: 'New Tunnel Vehical Timesheet',    href: '/tunnel-vehicle-timesheet',  color: '#ea580c' },
-          { label: 'New Equipment Timesheet',         href: '/equipment-timesheet',       color: '#16a34a' },
+          { label: 'Labor',              href: '/timesheet',                 color: '#3b82f6' },
+          { label: 'Tunnel 1',          href: '/tunnelemployeestimesheet',  color: '#7c3aed' },
+          { label: 'Tunnel 2',          href: '/tunnelemployeestimesheet2', color: '#6d28d9' },
+          { label: 'Vehicle',           href: '/vehicle-timesheet',         color: '#d97706' },
+          { label: 'Tunnel Vehical',    href: '/tunnel-vehicle-timesheet',  color: '#ea580c' },
+          { label: 'Equipment',         href: '/equipment-timesheet',       color: '#16a34a' },
         ] as const).map(btn => (
           <Link key={btn.href} href={btn.href} style={{
             display: 'flex', alignItems: 'center', gap: 6,
             color: '#fff', border: 'none',
-            padding: '8px 15px', borderRadius: 9,
-            fontSize: '12.5px', fontWeight: 600, cursor: 'pointer',
+            padding: '6px 12px', borderRadius: 9,
+            fontSize: '11px', fontWeight: 600, cursor: 'pointer',
             textDecoration: 'none', whiteSpace: 'nowrap',
             background: btn.color,
           }}>
@@ -383,36 +291,30 @@ export default function TimesheetsPage() {
           ))}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <button
-            onClick={handleDownloadCurrentView}
-            disabled={!filtered.length}
-            style={{
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <button
+              onClick={handleDownloadDesignationHoursPdf}
+              disabled={monthFilter === 'All' || !selectedMonthTimesheets.length}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                background: monthFilter !== 'All' && selectedMonthTimesheets.length ? 'var(--orange)' : '#d1d5db',
+                color: '#fff', border: 'none', padding: '8px 12px', borderRadius: 9,
+                fontSize: '12.5px', fontWeight: 600,
+                cursor: monthFilter !== 'All' && selectedMonthTimesheets.length ? 'pointer' : 'not-allowed',
+                opacity: monthFilter !== 'All' && selectedMonthTimesheets.length ? 1 : 0.8,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <Download size={14} /> Designation Hours
+            </button>
+            <Link href="/operations/npc-invoice" style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
-              background: filtered.length ? 'var(--navy)' : '#d1d5db',
-              color: '#fff', border: 'none', padding: '8px 12px', borderRadius: 9,
-              fontSize: '12.5px', fontWeight: 600,
-              cursor: filtered.length ? 'pointer' : 'not-allowed',
-              opacity: filtered.length ? 1 : 0.8,
-              whiteSpace: 'nowrap',
-            }}
-          >
-            <Download size={14} /> CSV
-          </button>
-          <button
-            onClick={handleDownloadCurrentViewPdf}
-            disabled={!filtered.length}
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              background: filtered.length ? 'var(--orange)' : '#d1d5db',
-              color: '#fff', border: 'none', padding: '8px 12px', borderRadius: 9,
-              fontSize: '12.5px', fontWeight: 600,
-              cursor: filtered.length ? 'pointer' : 'not-allowed',
-              opacity: filtered.length ? 1 : 0.8,
-              whiteSpace: 'nowrap',
-            }}
-          >
-            <Download size={14} /> PDF
-          </button>
+              background: '#10b981', color: '#fff', border: 'none', padding: '8px 12px', borderRadius: 9,
+              fontSize: '12.5px', fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap',
+            }}>
+              <Download size={14} /> NPC Invoice
+            </Link>
+          </div>
           <div className="flex items-center gap-2" style={{
             background: 'var(--bg-card)', borderRadius: 9,
             padding: '7px 13px', border: '1px solid var(--border2)',
@@ -434,10 +336,20 @@ export default function TimesheetsPage() {
       </div>
 
       <div style={{ background: 'var(--bg-card)', borderRadius: 13, border: '1px solid var(--border)', overflow: 'hidden', boxShadow: '0 2px 10px rgba(0,0,0,0.04)' }}>
-        <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
-          All Timesheets ({filtered.length})
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', borderBottom: '1px solid var(--border)' }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+            {isArchiveSearch ? 'Filtered Timesheets' : 'Recent Timesheets'} ({displayedTimesheets.length})
+          </div>
+          {displayedTimesheets.some(ts => (ts.status ?? '').toLowerCase() === 'draft') && (
+            <button onClick={handleApproveAll} style={{
+              fontSize: 11, fontWeight: 600, padding: '6px 12px', borderRadius: 6,
+              border: 'none', cursor: 'pointer', background: 'var(--orange)', color: '#fff',
+            }}>
+              Approve All
+            </button>
+          )}
         </div>
-        {filtered.length === 0 ? (
+        {displayedTimesheets.length === 0 ? (
           <div style={{ padding: 40, textAlign: 'center', fontSize: 13, color: 'var(--text-muted)' }}>
             No timesheets found. Use the buttons above to create one.
           </div>
@@ -452,7 +364,7 @@ export default function TimesheetsPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map(ts => {
+                {displayedTimesheets.map(ts => {
                   const type = resolveType(ts);
                   const name = resolveName(ts, type);
                   const colors = TYPE_COLORS[type];

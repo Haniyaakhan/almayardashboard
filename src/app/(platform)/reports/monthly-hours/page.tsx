@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Spinner } from '@/components/ui/Spinner';
-import { Badge } from '@/components/ui/Badge';
 import { useMonthlyHoursByDesignation } from '@/hooks/useMonthlyHoursByDesignation';
 import { ReportExportButtons } from '@/components/ReportExportButtons';
 import { Clock } from 'lucide-react';
@@ -14,24 +13,6 @@ export default function MonthlyHoursByDesignationPage() {
   const [month, setMonth] = useState(now.getMonth());
   const [year, setYear] = useState(now.getFullYear());
   const { report, loading, error } = useMonthlyHoursByDesignation(month, year);
-
-  const handlePrevMonth = () => {
-    if (month === 0) {
-      setMonth(11);
-      setYear(year - 1);
-    } else {
-      setMonth(month - 1);
-    }
-  };
-
-  const handleNextMonth = () => {
-    if (month === 11) {
-      setMonth(0);
-      setYear(year + 1);
-    } else {
-      setMonth(month + 1);
-    }
-  };
 
   if (loading) {
     return (

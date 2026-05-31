@@ -194,13 +194,6 @@ function EquipmentTimesheetPageInner() {
     }
   }
 
-  async function onEquipmentSelect(id: string) {
-    if (!id) return;
-    const machine = machines.find(m => m.id === id);
-    if (!machine) return;
-    await loadEquipmentIntoTimesheet(machine);
-  }
-
   async function handleEquipmentSearch(query: string) {
     const trimmed = query.trim();
     if (!trimmed) {
@@ -295,8 +288,11 @@ function EquipmentTimesheetPageInner() {
       })),
     });
     setSaving(false);
-    if (error) toast.error(`Error: ${error.message}`);
-    else toast.success('Timesheet saved successfully');
+    if (error) {
+      toast.error(`Error: ${error.message}`);
+    } else {
+      toast.success('Timesheet saved successfully');
+    }
   }
 
   return (
@@ -421,17 +417,7 @@ function EquipmentTimesheetPageInner() {
         </div>
 
         <div>
-          <ExportButtons
-            timesheetRef={timesheetRef}
-            laborName={timesheet.laborName}
-            month={timesheet.month}
-            year={timesheet.year}
-            projectName={timesheet.projectName}
-            workData={timesheet.workData}
-            totalWorked={timesheet.totalWorked}
-            totalOT={timesheet.totalOT}
-            totalActual={timesheet.totalActual}
-          />
+          <ExportButtons />
         </div>
         <TemplateRow sheetType="equipment" month={timesheet.month} year={timesheet.year} workData={timesheet.workData} onUpdateDayEntry={timesheet.updateDayEntry} onMonthChange={timesheet.setMonth} readOnly={isApproved} />
       </div>
@@ -461,16 +447,13 @@ function EquipmentTimesheetPageInner() {
           <WorkTable
             month={timesheet.month} year={timesheet.year}
             workData={timesheet.workData}
-            totalWorked={timesheet.totalWorked} totalOT={timesheet.totalOT}
             totalActual={timesheet.totalActual}
             onUpdateDayEntry={timesheet.updateDayEntry}
-            vehicleMode
             readOnly={isApproved}
           />
           <FooterSection
             totalWorked={timesheet.totalWorked} totalOT={timesheet.totalOT}
             totalActual={timesheet.totalActual}
-            vehicleMode
           />
         </div>
       </div>

@@ -12,7 +12,6 @@ interface TunnelEmployeeTimesheetHeaderProps {
   projectCode?: string;
   lpoNumber?: string;
   timesheetType?: 'tunnel_employee';
-  vehicleUse?: 'site' | 'both';
   month: number;
   year: number;
   onProjectNameChange: (value: string) => void;
@@ -46,7 +45,6 @@ export default function TunnelEmployeeTimesheetHeader({
   designation,
   projectCode = 'TT001',
   lpoNumber = '',
-  vehicleUse = 'site',
   month,
   year,
   onProjectNameChange,

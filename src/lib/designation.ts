@@ -4,6 +4,11 @@ const DESIGNATION_ALIASES: Record<string, string> = {
   scaffolder: 'scaffolder',
   scalffolder: 'scaffolder',
   sacffolder: 'scaffolder',
+  'tunnel helper': 'tunnel helper',
+  'tunnel helpers': 'tunnel helper',
+  cleaner: 'cleaner',
+  'forman / safety': 'forman / safety',
+  'tunnel security': 'tunnel security',
 };
 
 function toTitleCase(value: string) {

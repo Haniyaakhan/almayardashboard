@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Download, Printer, FileText, Search } from 'lucide-react';
+import { Download, FileText, Search } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -9,7 +9,6 @@ import { Badge } from '@/components/ui/Badge';
 import { PageSpinner } from '@/components/ui/Spinner';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
-import { MONTH_NAMES } from '@/lib/dateUtils';
 import { downloadSalarySlip } from '@/lib/salarySlipGenerator';
 import { downloadSalaryReceiptLetter } from '@/lib/salaryReceiptLetterGenerator';
 import type { SalarySheet, SalarySheetEntry } from '@/types/database';

@@ -1,31 +1,8 @@
 'use client';
 
 import React from 'react';
-import { DayEntry } from '@/types/timesheet';
 
-interface ExportButtonsProps {
-  timesheetRef: React.RefObject<HTMLDivElement>;
-  laborName: string;
-  month: number;
-  year: number;
-  projectName: string;
-  workData: DayEntry[];
-  totalWorked: number;
-  totalOT: number;
-  totalActual: number;
-}
-
-export default function ExportButtons({
-  timesheetRef,
-  laborName,
-  month,
-  year,
-  projectName,
-  workData,
-  totalWorked,
-  totalOT,
-  totalActual,
-}: ExportButtonsProps) {
+export default function ExportButtons() {
   const handlePrint = () => {
     window.print();
   };

@@ -73,7 +73,7 @@ export default function LabourTimesheetPage() {
               monthOptions.map(m => <option key={m} value={m}>{m}</option>)
             ) : (
               // Show all months if no timesheets exist
-              MONTHS.map((m, i) => {
+              MONTHS.map((m, _i) => {
                 const year = new Date().getFullYear();
                 return <option key={`${m}-${year}`} value={`${m} ${year}`}>{m} {year}</option>;
               })

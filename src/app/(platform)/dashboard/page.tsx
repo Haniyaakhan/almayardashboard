@@ -223,11 +223,12 @@ export default function DashboardPage() {
             <div style={cardHeaderStyle}>
               <span style={cardTitleStyle}>📋 New Timesheet</span>
             </div>
-            <div style={{ padding: '12px 16px', display: 'flex', gap: 8 }}>
+              <div style={{ padding: '12px 16px', display: 'flex', gap: 8 }}>
               <Link href="/timesheet" style={actionBtnStyle('#ff6b2b', 'rgba(255,107,43,0.08)')}>+ Labour</Link>
               <Link href="/vehicle-timesheet" style={actionBtnStyle('#3b82f6', 'rgba(59,130,246,0.08)')}>+ Vehicle</Link>
               <Link href="/equipment-timesheet" style={actionBtnStyle('#14b8a6', 'rgba(20,184,166,0.08)')}>+ Equipment</Link>
-              <Link href="/tunnelemployeestimesheet" style={actionBtnStyle('#7c3aed', 'rgba(124,58,237,0.08)')}>+ Tunnel Employee</Link>
+              <Link href="/tunnelemployeestimesheet" style={actionBtnStyle('#7c3aed', 'rgba(124,58,237,0.08)')}>+ Tunnel 1</Link>
+              <Link href="/tunnelemployeestimesheet2" style={actionBtnStyle('#6d28d9', 'rgba(109,40,217,0.08)')}>+ Tunnel 2</Link>
             </div>
           </div>
 

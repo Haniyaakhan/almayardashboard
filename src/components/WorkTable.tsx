@@ -6,11 +6,8 @@ interface WorkTableProps {
   month: number;
   year: number;
   workData: DayEntry[];
-  totalWorked: number;
-  totalOT: number;
   totalActual: number;
   onUpdateDayEntry: (day: number, field: keyof DayEntry, value: string | number) => void;
-  vehicleMode?: boolean;
   readOnly?: boolean;
   columnLabels?: string[];
 }
@@ -19,11 +16,8 @@ export default function WorkTable({
   month,
   year,
   workData,
-  totalWorked,
-  totalOT,
   totalActual,
   onUpdateDayEntry,
-  vehicleMode,
   readOnly = false,
   columnLabels,
 }: WorkTableProps) {

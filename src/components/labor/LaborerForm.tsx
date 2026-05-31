@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
 import { useForemen } from '@/hooks/useForemen';
 import { createClient } from '@/lib/supabase/client';
-import { Upload, X, Image as ImageIcon, Plus } from 'lucide-react';
+import { Upload, X, Plus } from 'lucide-react';
 import type { Laborer } from '@/types/database';
 import { createForeman } from '@/hooks/useForemen';
 import { useLaborers } from '@/hooks/useLaborers';
@@ -20,28 +20,6 @@ interface Props {
   onSubmit: (data: FormData) => Promise<void>;
   submitLabel?: string;
 }
-
-const field = (label: string, name: keyof FormData, type = 'text', required = false) =>
-  ({ label, name, type, required });
-
-const fields = [
-  field('Full Name',        'full_name',     'text',   true),
-  field('Designation',      'designation',   'text',   true),
-  field('ID / Iqama No.',   'id_number'),
-  field('Nationality',      'nationality'),
-  field('Phone',            'phone',         'tel'),
-  field('Site Number',      'site_number'),
-  field('Room Number',      'room_number'),
-  field('Starting Date',    'start_date',    'date'),
-  field('Monthly Salary (OMR)', 'monthly_salary', 'number'),
-  field('Foreman Commission (OMR)', 'foreman_commission', 'number'),
-  field('Daily Rate (Legacy OMR)', 'daily_rate', 'number'),
-];
-
-const bankFields = [
-  field('Bank Name',           'bank_name'),
-  field('Bank Account Number', 'bank_account_number'),
-];
 
 async function uploadPhoto(file: File, folder: string): Promise<string | null> {
   const supabase = createClient();
@@ -229,7 +207,7 @@ export function LaborerForm({ initial, onSubmit, submitLabel = 'Save' }: Props) 
               <select required value={form.designation ?? ''} onChange={e => set('designation', e.target.value)}
                 className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={inputStyle} onFocus={onFocus} onBlur={onBlur}>
                 <option value="">— Select —</option>
-                {['Mason', 'Carpenter', 'Rigger', 'Helper', 'Trojan Helpers', 'Electrician', 'Scaffolder', 'Steelfixer', 'Other'].map(d => (
+                {['Mason', 'Carpenter', 'Rigger', 'Helper', 'Tunnel Helper', 'Electrician', 'Scaffolder', 'Steelfixer', 'Cleaner', 'Forman / Safety', 'Tunnel Security', 'Other'].map(d => (
                   <option key={d} value={d}>{d}</option>
                 ))}
               </select>

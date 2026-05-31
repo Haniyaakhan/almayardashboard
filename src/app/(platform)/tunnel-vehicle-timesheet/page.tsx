@@ -208,13 +208,6 @@ function TunnelVehicleTimesheetPageInner() {
     }
   }
 
-  async function onVehicleSelect(id: string) {
-    if (!id) return;
-    const machine = machines.find(m => m.id === id);
-    if (!machine) return;
-    await loadVehicleIntoTimesheet(machine);
-  }
-
   async function handleVehicleSearch(query: string) {
     const trimmed = query.trim();
     if (!trimmed) {
@@ -309,8 +302,11 @@ function TunnelVehicleTimesheetPageInner() {
       })),
     });
     setSaving(false);
-    if (error) toast.error(`Error: ${error.message}`);
-    else toast.success('Timesheet saved successfully');
+    if (error) {
+      toast.error(`Error: ${error.message}`);
+    } else {
+      toast.success('Timesheet saved successfully');
+    }
   }
 
   return (
@@ -435,17 +431,7 @@ function TunnelVehicleTimesheetPageInner() {
         </div>
 
         <div>
-          <ExportButtons
-            timesheetRef={timesheetRef}
-            laborName={timesheet.laborName}
-            month={timesheet.month}
-            year={timesheet.year}
-            projectName={timesheet.projectName}
-            workData={timesheet.workData}
-            totalWorked={timesheet.totalWorked}
-            totalOT={timesheet.totalOT}
-            totalActual={timesheet.totalActual}
-          />
+          <ExportButtons />
         </div>
         <TemplateRow sheetType="tunnel_vehicle" month={timesheet.month} year={timesheet.year} workData={timesheet.workData} onUpdateDayEntry={timesheet.updateDayEntry} onMonthChange={timesheet.setMonth} readOnly={isApproved} />
       </div>
@@ -475,16 +461,13 @@ function TunnelVehicleTimesheetPageInner() {
           <WorkTable
             month={timesheet.month} year={timesheet.year}
             workData={timesheet.workData}
-            totalWorked={timesheet.totalWorked} totalOT={timesheet.totalOT}
             totalActual={timesheet.totalActual}
             onUpdateDayEntry={timesheet.updateDayEntry}
-            vehicleMode
             readOnly={isApproved}
           />
           <FooterSection
             totalWorked={timesheet.totalWorked} totalOT={timesheet.totalOT}
             totalActual={timesheet.totalActual}
-            vehicleMode
           />
         </div>
       </div>

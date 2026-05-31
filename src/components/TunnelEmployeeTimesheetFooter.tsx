@@ -22,7 +22,7 @@ export default function TunnelEmployeeTimesheetFooter({ totalActual }: TunnelEmp
           </div>
           <div style={{ display: 'flex', alignItems: 'stretch', flex: 1, marginTop: 2 }}>
             <span style={{ background: '#BDD7EE', color: '#000', fontWeight: 700, fontSize: 8.5, padding: '2px 5px', whiteSpace: 'nowrap' }}>
-              PLEASE DELETE "24 " AND "1" IF THERE IS NO WORK THEN THE TOTAL WK. HRS WILL BE ZERO
+              {"PLEASE DELETE \"24 \" AND \"1\" IF THERE IS NO WORK THEN THE TOTAL WK. HRS WILL BE ZERO"}
             </span>
             <div style={{ flex: 1, background: '#fff' }} />
           </div>

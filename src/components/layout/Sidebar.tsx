@@ -1,7 +1,6 @@
 'use client';
 import React from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { useSupabaseUser } from '@/hooks/useSupabaseUser';
 import { createClient } from '@/lib/supabase/client';
 import {
   LayoutDashboard, ClipboardList, Truck,
@@ -19,7 +18,6 @@ const navItems = [
 ];
 
 export function Sidebar() {
-  const user = useSupabaseUser();
   const router = useRouter();
   const pathname = usePathname();
 

@@ -11,7 +11,7 @@ import { useToast } from '@/components/ui/Toast';
 import { MONTH_NAMES } from '@/lib/dateUtils';
 import { normalizeDesignationKey, toDisplayDesignation } from '@/lib/designation';
 import { exportManualSalarySheetToExcel } from '@/lib/excelExport';
-import { OMAN_BANK_LIST, resolveSwift } from '@/lib/omanBanks';
+import { resolveSwift } from '@/lib/omanBanks';
 import { downloadSalarySlip } from '@/lib/salarySlipGenerator';
 import { downloadSalaryReceiptLetter } from '@/lib/salaryReceiptLetterGenerator';
 import type { SalarySheet, SalarySheetEntry } from '@/types/database';
@@ -126,8 +126,6 @@ export default function OperationsSalaryPage() {
       { gross: 0, deduction: 0, net: 0 }
     );
   }, [entries]);
-
-  const employeeCount = entries.length;
 
   function hasValue(v: string | null | undefined) {
     const s = (v ?? '').trim().toUpperCase();
@@ -1001,7 +999,7 @@ function SectionCard({
         downloadSalarySlip(row, month, year);
       }
       toast.success(`Downloaded ${rows.length} salary slips for ${title}`);
-    } catch (error) {
+    } catch {
       toast.error('Failed to download salary slips');
     }
   }

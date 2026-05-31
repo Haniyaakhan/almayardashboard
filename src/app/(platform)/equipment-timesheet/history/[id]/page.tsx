@@ -11,7 +11,6 @@ import { Card } from '@/components/ui/Card';
 import { ArrowLeft, Printer } from 'lucide-react';
 import type { Timesheet, TimesheetEntry } from '@/types/database';
 
-const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const DAYS_IN_MONTH = (month: number, year: number) => new Date(year, month + 1, 0).getDate();
 
 export default function EquipmentTimesheetDetailPage() {

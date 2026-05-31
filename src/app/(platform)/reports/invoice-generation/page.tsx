@@ -319,7 +319,7 @@ export default function InvoiceGenerationPage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((row, idx) => {
+              {rows.map((row, _idx) => {
                 return (
                   <tr key={row.id} style={{ borderBottom: '1px solid var(--border)' }}>
                     <td style={{ padding: '8px', textAlign: 'center' }}>{row.siNo}</td>

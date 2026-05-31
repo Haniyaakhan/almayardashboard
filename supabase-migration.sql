@@ -32,7 +32,7 @@ BEGIN
 
 	ALTER TABLE public.timesheets
 		ADD CONSTRAINT timesheets_sheet_type_check
-		CHECK (sheet_type IN ('labor','vehicle','equipment','tunnel_vehicle'));
+		CHECK (sheet_type IN ('labor','vehicle','equipment','tunnel_employee','tunnel_vehicle'));
 END $$;
 
 -- 5b. Enforce numeric + unique Labour ID at DB level

@@ -1,13 +1,10 @@
 import React from 'react';
 
 interface FooterSectionProps {
-  totalWorked: number;
-  totalOT: number;
   totalActual: number;
-  vehicleMode?: boolean;
 }
 
-export default function FooterSection({ totalWorked, totalOT, totalActual, vehicleMode }: FooterSectionProps) {
+export default function FooterSection({ totalActual }: FooterSectionProps) {
   const actualHours = totalActual || 0;
   const computedOT = actualHours > 260 ? Number((actualHours - 260).toFixed(2)) : 0;
 

@@ -16,9 +16,7 @@ export function generateSalarySlip(entry: SalarySheetEntry, month: number, year:
   });
 
   const pageWidth = pdf.internal.pageSize.getWidth();
-  const pageHeight = pdf.internal.pageSize.getHeight();
   const margin = 15;
-  const contentWidth = pageWidth - margin * 2;
   let yPos = margin;
 
   // Header

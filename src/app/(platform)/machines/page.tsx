@@ -5,7 +5,7 @@ import { useMachines } from '@/hooks/useMachines';
 import { PageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { machineStatusBadge } from '@/components/ui/Badge';
-import { Truck, Plus, Search, Pencil, Trash2 } from 'lucide-react';
+import { Truck, Plus, Search, Pencil } from 'lucide-react';
 
 const vehicleTypes = ['All', 'Tipper', 'Pickup', 'Crane', 'Forklift', 'Trailer', 'Tanker'];
 

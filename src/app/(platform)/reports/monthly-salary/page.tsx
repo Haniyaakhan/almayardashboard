@@ -37,7 +37,7 @@ export default function SalaryPerMonthPage() {
 
   const reportData = {
     headers: ['Employee Name', 'Designation', 'Gross Salary', 'OT Hours', 'Deduction', 'Net Salary', 'Status'],
-    rows: report.salaryDetails.map((s, idx) => ({
+    rows: report.salaryDetails.map((s) => ({
       cells: [
         s.full_name,
         s.designation || 'Unspecified',

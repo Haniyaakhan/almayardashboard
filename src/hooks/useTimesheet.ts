@@ -39,14 +39,6 @@ export function useTimesheet(): UseTimesheetReturn & {
     setWorkData(days);
   }, [month, year]);
 
-  // Parse time string "HH:MM" to hours as a decimal number
-  const parseTimeToHours = (time: string): number | null => {
-    if (!time || !time.includes(':')) return null;
-    const [h, m] = time.split(':').map(Number);
-    if (isNaN(h) || isNaN(m)) return null;
-    return h + m / 60;
-  };
-
   // Update a specific day entry field
   const updateDayEntry = (day: number, field: keyof DayEntry, value: string | number) => {
     setWorkData((prev) => {

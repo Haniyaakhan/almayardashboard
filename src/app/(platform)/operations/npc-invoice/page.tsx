@@ -1,7 +1,7 @@
 ﻿'use client';
 import React, { useMemo, useRef, useState } from 'react';
 import { Download, RefreshCw } from 'lucide-react';
-import { useApprovedLaborTimesheets } from '@/hooks/useOperationsTimesheets';
+import { useInvoiceTimesheets } from '@/hooks/useOperationsTimesheets';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -40,7 +40,7 @@ export default function OperationsNpcInvoicePage() {
 
   const [selMonth, setSelMonth] = useState(today.getMonth());
   const [selYear,  setSelYear]  = useState(today.getFullYear());
-  const { timesheets, loading } = useApprovedLaborTimesheets(selMonth, selYear);
+  const { timesheets, loading } = useInvoiceTimesheets(selMonth, selYear);
 
   const [billTo,         setBillTo]         = useState('NPC SPC');
   const [project,        setProject]        = useState('Railway Project');
@@ -122,7 +122,7 @@ export default function OperationsNpcInvoicePage() {
 
   /* ── RENDER ──────────────────────────────────────────────────────── */
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '310px 1fr', gap: 18, alignItems: 'start' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: '360px 1fr', gap: 18, alignItems: 'start' }}>
 
       {/* ═══ LEFT CONTROL PANEL ═══ */}
       <div className="npc-no-print" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -143,7 +143,7 @@ export default function OperationsNpcInvoicePage() {
             {loading ? (
               <div style={mutedSt}>Loading timesheets…</div>
             ) : designationSummary.length === 0 ? (
-              <div style={mutedSt}>No approved timesheets for {MONTHS_SHORT[selMonth]} {selYear}.</div>
+              <div style={mutedSt}>No approved or draft labor/tunnel timesheets for {MONTHS_SHORT[selMonth]} {selYear}.</div>
             ) : (
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
                 <thead>

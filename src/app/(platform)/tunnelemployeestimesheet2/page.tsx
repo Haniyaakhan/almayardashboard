@@ -7,10 +7,9 @@ import { useLaborers, getLaborerByIdNumber, createLaborer } from '@/hooks/useLab
 import { LaborerForm } from '@/components/labor/LaborerForm';
 import { saveTimesheet, getTimesheetWithEntries, getTimesheetByLaborer } from '@/hooks/useTimesheetHistory';
 import { createClient } from '@/lib/supabase/client';
-import TimesheetHeader from '@/components/TimesheetHeader';
-import InfoTable from '@/components/InfoTable';
+import TunnelEmployeeTimesheetHeader from '@/components/TunnelEmployeeTimesheetHeader';
 import WorkTable from '@/components/WorkTable';
-import FooterSection from '@/components/FooterSection';
+import TunnelEmployeeTimesheetFooter from '@/components/TunnelEmployeeTimesheetFooter';
 import ExportButtons from '@/components/ExportButtons';
 import TemplateRow from '@/components/TemplateRow';
 import { Button } from '@/components/ui/Button';
@@ -20,12 +19,13 @@ import type { DayEntry } from '@/types/timesheet';
 import type { Laborer } from '@/types/database';
 import { generateDaysInMonth } from '@/lib/dateUtils';
 
-function TimesheetPageInner() {
+function TunnelEmployeeTimesheetPageInner() {
   const timesheetRef = useRef<HTMLDivElement>(null);
   const hasAutoPrintedRef = useRef(false);
   const timesheet = useTimesheet();
   const { laborers } = useLaborers();
   const [selectedLaborerId, setSelectedLaborerId] = useState<string>('');
+  const [timesheetId, setTimesheetId] = useState<string | null>(null);
   const [takenLaborerIds, setTakenLaborerIds] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
   const toast = useToast();
@@ -75,13 +75,12 @@ function TimesheetPageInner() {
     return lab.id_number ? `${lab.full_name} # ${lab.id_number}` : lab.full_name;
   }
 
-  // Fetch laborer IDs that already have a timesheet for the current month/year
   useEffect(() => {
     const supabase = createClient();
     supabase
       .from('timesheets')
       .select('laborer_id')
-      .eq('sheet_type', 'labor')
+      .eq('sheet_type', 'tunnel_employee')
       .eq('month', timesheet.month)
       .eq('year', timesheet.year)
       .then(({ data }) => {
@@ -90,7 +89,6 @@ function TimesheetPageInner() {
       });
   }, [timesheet.month, timesheet.year]);
 
-  // On mount: load existing timesheet if ?ts= param is present
   useEffect(() => {
     const tsId = searchParams.get('ts');
     const laborerId = searchParams.get('laborer');
@@ -98,6 +96,10 @@ function TimesheetPageInner() {
     if (tsId) {
       getTimesheetWithEntries(tsId).then(ts => {
         if (!ts) return;
+        setTimesheetId(ts.id);
+        if (ts.laborer_id) {
+          setSelectedLaborerId(ts.laborer_id);
+        }
         setIsApproved((ts.status ?? '').toLowerCase() === 'approved');
         const entries: DayEntry[] = ((ts as any).entries ?? []).map((e: any) => ({
           day: e.day,
@@ -117,7 +119,7 @@ function TimesheetPageInner() {
           year: ts.year,
           laborName: ts.labor_name ?? '',
           projectName: ts.project_name ?? '',
-          supplierName: '',
+          supplierName: ts.supplier_name ?? '',
           siteEngineerName: ts.site_engineer_name ?? '',
           designation: ts.designation ?? '',
         });
@@ -141,7 +143,6 @@ function TimesheetPageInner() {
     return () => window.clearTimeout(timer);
   }, [searchParams, timesheet.laborName, timesheet.designation, timesheet.month, timesheet.year]);
 
-  // When laborers load, update designation with fresh laborer data (for both ?laborer= and ?ts= paths)
   useEffect(() => {
     if (!laborers.length) return;
     const laborerId = searchParams.get('laborer') || selectedLaborerId;
@@ -158,9 +159,10 @@ function TimesheetPageInner() {
     setLaborSearchInput(lab.full_name || lab.id_number || '');
     setLaborSearchStatus('idle');
     try {
-      const existing = await getTimesheetByLaborer(lab.id, timesheet.month, timesheet.year);
+      const existing = await getTimesheetByLaborer(lab.id, timesheet.month, timesheet.year, 'tunnel_employee');
       setIsApproved((existing?.status ?? '').toLowerCase() === 'approved');
       if (existing && (existing as any).entries?.length) {
+        setTimesheetId(existing.id);
         const entries: DayEntry[] = ((existing as any).entries ?? []).map((e: any) => ({
           day: e.day,
           timeIn: e.time_in ?? '',
@@ -179,11 +181,12 @@ function TimesheetPageInner() {
           year: existing.year,
           laborName: formatLaborDisplayName(lab),
           projectName: existing.project_name ?? timesheet.projectName,
-          supplierName: '',
-          siteEngineerName: existing.site_engineer_name ?? '',
-          designation: lab.designation ?? '',
+          supplierName: existing.supplier_name ?? timesheet.supplierName,
+          siteEngineerName: existing.site_engineer_name ?? timesheet.siteEngineerName,
+          designation: existing.designation ?? lab.designation ?? '',
         });
       } else {
+        setTimesheetId(null);
         setIsApproved(false);
         const days = generateDaysInMonth(timesheet.month, timesheet.year);
         timesheet.loadEntries(days, {
@@ -194,6 +197,7 @@ function TimesheetPageInner() {
         });
       }
     } catch {
+      setTimesheetId(null);
       setIsApproved(false);
       const days = generateDaysInMonth(timesheet.month, timesheet.year);
       timesheet.loadEntries(days, {
@@ -240,8 +244,6 @@ function TimesheetPageInner() {
     setShowAddModal(true);
   }
 
-
-
   function hasTimesheetValues() {
     return timesheet.workData.some(entry =>
       entry.timeIn || entry.timeOutLunch || entry.lunchBreak || entry.timeIn2 || entry.timeOut2 ||
@@ -257,7 +259,7 @@ function TimesheetPageInner() {
     }
 
     if (!timesheet.laborName.trim() || !timesheet.designation.trim()) {
-      toast.error('Labour name and designation are required before saving');
+      toast.error('Tunnel employee name and designation are required before saving');
       return;
     }
 
@@ -269,8 +271,9 @@ function TimesheetPageInner() {
     setSaving(true);
     const laborerId = selectedLaborerId || searchParams.get('laborer') || null;
     const error = await saveTimesheet({
+      timesheetId,
       laborer_id: laborerId,
-      sheet_type: 'labor',
+      sheet_type: 'tunnel_employee',
       labor_name: timesheet.laborName || undefined,
       month: timesheet.month,
       year: timesheet.year,
@@ -305,10 +308,8 @@ function TimesheetPageInner() {
 
   return (
     <div style={{ background: '#f5f5f5', minHeight: '100%' }}>
-      {/* Actions bar — hidden on print */}
       <div className="print:hidden flex items-center gap-3 px-6 py-3 flex-wrap"
         style={{ background: 'var(--bg-sidebar)', borderBottom: '1px solid var(--border)' }}>
-        {/* Labour search/select */}
         <div className="flex items-center gap-2 flex-wrap">
           <Search size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
           <input
@@ -319,7 +320,7 @@ function TimesheetPageInner() {
             onKeyDown={e => { if (e.key === 'Enter') handleLaborSearch(laborSearchInput); }}
             onBlur={() => { if (laborSearchInput.trim() && laborSearchStatus === 'idle') handleLaborSearch(laborSearchInput); }}
             disabled={isApproved}
-            placeholder="Search Labour by name or ID / Iqama…"
+            placeholder="Search employee by name or ID..."
             className="text-sm rounded-lg px-3 py-1.5 outline-none"
             style={{ background: 'var(--input-bg)', color: 'var(--text-primary)', border: '1px solid var(--border)', minWidth: 280 }}
           />
@@ -337,12 +338,11 @@ function TimesheetPageInner() {
                 fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 6,
                 border: 'none', background: '#3b82f6', color: '#fff', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', gap: 4,
-              }}><UserPlus size={11} /> Add Labour</button>
+              }}><UserPlus size={11} /> Add Employee</button>
             </>
           )}
         </div>
 
-        {/* Save button */}
         <Button
           variant="primary"
           size="sm"
@@ -360,7 +360,6 @@ function TimesheetPageInner() {
           </span>
         )}
 
-        {/* Clear day range */}
         <div className="flex items-center gap-1.5 ml-auto" style={{ marginRight: 8 }}>
           <span className="text-xs" style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>From</span>
           <input type="number" min={1} max={maxClearDay} value={rangeStartDay}
@@ -432,40 +431,61 @@ function TimesheetPageInner() {
         <div>
           <ExportButtons />
         </div>
-        <TemplateRow sheetType="labor" month={timesheet.month} year={timesheet.year} workData={timesheet.workData} onUpdateDayEntry={timesheet.updateDayEntry} onMonthChange={timesheet.setMonth} readOnly={isApproved} />
+        <TemplateRow sheetType="tunnel_employee" month={timesheet.month} year={timesheet.year} workData={timesheet.workData} onUpdateDayEntry={timesheet.updateDayEntry} onMonthChange={timesheet.setMonth} readOnly={isApproved} />
       </div>
 
-      {/* A4 Timesheet */}
       <div className="p-4" style={{ paddingBottom: 24 }}>
         <div
           ref={timesheetRef}
           className="w-a4 min-h-a4 bg-white mx-auto"
           style={{ border: '1px solid black', padding: '10px', overflow: 'visible', marginBottom: '2px' }}
         >
-          <TimesheetHeader timesheetType="labor" />
-          <InfoTable
-            month={timesheet.month} year={timesheet.year}
-            laborName={timesheet.laborName} projectName={timesheet.projectName}
-            supplierName={timesheet.supplierName} siteEngineerName={timesheet.siteEngineerName}
+          <TunnelEmployeeTimesheetHeader
+            title="Labour Time Sheet"
+            timesheetType="tunnel_employee"
+            projectName={timesheet.projectName}
+            supplierName={timesheet.supplierName}
+            siteEngineerName={timesheet.siteEngineerName}
+            siteEngineerId={timesheet.siteEngineerId}
+            laborName={timesheet.laborName}
             designation={timesheet.designation}
-            onMonthChange={timesheet.setMonth} onYearChange={timesheet.setYear}
-            onLaborNameChange={timesheet.setLaborName} onProjectNameChange={timesheet.setProjectName}
+            lpoNumber={timesheet.lpoNumber}
+            month={timesheet.month}
+            year={timesheet.year}
+            onProjectNameChange={timesheet.setProjectName}
             onSupplierNameChange={timesheet.setSupplierName}
             onSiteEngineerNameChange={timesheet.setSiteEngineerName}
+            onSiteEngineerIdChange={timesheet.setSiteEngineerId}
+            onLaborNameChange={timesheet.setLaborName}
             onDesignationChange={timesheet.setDesignation}
+            onLpoNumberChange={timesheet.setLpoNumber}
+            onMonthChange={timesheet.setMonth}
+            onYearChange={timesheet.setYear}
             readOnly={isApproved}
+            workSite="TUNNEL 2"
           />
           <WorkTable
             month={timesheet.month} year={timesheet.year}
             workData={timesheet.workData}
-            totalActual={timesheet.totalActual}
-            onUpdateDayEntry={timesheet.updateDayEntry}
-            readOnly={isApproved}
-          />
-          <FooterSection
             totalWorked={timesheet.totalWorked} totalOT={timesheet.totalOT}
             totalActual={timesheet.totalActual}
+            onUpdateDayEntry={timesheet.updateDayEntry}
+            columnLabels={[
+              'Date (Month-Date-Year)',
+              'Time In',
+              'Time Out',
+              'Lunch Break Time (Hrs)',
+              'Time In',
+              'Time Out',
+              'Total Worked Done (Hrs)',
+              'Break Down (Hrs)',
+              'Actual Worked (Hrs)',
+              'Approver Signature',
+              'Remarks',
+            ]}
+            readOnly={isApproved}
           />
+          <TunnelEmployeeTimesheetFooter totalActual={timesheet.totalActual} />
         </div>
       </div>
       {showAddModal && (
@@ -477,7 +497,7 @@ function TimesheetPageInner() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <UserPlus size={20} color="#3b82f6" />
-                <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Add New Labour</h3>
+                <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Add New Tunnel Employee</h3>
               </div>
               <button
                 onClick={() => setShowAddModal(false)}
@@ -486,7 +506,7 @@ function TimesheetPageInner() {
             </div>
             <LaborerForm
               initial={{ id_number: addLaborerInitialId }}
-              submitLabel="Add Labour"
+              submitLabel="Add Employee"
               onSubmit={async data => {
                 const err = await createLaborer(data);
                 if (err) throw err;
@@ -497,7 +517,7 @@ function TimesheetPageInner() {
                   await loadLaborerIntoTimesheet(newLab);
                 }
                 setShowAddModal(false);
-                toast.success('Labour added and loaded');
+                toast.success('Employee added and loaded');
               }}
             />
           </div>
@@ -507,10 +527,10 @@ function TimesheetPageInner() {
   );
 }
 
-export default function TimesheetPage() {
+export default function TunnelEmployeeTimesheetPage() {
   return (
     <Suspense>
-      <TimesheetPageInner />
+      <TunnelEmployeeTimesheetPageInner />
     </Suspense>
   );
 }
