@@ -11,6 +11,16 @@ import { ClipboardList, Plus, Trash2 } from 'lucide-react';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
+function getTimesheetDisplayName(value: string | undefined | null) {
+  const trimmed = (value ?? '').trim();
+  if (!trimmed) return '—';
+  const parts = trimmed.split(/\s+/);
+  if (parts.length > 2 || (parts.length > 1 && trimmed.length > 16)) {
+    return parts[0];
+  }
+  return trimmed;
+}
+
 export default function LabourTimesheetPage() {
   const { timesheets, loading, refetch } = useTimesheetHistory();
   const { laborers } = useLaborers(false);
@@ -138,10 +148,11 @@ export default function LabourTimesheetPage() {
                           fontSize: '12.5px', fontWeight: 600, color: 'var(--text-secondary)',
                           textDecoration: 'none', cursor: 'pointer',
                         }}
+                        title={laborerData?.full_name ?? ts.labor_name ?? '—'}
                         onMouseEnter={e => { e.currentTarget.style.color = 'var(--orange)'; }}
                         onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-secondary)'; }}
                         >
-                          {laborerData?.full_name ?? ts.labor_name ?? '—'}
+                          {getTimesheetDisplayName(laborerData?.full_name ?? ts.labor_name ?? '—')}
                         </Link>
                       </div>
                     </td>

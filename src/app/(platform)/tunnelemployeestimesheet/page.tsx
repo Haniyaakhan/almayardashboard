@@ -19,6 +19,16 @@ import type { DayEntry } from '@/types/timesheet';
 import type { Laborer } from '@/types/database';
 import { generateDaysInMonth } from '@/lib/dateUtils';
 
+function getTimesheetDisplayName(value: string | undefined | null) {
+  const trimmed = (value ?? '').trim();
+  if (!trimmed) return '—';
+  const parts = trimmed.split(/\s+/);
+  if (parts.length > 2 || (parts.length > 1 && trimmed.length > 16)) {
+    return parts[0];
+  }
+  return trimmed;
+}
+
 function TunnelEmployeeTimesheetPageInner() {
   const timesheetRef = useRef<HTMLDivElement>(null);
   const hasAutoPrintedRef = useRef(false);
@@ -72,7 +82,8 @@ function TunnelEmployeeTimesheetPageInner() {
   }
 
   function formatLaborDisplayName(lab: Laborer): string {
-    return lab.id_number ? `${lab.full_name} # ${lab.id_number}` : lab.full_name;
+    const truncatedName = getTimesheetDisplayName(lab.full_name);
+    return lab.id_number ? `${truncatedName} # ${lab.id_number}` : truncatedName;
   }
 
   useEffect(() => {

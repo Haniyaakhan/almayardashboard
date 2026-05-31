@@ -17,6 +17,16 @@ import { Save, Search, Eraser, Plus } from 'lucide-react';
 import type { DayEntry } from '@/types/timesheet';
 import { generateDaysInMonth } from '@/lib/dateUtils';
 
+function getTimesheetDisplayName(value: string | undefined | null) {
+  const trimmed = (value ?? '').trim();
+  if (!trimmed) return '—';
+  const parts = trimmed.split(/\s+/);
+  if (parts.length > 2 || (parts.length > 1 && trimmed.length > 16)) {
+    return parts[0];
+  }
+  return trimmed;
+}
+
 function VehicleTimesheetPageInner() {
   const timesheetRef = useRef<HTMLDivElement>(null);
   const hasAutoPrintedRef = useRef(false);
@@ -94,7 +104,7 @@ function VehicleTimesheetPageInner() {
         timesheet.loadEntries(entries, {
           month: ts.month,
           year: ts.year,
-          laborName: machine?.operator_name ?? ts.labor_name ?? '',
+          laborName: getTimesheetDisplayName(machine?.operator_name ?? ts.labor_name ?? ''),
           projectName: ts.project_name ?? '',
           supplierName: ts.supplier_name ?? '',
           siteEngineerName: ts.site_engineer_name ?? '',
@@ -127,7 +137,7 @@ function VehicleTimesheetPageInner() {
     if (!vehicleId || !machines.length || tsId) return;
     const machine = machines.find(m => m.id === vehicleId);
     if (!machine) return;
-    timesheet.setLaborName(machine.operator_name ?? '');
+    timesheet.setLaborName(getTimesheetDisplayName(machine.operator_name ?? ''));
     timesheet.setDesignation(`${machine.name}# ${machine.plate_number ?? ''}`);
     setVehicleSearchInput(machine.plate_number ?? machine.name);
   }, [machines]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -165,7 +175,7 @@ function VehicleTimesheetPageInner() {
         timesheet.loadEntries(entries, {
           month: existing.month,
           year: existing.year,
-          laborName: machine.operator_name ?? '',
+          laborName: getTimesheetDisplayName(machine.operator_name ?? ''),
           projectName: existing.project_name ?? timesheet.projectName,
           supplierName: existing.supplier_name ?? '',
           siteEngineerName: existing.site_engineer_name ?? '',
@@ -177,7 +187,7 @@ function VehicleTimesheetPageInner() {
         timesheet.loadEntries(days, {
           month: timesheet.month,
           year: timesheet.year,
-          laborName: machine.operator_name ?? '',
+          laborName: getTimesheetDisplayName(machine.operator_name ?? ''),
           designation: `${machine.name}# ${machine.plate_number ?? ''}`,
           supplierName: '',
         });
@@ -188,7 +198,7 @@ function VehicleTimesheetPageInner() {
       timesheet.loadEntries(days, {
         month: timesheet.month,
         year: timesheet.year,
-        laborName: machine.operator_name ?? '',
+        laborName: getTimesheetDisplayName(machine.operator_name ?? ''),
         designation: `${machine.name}# ${machine.plate_number ?? ''}`,
         supplierName: '',
       });

@@ -23,6 +23,16 @@ const TYPE_COLORS: Record<SheetType, { bg: string; color: string }> = {
   tunnel_vehicle:  { bg: 'rgba(234,88,12,0.12)',   color: '#ea580c' },
 };
 
+function getTimesheetDisplayName(value: string | undefined | null) {
+  const trimmed = (value ?? '').trim();
+  if (!trimmed) return '—';
+  const parts = trimmed.split(/\s+/);
+  if (parts.length > 2 || (parts.length > 1 && trimmed.length > 16)) {
+    return parts[0];
+  }
+  return trimmed;
+}
+
 export default function TimesheetsPage() {
   const { timesheets, loading: tsLoading, refetch } = useTimesheetHistory();
   const { laborers, loading: labLoading } = useLaborers(false);
@@ -366,7 +376,8 @@ export default function TimesheetsPage() {
               <tbody>
                 {displayedTimesheets.map(ts => {
                   const type = resolveType(ts);
-                  const name = resolveName(ts, type);
+                  const fullName = resolveName(ts, type);
+                  const name = getTimesheetDisplayName(fullName);
                   const colors = TYPE_COLORS[type];
                   const normalizedStatus = (ts.status ?? '').toLowerCase();
                   const isLocked = normalizedStatus === 'approved';
@@ -383,7 +394,7 @@ export default function TimesheetsPage() {
                           background: colors.bg, color: colors.color,
                         }}>{type}</span>
                       </td>
-                      <td style={{ padding: '10px 13px', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                      <td style={{ padding: '10px 13px', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-secondary)' }} title={fullName}>
                         {name}
                       </td>
                       <td style={{ padding: '10px 13px', fontSize: 12, color: 'var(--text-light)', fontFamily: 'monospace', fontWeight: 600 }}>

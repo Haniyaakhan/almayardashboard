@@ -10,6 +10,16 @@ import { Plus, Search, Trash2 } from 'lucide-react';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
+function getTimesheetDisplayName(value: string | undefined | null) {
+  const trimmed = (value ?? '').trim();
+  if (!trimmed) return '—';
+  const parts = trimmed.split(/\s+/);
+  if (parts.length > 2 || (parts.length > 1 && trimmed.length > 16)) {
+    return parts[0];
+  }
+  return trimmed;
+}
+
 export default function VehicleTimesheetPage() {
   const { machines, loading: machinesLoading } = useMachines();
   const { timesheets, loading: tsLoading, refetch } = useTimesheetHistory();
@@ -145,8 +155,8 @@ export default function VehicleTimesheetPage() {
                     <td style={{ padding: '10px 13px', fontSize: 12, color: 'var(--text-light)', fontFamily: 'monospace', fontWeight: 700 }}>
                       {machine?.plate_number ?? ts.designation ?? '—'}
                     </td>
-                    <td style={{ padding: '10px 13px', fontSize: 12, color: 'var(--text-light)' }}>
-                      {machine?.operator_name ?? ts.labor_name ?? ts.designation ?? '—'}
+                    <td style={{ padding: '10px 13px', fontSize: 12, color: 'var(--text-light)' }} title={machine?.operator_name ?? ts.labor_name ?? ts.designation ?? '—'}>
+                      {getTimesheetDisplayName(machine?.operator_name ?? ts.labor_name ?? ts.designation ?? '—')}
                     </td>
                     <td style={{ padding: '10px 13px', fontSize: 12, color: 'var(--text-light)' }}>
                       {MONTHS[ts.month]} {ts.year}
