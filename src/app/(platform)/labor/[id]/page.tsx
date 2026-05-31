@@ -14,6 +14,8 @@ import { ArrowLeft } from 'lucide-react';
 import type { Laborer } from '@/types/database';
 import { toDisplayDesignation } from '@/lib/designation';
 
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
 interface SalaryHistoryRow {
   id: string;
   month: number;
