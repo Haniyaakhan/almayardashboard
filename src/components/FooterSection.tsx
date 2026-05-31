@@ -1,12 +1,15 @@
 import React from 'react';
 
 interface FooterSectionProps {
+  totalWorked: number;
+  totalOT: number;
   totalActual: number;
 }
 
-export default function FooterSection({ totalActual }: FooterSectionProps) {
+export default function FooterSection({ totalWorked, totalOT, totalActual }: FooterSectionProps) {
   const actualHours = totalActual || 0;
-  const computedOT = actualHours > 260 ? Number((actualHours - 260).toFixed(2)) : 0;
+  const workedHours = totalWorked || 0;
+  const computedOT = totalOT || (actualHours > 260 ? Number((actualHours - 260).toFixed(2)) : 0);
 
   return (
     <div style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
