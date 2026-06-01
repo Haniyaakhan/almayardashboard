@@ -111,11 +111,7 @@ export default function TimesheetsPage() {
     const idNumberText = (
       type === 'labor' || type === 'tunnel_employee'
         ? laborerMap.get(ts.laborer_id ?? '')?.id_number ?? ''
-        : type === 'vehicle' || type === 'tunnel_vehicle'
-          ? vehicleMap.get(ts.laborer_id ?? '')?.id_number ?? ''
-          : type === 'equipment'
-            ? equipMap.get(ts.laborer_id ?? '')?.id_number ?? ''
-            : ''
+        : ''
     ).toLowerCase();
     const matchType   = typeFilter === 'All' || type === typeFilter;
     const matchStatus = statusFilter === 'All' || normalizedStatus === statusFilter;
