@@ -28,12 +28,15 @@ export default function VehicleTimesheetHistoryPage() {
   );
 
   const filtered = vehicleTimesheets.filter(ts => {
+    const normalizedSearch = search.trim().toLowerCase();
     const matchStatus = filter === 'All' || ts.status === filter;
     const matchMonth = monthFilter === 'All' || `${MONTHS[ts.month]} ${ts.year}` === monthFilter;
     const machine = machines.find(m => m.id === ts.laborer_id);
     const displayName = machine?.name ?? ts.labor_name ?? '';
-    const matchSearch = !search || displayName.toLowerCase().includes(search.toLowerCase()) ||
-      (machine?.plate_number ?? ts.designation ?? '').toLowerCase().includes(search.toLowerCase());
+    const idText = String(ts.laborer_id ?? '').toLowerCase();
+    const matchSearch = !search || displayName.toLowerCase().includes(normalizedSearch) ||
+      (machine?.plate_number ?? ts.designation ?? '').toLowerCase().includes(normalizedSearch) ||
+      idText.includes(normalizedSearch);
     return matchStatus && matchMonth && matchSearch;
   });
 

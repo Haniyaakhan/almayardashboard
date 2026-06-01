@@ -29,13 +29,16 @@ export default function EquipmentTimesheetPage() {
   const visibleMonthOptions = monthOptions.length > 0 ? monthOptions : MONTHS;
 
   const filtered = equipmentTimesheets.filter(ts => {
+    const normalizedSearch = search.trim().toLowerCase();
     const normalizedStatus = (ts.status ?? '').toLowerCase();
     const matchStatus = filter === 'All' || normalizedStatus === filter;
     const matchMonth = monthFilter === 'All' || `${MONTHS[ts.month]} ${ts.year}` === monthFilter || MONTHS[ts.month] === monthFilter;
     const machine = machines.find(m => m.id === ts.laborer_id);
     const displayName = machine?.name ?? ts.labor_name ?? '';
-    const matchSearch = !search || displayName.toLowerCase().includes(search.toLowerCase()) ||
-      (machine?.plate_number ?? ts.designation ?? '').toLowerCase().includes(search.toLowerCase());
+    const idText = String(ts.laborer_id ?? '').toLowerCase();
+    const matchSearch = !search || displayName.toLowerCase().includes(normalizedSearch) ||
+      (machine?.plate_number ?? ts.designation ?? '').toLowerCase().includes(normalizedSearch) ||
+      idText.includes(normalizedSearch);
     return matchStatus && matchMonth && matchSearch;
   });
 

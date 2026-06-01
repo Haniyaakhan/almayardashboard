@@ -106,13 +106,25 @@ export default function TimesheetsPage() {
     ).toLowerCase();
     const normalizedStatus = (ts.status ?? '').toLowerCase();
     const fullMonthLabel = `${MONTHS[ts.month]} ${ts.year}`;
-    const normalizedSearch = search.toLowerCase();
+    const normalizedSearch = search.trim().toLowerCase();
+    const laborerIdText = String(ts.laborer_id ?? '').toLowerCase();
+    const idNumberText = (
+      type === 'labor' || type === 'tunnel_employee'
+        ? laborerMap.get(ts.laborer_id ?? '')?.id_number ?? ''
+        : type === 'vehicle' || type === 'tunnel_vehicle'
+          ? vehicleMap.get(ts.laborer_id ?? '')?.id_number ?? ''
+          : type === 'equipment'
+            ? equipMap.get(ts.laborer_id ?? '')?.id_number ?? ''
+            : ''
+    ).toLowerCase();
     const matchType   = typeFilter === 'All' || type === typeFilter;
     const matchStatus = statusFilter === 'All' || normalizedStatus === statusFilter;
     const matchMonth = monthFilter === 'All' || fullMonthLabel === monthFilter || MONTHS[ts.month] === monthFilter;
     const matchSearch = !search || name.includes(normalizedSearch) ||
       fullMonthLabel.toLowerCase().includes(normalizedSearch) ||
-      designationText.includes(normalizedSearch);
+      designationText.includes(normalizedSearch) ||
+      laborerIdText.includes(normalizedSearch) ||
+      idNumberText.includes(normalizedSearch);
     return matchType && matchStatus && matchMonth && matchSearch;
   });
 
