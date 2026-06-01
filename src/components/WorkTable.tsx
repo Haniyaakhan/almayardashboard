@@ -6,10 +6,11 @@ interface WorkTableProps {
   month: number;
   year: number;
   workData: DayEntry[];
-  totalWorked?: number;
-  totalOT?: number;
-  totalActual?: number;
+  totalWorked: number;
+  totalOT: number;
+  totalActual: number;
   onUpdateDayEntry: (day: number, field: keyof DayEntry, value: string | number) => void;
+  vehicleMode?: boolean;
   readOnly?: boolean;
   columnLabels?: string[];
 }
@@ -18,10 +19,11 @@ export default function WorkTable({
   month,
   year,
   workData,
-  totalWorked = 0,
-  totalOT = 0,
-  totalActual = 0,
+  totalWorked,
+  totalOT,
+  totalActual,
   onUpdateDayEntry,
+  vehicleMode,
   readOnly = false,
   columnLabels,
 }: WorkTableProps) {
@@ -293,14 +295,10 @@ export default function WorkTable({
       <tfoot>
         <tr>
           <td colSpan={6} className="border border-black p-0.5 text-right pr-2 text-[12px] font-bold">
-            TOTALS
+            TOTAL WORKED HOURS
           </td>
-          <td className="border border-black p-0.5 text-center text-[12px] font-bold">
-            {totalWorked || 0}
-          </td>
-          <td className="border border-black p-0.5 text-center text-[12px] font-bold">
-            {totalOT || 0}
-          </td>
+          <td className="border border-black p-0.5"></td>
+          <td className="border border-black p-0.5"></td>
           <td className="border border-black p-0.5 text-center text-[12px] font-bold">
             {totalActual || 0}
           </td>
