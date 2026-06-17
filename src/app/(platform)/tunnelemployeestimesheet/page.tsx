@@ -439,7 +439,7 @@ function TunnelEmployeeTimesheetPageInner() {
           </button>
         </div>
 
-        <div>
+        <div className="flex items-center gap-2">
           <ExportButtons />
         </div>
         <TemplateRow sheetType="tunnel_employee" month={timesheet.month} year={timesheet.year} workData={timesheet.workData} onUpdateDayEntry={timesheet.updateDayEntry} onMonthChange={timesheet.setMonth} readOnly={isApproved} />
@@ -481,7 +481,7 @@ function TunnelEmployeeTimesheetPageInner() {
             totalActual={timesheet.totalActual}
             onUpdateDayEntry={timesheet.updateDayEntry}
             columnLabels={[
-              'Date (Month-Date-Year)',
+              'Date (DD/MM/YYYY)',
               'Time In',
               'Time Out',
               'Lunch Break Time (Hrs)',

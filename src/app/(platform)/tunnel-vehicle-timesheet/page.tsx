@@ -440,7 +440,7 @@ function TunnelVehicleTimesheetPageInner() {
           </button>
         </div>
 
-        <div>
+        <div className="flex items-center gap-2">
           <ExportButtons />
         </div>
         <TemplateRow sheetType="tunnel_vehicle" month={timesheet.month} year={timesheet.year} workData={timesheet.workData} onUpdateDayEntry={timesheet.updateDayEntry} onMonthChange={timesheet.setMonth} readOnly={isApproved} />

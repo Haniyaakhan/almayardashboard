@@ -152,7 +152,7 @@ function TimesheetPageInner() {
     return () => window.clearTimeout(timer);
   }, [searchParams, timesheet.laborName, timesheet.designation, timesheet.month, timesheet.year]);
 
-  // When laborers load, update designation with fresh laborer data (for both ?laborer= and ?ts= paths)
+  // When laborers load, update designation with fresh laborer data
   useEffect(() => {
     if (!laborers.length) return;
     const laborerId = searchParams.get('laborer') || selectedLaborerId;
@@ -251,8 +251,6 @@ function TimesheetPageInner() {
     setShowAddModal(true);
   }
 
-
-
   function hasTimesheetValues() {
     return timesheet.workData.some(entry =>
       entry.timeIn || entry.timeOutLunch || entry.lunchBreak || entry.timeIn2 || entry.timeOut2 ||
@@ -317,8 +315,10 @@ function TimesheetPageInner() {
   return (
     <div style={{ background: '#f5f5f5', minHeight: '100%' }}>
       {/* Actions bar — hidden on print */}
-      <div className="print:hidden flex items-center gap-3 px-6 py-3 flex-wrap"
-        style={{ background: 'var(--bg-sidebar)', borderBottom: '1px solid var(--border)' }}>
+      <div
+        className="print:hidden flex items-center gap-3 px-6 py-3 flex-wrap"
+        style={{ background: 'var(--bg-sidebar)', borderBottom: '1px solid var(--border)' }}
+      >
         {/* Labour search/select */}
         <div className="flex items-center gap-2 flex-wrap">
           <Search size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
@@ -344,11 +344,17 @@ function TimesheetPageInner() {
           {laborSearchStatus === 'notfound' && (
             <>
               <span style={{ fontSize: 12, color: '#ef4444', fontWeight: 500 }}>Not found</span>
-              <button disabled={isApproved} onClick={() => setShowAddModal(true)} style={{
-                fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 6,
-                border: 'none', background: '#3b82f6', color: '#fff', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', gap: 4,
-              }}><UserPlus size={11} /> Add Labour</button>
+              <button
+                disabled={isApproved}
+                onClick={() => setShowAddModal(true)}
+                style={{
+                  fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 6,
+                  border: 'none', background: '#3b82f6', color: '#fff', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: 4,
+                }}
+              >
+                <UserPlus size={11} /> Add Labour
+              </button>
             </>
           )}
         </div>
@@ -359,7 +365,7 @@ function TimesheetPageInner() {
           size="sm"
           loading={saving}
           disabled={isApproved || !timesheet.laborName.trim() || !timesheet.designation.trim() || !hasTimesheetValues()}
-          icon={<Save size={13}/>}
+          icon={<Save size={13} />}
           onClick={handleSave}
         >
           {isApproved ? 'Approved' : 'Save Timesheet'}
@@ -374,14 +380,16 @@ function TimesheetPageInner() {
         {/* Clear day range */}
         <div className="flex items-center gap-1.5 ml-auto" style={{ marginRight: 8 }}>
           <span className="text-xs" style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>From</span>
-          <input type="number" min={1} max={maxClearDay} value={rangeStartDay}
+          <input
+            type="number" min={1} max={maxClearDay} value={rangeStartDay}
             onChange={e => updateRangeValue(e.target.value, setRangeStartDay)}
             disabled={isApproved}
             className="text-sm rounded-lg px-2 py-1 outline-none text-center"
             style={{ background: 'var(--input-bg)', color: 'var(--text-primary)', border: '1px solid var(--border)', width: 52 }}
           />
           <span className="text-xs" style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>To</span>
-          <input type="number" min={1} max={maxClearDay} value={rangeEndDay}
+          <input
+            type="number" min={1} max={maxClearDay} value={rangeEndDay}
             onChange={e => updateRangeValue(e.target.value, setRangeEndDay)}
             disabled={isApproved}
             className="text-sm rounded-lg px-2 py-1 outline-none text-center"
@@ -396,12 +404,9 @@ function TimesheetPageInner() {
             }}
             className="flex items-center gap-1 text-xs font-semibold rounded-lg px-3 py-1.5"
             style={{
-              background: '#dcfce7',
-              border: '1px solid #86efac',
-              color: '#166534',
+              background: '#dcfce7', border: '1px solid #86efac', color: '#166534',
               cursor: isApproved ? 'not-allowed' : 'pointer',
-              opacity: isApproved ? 0.6 : 1,
-              whiteSpace: 'nowrap',
+              opacity: isApproved ? 0.6 : 1, whiteSpace: 'nowrap',
             }}
           >
             <Plus size={12} /> Add Default
@@ -415,35 +420,44 @@ function TimesheetPageInner() {
             }}
             className="flex items-center gap-1 text-xs font-semibold rounded-lg px-3 py-1.5"
             style={{
-              background: '#dbeafe',
-              border: '1px solid #93c5fd',
-              color: '#1d4ed8',
+              background: '#dbeafe', border: '1px solid #93c5fd', color: '#1d4ed8',
               cursor: isApproved ? 'not-allowed' : 'pointer',
-              opacity: isApproved ? 0.6 : 1,
-              whiteSpace: 'nowrap',
+              opacity: isApproved ? 0.6 : 1, whiteSpace: 'nowrap',
             }}
           >
             <Plus size={12} /> Add Friday
           </button>
-          <button disabled={isApproved || !hasRangeValues} onClick={() => {
-            const range = getSelectedRange();
-            if (!range) return;
-            timesheet.clearDayRange(range.startDay, range.endDay);
-          }}
+          <button
+            disabled={isApproved || !hasRangeValues}
+            onClick={() => {
+              const range = getSelectedRange();
+              if (!range) return;
+              timesheet.clearDayRange(range.startDay, range.endDay);
+            }}
             className="flex items-center gap-1 text-xs font-semibold rounded-lg px-3 py-1.5"
             style={{
               background: 'var(--red-bg, #fef2f2)', border: '1px solid var(--red-border, #fecaca)',
-              color: 'var(--red-text, #dc2626)', cursor: isApproved ? 'not-allowed' : 'pointer', opacity: isApproved ? 0.6 : 1, whiteSpace: 'nowrap',
+              color: 'var(--red-text, #dc2626)', cursor: isApproved ? 'not-allowed' : 'pointer',
+              opacity: isApproved ? 0.6 : 1, whiteSpace: 'nowrap',
             }}
           >
             <Eraser size={12} /> Clear
           </button>
         </div>
 
-        <div>
+        <div className="flex items-center gap-2">
           <ExportButtons />
         </div>
-        <TemplateRow sheetType="labor" month={timesheet.month} year={timesheet.year} workData={timesheet.workData} onUpdateDayEntry={timesheet.updateDayEntry} onMonthChange={timesheet.setMonth} readOnly={isApproved} />
+
+        <TemplateRow
+          sheetType="labor"
+          month={timesheet.month}
+          year={timesheet.year}
+          workData={timesheet.workData}
+          onUpdateDayEntry={timesheet.updateDayEntry}
+          onMonthChange={timesheet.setMonth}
+          readOnly={isApproved}
+        />
       </div>
 
       {/* A4 Timesheet */}
@@ -480,12 +494,21 @@ function TimesheetPageInner() {
           />
         </div>
       </div>
+
+      {/* Add Labour modal */}
       {showAddModal && (
         <div
-          style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.5)', overflowY: 'auto', padding: '32px 16px' }}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 9999,
+            background: 'rgba(0,0,0,0.5)', overflowY: 'auto', padding: '32px 16px',
+          }}
           onClick={e => { if (e.target === e.currentTarget) setShowAddModal(false); }}
         >
-          <div style={{ background: 'var(--bg-card)', borderRadius: 14, padding: '28px 32px', width: '100%', maxWidth: 680, margin: '0 auto', boxShadow: '0 8px 40px rgba(0,0,0,0.22)' }}>
+          <div style={{
+            background: 'var(--bg-card)', borderRadius: 14, padding: '28px 32px',
+            width: '100%', maxWidth: 680, margin: '0 auto',
+            boxShadow: '0 8px 40px rgba(0,0,0,0.22)',
+          }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <UserPlus size={20} color="#3b82f6" />

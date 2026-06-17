@@ -30,6 +30,12 @@ const PAYMENT_MODULES = [
     href: '/payment-modules/receipt-letters',
   },
   {
+    title: 'Cheque Receipt Payment',
+    description: 'Create cheque receipts with cheque number and handwritten balance summary.',
+    icon: CreditCard,
+    href: '/payment-modules/cheque-receipt-payment',
+  },
+  {
     title: 'LPO Generation',
     description: 'Create editable LPOs with vendor/buyer details, line items, and A4 print/PDF export.',
     icon: FileSpreadsheet,

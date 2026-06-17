@@ -32,6 +32,7 @@ const titles: Record<string, string> = {
   '/reports/salary-sheet-coverage': 'Salary Sheet Coverage',
   '/payment-modules': 'Payment Modules',
   '/payment-modules/cash-receipt-payment': 'Cash Receipt Payment',
+  '/payment-modules/cheque-receipt-payment': 'Cheque Receipt Payment',
   '/payment-modules/invoice-generation': 'Invoice Generation',
   '/payment-modules/salary-generation': 'Salary Generation',
   '/payment-modules/receipt-letters': 'Salary Receipt Letters',
