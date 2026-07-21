@@ -12,7 +12,7 @@ import { MachineForm } from '@/components/machines/MachineForm';
 import { useToast } from '@/components/ui/Toast';
 import { Truck, Plus, Search, Pencil, Settings2, ClipboardList, X } from 'lucide-react';
 
-const vehicleTypes = ['All', 'Tipper', 'Pickup', 'Crane', 'Forklift', 'Trailer', 'Tanker'];
+const vehicleTypes = ['All', 'Tipper', 'Pickup', 'Crane', 'Forklift', 'Trailer', 'Tanker', 'Dozer'];
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
