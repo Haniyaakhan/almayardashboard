@@ -12,7 +12,7 @@ type FormData = Omit<Machine, 'id' | 'created_at' | 'updated_at' | 'vendor'>;
 interface Props { initial?: Partial<FormData>; onSubmit: (data: FormData) => Promise<void>; submitLabel?: string; }
 
 const machineTypes = [
-  'Bob Cat','Bus','Compactor','Compressor','Crane','Diesel Tanker',
+  'Bob Cat','Bus','Compactor','Compressor','Crane','Diesel Tanker','Dozer',
   'Excavator','Flat Bed','Forklift','Generator','Grader','Hiab',
   'JCB','Low Bed','Manlift','Pick Up','Roller','Shovel',
   'Six Wheel Truck','Water Tanker','Other',
