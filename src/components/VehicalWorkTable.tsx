@@ -45,17 +45,22 @@ export default function VehicalWorkTable({
 
   const getVehicleTimeValues = (entry: DayEntry) => {
     const actualHours = Number(entry.actualWorked) || 0;
-    const firstShiftHours = 7;
+    const firstShiftStartMinutes = parseClockValue('5:30');
+    const firstShiftDurationHours = Math.min(Math.max(actualHours, 0), 7);
+    const firstShiftOutMinutes = firstShiftStartMinutes + firstShiftDurationHours * 60;
+    const firstShiftOut = actualHours > 0 ? formatClockValue(firstShiftOutMinutes) : '';
+
     const secondShiftStartMinutes = parseClockValue('3:30');
-    const derivedHours = Math.max(actualHours - firstShiftHours, 0);
-    const derivedTimeOut2 = formatClockValue(secondShiftStartMinutes + derivedHours * 60);
+    const secondShiftExtraHours = Math.max(actualHours - 7, 0);
+    const secondShiftOut = secondShiftExtraHours > 0 ? formatClockValue(secondShiftStartMinutes + secondShiftExtraHours * 60) : '';
+    const shouldShowSecondShift = actualHours > 7;
 
     return {
       timeIn: entry.timeIn || '5:30',
-      timeOutLunch: entry.timeOutLunch === '01:30' || !entry.timeOutLunch ? '12:30' : entry.timeOutLunch,
+      timeOutLunch: firstShiftOut,
       lunchBreak: entry.lunchBreak,
-      timeIn2: entry.timeIn2 || '3:30',
-      timeOut2: derivedTimeOut2,
+      timeIn2: shouldShowSecondShift ? (entry.timeIn2 || '3:30') : '',
+      timeOut2: shouldShowSecondShift ? secondShiftOut : '',
     };
   };
 
@@ -194,6 +199,7 @@ export default function VehicalWorkTable({
         {workData.map((entry, rowIndex) => {
           const isFridayRow = isFriday(year, month, entry.day);
           const derivedValues = getVehicleTimeValues(entry);
+          const isHolidayRow = isFridayRow;
 
           return (
             <tr key={entry.day}>
@@ -203,7 +209,7 @@ export default function VehicalWorkTable({
               <td className="border border-black p-0.5 text-center text-[12px] align-middle">
                 <input
                   type="text"
-                  value={derivedValues.timeIn}
+                  value={isHolidayRow ? '' : derivedValues.timeIn}
                   onChange={(e) => onUpdateDayEntry(entry.day, 'timeIn', e.target.value)}
                   onKeyDown={(e) => handleKeyDown(e, rowIndex, 0)}
                   data-worktable-row={rowIndex}
@@ -215,7 +221,7 @@ export default function VehicalWorkTable({
               <td className="border border-black p-0.5 text-center text-[12px] align-middle">
                 <input
                   type="text"
-                  value={derivedValues.timeOutLunch}
+                  value={isHolidayRow ? '' : derivedValues.timeOutLunch}
                   onChange={(e) => onUpdateDayEntry(entry.day, 'timeOutLunch', e.target.value)}
                   onKeyDown={(e) => handleKeyDown(e, rowIndex, 1)}
                   data-worktable-row={rowIndex}
@@ -227,7 +233,7 @@ export default function VehicalWorkTable({
               <td className="p-0.5 text-center text-[12px] align-middle" style={{ border: 'none' }}>
                 <input
                   type="text"
-                  value={derivedValues.lunchBreak}
+                  value={isHolidayRow ? '' : derivedValues.lunchBreak}
                   onChange={(e) => onUpdateDayEntry(entry.day, 'lunchBreak', e.target.value)}
                   onKeyDown={(e) => handleKeyDown(e, rowIndex, 2)}
                   data-worktable-row={rowIndex}
@@ -239,7 +245,7 @@ export default function VehicalWorkTable({
               <td className="border border-black p-0.5 text-center text-[12px] align-middle">
                 <input
                   type="text"
-                  value={derivedValues.timeIn2}
+                  value={isHolidayRow ? '' : derivedValues.timeIn2}
                   onChange={(e) => onUpdateDayEntry(entry.day, 'timeIn2', e.target.value)}
                   onKeyDown={(e) => handleKeyDown(e, rowIndex, 3)}
                   data-worktable-row={rowIndex}
@@ -251,7 +257,7 @@ export default function VehicalWorkTable({
               <td className="border border-black p-0.5 text-center text-[12px] align-middle">
                 <input
                   type="text"
-                  value={derivedValues.timeOut2}
+                  value={isHolidayRow ? '' : derivedValues.timeOut2}
                   onChange={(e) => onUpdateDayEntry(entry.day, 'timeOut2', e.target.value)}
                   onKeyDown={(e) => handleKeyDown(e, rowIndex, 4)}
                   data-worktable-row={rowIndex}
@@ -290,14 +296,16 @@ export default function VehicalWorkTable({
                   value={entry.actualWorked || ''}
                   onChange={(e) => {
                     const actualWorked = Number(e.target.value);
+                    const firstShiftStartMinutes = parseClockValue('5:30');
+                    const firstShiftDurationHours = Math.min(Math.max(actualWorked, 0), 7);
+                    const firstShiftOut = actualWorked > 0 ? formatClockValue(firstShiftStartMinutes + firstShiftDurationHours * 60) : '';
+                    const secondShiftStartMinutes = parseClockValue('3:30');
+                    const secondShiftExtraHours = Math.max(actualWorked - 7, 0);
+                    const secondShiftOut = secondShiftExtraHours > 0 ? formatClockValue(secondShiftStartMinutes + secondShiftExtraHours * 60) : '';
+
                     onUpdateDayEntry(entry.day, 'actualWorked', actualWorked);
-                    if (actualWorked > 0) {
-                      const firstShiftHours = 7;
-                      const secondShiftStartMinutes = parseClockValue('3:30');
-                      const derivedHours = Math.max(actualWorked - firstShiftHours, 0);
-                      const derivedTimeOut2 = formatClockValue(secondShiftStartMinutes + derivedHours * 60);
-                      onUpdateDayEntry(entry.day, 'timeOut2', derivedTimeOut2);
-                    }
+                    onUpdateDayEntry(entry.day, 'timeOutLunch', firstShiftOut);
+                    onUpdateDayEntry(entry.day, 'timeOut2', actualWorked > 7 ? secondShiftOut : '');
                   }}
                   onKeyDown={(e) => handleKeyDown(e, rowIndex, 7)}
                   data-worktable-row={rowIndex}
