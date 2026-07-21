@@ -7,7 +7,7 @@ import { useMachines } from '@/hooks/useMachines';
 import { saveTimesheet, getTimesheetWithEntries, getTimesheetByLaborer, countTimesheetsForEntity } from '@/hooks/useTimesheetHistory';
 import TimesheetHeader from '@/components/TimesheetHeader';
 import InfoTable from '@/components/InfoTable';
-import WorkTable from '@/components/WorkTable';
+import VehicalWorkTable from '@/components/VehicalWorkTable';
 import FooterSection from '@/components/FooterSection';
 import ExportButtons from '@/components/ExportButtons';
 import TemplateRow from '@/components/TemplateRow';
@@ -468,7 +468,7 @@ function TunnelVehicleTimesheetPageInner() {
             designationLabel="Reg No"
             readOnly={isApproved}
           />
-          <WorkTable
+          <VehicalWorkTable
             month={timesheet.month} year={timesheet.year}
             workData={timesheet.workData}
             totalWorked={timesheet.totalWorked} totalOT={timesheet.totalOT}

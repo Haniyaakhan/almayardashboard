@@ -45,7 +45,9 @@ export function useTimesheet(): UseTimesheetReturn & {
       const updated = prev.map((entry) => {
         if (entry.day === day) {
           const newEntry = { ...entry, [field]: value };
-          if (field !== 'actualWorked') {
+          if (field === 'actualWorked') {
+            newEntry.actualWorked = Number(value) || 0;
+          } else if (field === 'totalDuration' || field === 'overTime') {
             newEntry.actualWorked = (newEntry.totalDuration || 0) + (newEntry.overTime || 0);
           }
           return newEntry;
