@@ -34,6 +34,11 @@ export async function getTimesheetWithEntries(id: string): Promise<Timesheet | n
     .from('timesheets')
     .select('*, entries:timesheet_entries(*)')
     .eq('id', id).single();
+
+  if (data?.entries) {
+    data.entries = [...data.entries].sort((a, b) => Number(a.day) - Number(b.day));
+  }
+
   return data as Timesheet | null;
 }
 
@@ -53,7 +58,13 @@ export async function getTimesheetByLaborer(laborerId: string, month: number, ye
   const { data } = await query
     .order('created_at', { ascending: false })
     .limit(1);
-  return (data && data.length > 0 ? data[0] : null) as Timesheet | null;
+
+  const timesheet = (data && data.length > 0 ? data[0] : null) as Timesheet | null;
+  if (timesheet?.entries) {
+    timesheet.entries = [...timesheet.entries].sort((a, b) => Number(a.day) - Number(b.day));
+  }
+
+  return timesheet;
 }
 
 export async function approveTimesheet(id: string): Promise<Error | null> {

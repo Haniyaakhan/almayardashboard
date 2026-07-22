@@ -70,7 +70,8 @@ export function useTimesheet(): UseTimesheetReturn & {
     if (meta.siteEngineerId !== undefined) setSiteEngineerId(meta.siteEngineerId);
     if (meta.lpoNumber !== undefined) setLpoNumber(meta.lpoNumber);
     if (meta.designation !== undefined) setDesignation(meta.designation);
-    setWorkData(entries);
+    const sortedEntries = [...entries].sort((a, b) => Number(a.day) - Number(b.day));
+    setWorkData(sortedEntries);
   }, []);
 
   // Clear entries for a range of days
