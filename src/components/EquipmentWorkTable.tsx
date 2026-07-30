@@ -1,0 +1,371 @@
+import React from 'react';
+import { DayEntry } from '@/types/timesheet';
+import { formatDate, isFriday } from '@/lib/dateUtils';
+
+interface EquipmentWorkTableProps {
+  month: number;
+  year: number;
+  workData: DayEntry[];
+  totalWorked: number;
+  totalOT: number;
+  totalActual: number;
+  onUpdateDayEntry: (day: number, field: keyof DayEntry, value: string | number) => void;
+  vehicleMode?: boolean;
+  readOnly?: boolean;
+  columnLabels?: string[];
+}
+
+export default function EquipmentWorkTable({
+  month,
+  year,
+  workData,
+  totalWorked,
+  totalOT,
+  totalActual,
+  onUpdateDayEntry,
+  vehicleMode,
+  readOnly = false,
+  columnLabels,
+}: EquipmentWorkTableProps) {
+  const COLS = 10;
+
+  const parseClockValue = (value: string) => {
+    const [hourPart, minutePart] = value.split(':');
+    const hours = Number(hourPart) || 0;
+    const minutes = Number(minutePart) || 0;
+    return hours * 60 + minutes;
+  };
+
+  const formatClockValue = (minutes: number) => {
+    const safeMinutes = Math.max(0, minutes);
+    const totalHours = Math.floor(safeMinutes / 60);
+    const remainingMinutes = safeMinutes % 60;
+    return `${String(totalHours).padStart(2, '0')}:${String(remainingMinutes).padStart(2, '0')}`;
+  };
+
+  const getVehicleTimeValues = (entry: DayEntry) => {
+    const actualWorkedValue = Number(entry.actualWorked);
+    const hasExplicitActualHours = entry.actualWorked !== undefined && entry.actualWorked !== null && !Number.isNaN(actualWorkedValue) && actualWorkedValue > 0;
+    const actualHours = hasExplicitActualHours
+      ? actualWorkedValue || 0
+      : Math.max((Number(entry.totalDuration) || 0) - (Number(entry.overTime) || 0), 0);
+    const shouldShowTimes = actualHours > 0;
+    const firstShiftStartMinutes = parseClockValue('5:30');
+    const firstShiftDurationHours = Math.min(Math.max(actualHours, 0), 7);
+    const firstShiftOutMinutes = firstShiftStartMinutes + firstShiftDurationHours * 60;
+    const firstShiftOut = shouldShowTimes ? formatClockValue(firstShiftOutMinutes) : '';
+
+    const secondShiftStartMinutes = parseClockValue('3:30');
+    const secondShiftExtraHours = Math.max(actualHours - 7, 0);
+    const secondShiftOut = shouldShowTimes && secondShiftExtraHours > 0 ? formatClockValue(secondShiftStartMinutes + secondShiftExtraHours * 60) : '';
+    const shouldShowSecondShift = shouldShowTimes && actualHours > 7;
+
+    return {
+      timeIn: shouldShowTimes ? '5:30' : '',
+      timeOutLunch: shouldShowTimes ? firstShiftOut : '',
+      lunchBreak: shouldShowTimes ? entry.lunchBreak : '',
+      timeIn2: shouldShowSecondShift ? '3:30' : '',
+      timeOut2: shouldShowSecondShift ? secondShiftOut : '',
+    };
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, rowIndex: number, colIndex: number) => {
+    let newRow = rowIndex;
+    let newCol = colIndex;
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      newRow = rowIndex - 1;
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      newRow = rowIndex + 1;
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      newCol = colIndex - 1;
+      if (newCol < 0) { newCol = COLS - 1; newRow = rowIndex - 1; }
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      newCol = colIndex + 1;
+      if (newCol >= COLS) { newCol = 0; newRow = rowIndex + 1; }
+    } else {
+      return;
+    }
+    if (newRow < 0 || newRow >= workData.length || newCol < 0 || newCol >= COLS) return;
+    const target = document.querySelector<HTMLInputElement>(
+      `[data-worktable-row="${newRow}"][data-worktable-col="${newCol}"]`
+    );
+    if (target) { target.focus(); }
+  };
+
+  const labels = columnLabels ?? [
+    'Date', 'Time In', 'Time Out', 'Lunch Break\nTime', 'Time In', 'Time Out',
+    'Total Worked\nDone(Hrs)', 'Over\nTime', 'Actual\nWorked(Hrs)', 'Approver\nSignature', 'Remarks'
+  ];
+
+  return (
+    <table className="w-full border-collapse mb-0">
+      <thead>
+        <tr>
+          <th className="border border-black p-0.5 text-center text-sm-minus w-[75px] bg-header-bg font-bold leading-tight align-middle">
+            {labels[0].split('\n').map((line, index) => (
+              <React.Fragment key={index}>
+                {line}
+                {index < labels[0].split('\n').length - 1 && <br />}
+              </React.Fragment>
+            ))}
+          </th>
+          <th className="border border-black p-0.5 text-center text-sm-minus w-[32px] bg-header-bg font-bold leading-tight align-middle">
+            {labels[1].split('\n').map((line, index) => (
+              <React.Fragment key={index}>
+                {line}
+                {index < labels[1].split('\n').length - 1 && <br />}
+              </React.Fragment>
+            ))}
+          </th>
+          <th className="border border-black p-0.5 text-center text-sm-minus w-[42px] bg-header-bg font-bold leading-tight align-middle">
+            {labels[2].split('\n').map((line, index) => (
+              <React.Fragment key={index}>
+                {line}
+                {index < labels[2].split('\n').length - 1 && <br />}
+              </React.Fragment>
+            ))}
+          </th>
+          <th className="border border-black p-0.5 text-center text-sm-minus w-[53px] bg-header-bg font-bold leading-tight align-middle">
+            {labels[3].split('\n').map((line, index) => (
+              <React.Fragment key={index}>
+                {line}
+                {index < labels[3].split('\n').length - 1 && <br />}
+              </React.Fragment>
+            ))}
+          </th>
+          <th className="border border-black p-0.5 text-center text-sm-minus w-[32px] bg-header-bg font-bold leading-tight align-middle">
+            {labels[4].split('\n').map((line, index) => (
+              <React.Fragment key={index}>
+                {line}
+                {index < labels[4].split('\n').length - 1 && <br />}
+              </React.Fragment>
+            ))}
+          </th>
+          <th className="border border-black p-0.5 text-center text-sm-minus w-[32px] bg-header-bg font-bold leading-tight align-middle">
+            {labels[5].split('\n').map((line, index) => (
+              <React.Fragment key={index}>
+                {line}
+                {index < labels[5].split('\n').length - 1 && <br />}
+              </React.Fragment>
+            ))}
+          </th>
+          <th className="border border-black p-0.5 text-center text-sm-minus w-[50px] bg-header-bg font-bold leading-tight align-middle">
+            {labels[6].split('\n').map((line, index) => (
+              <React.Fragment key={index}>
+                {line}
+                {index < labels[6].split('\n').length - 1 && <br />}
+              </React.Fragment>
+            ))}
+          </th>
+          <th className="border border-black p-0.5 text-center text-sm-minus w-[32px] bg-header-bg font-bold leading-tight align-middle">
+            {labels[7].split('\n').map((line, index) => (
+              <React.Fragment key={index}>
+                {line}
+                {index < labels[7].split('\n').length - 1 && <br />}
+              </React.Fragment>
+            ))}
+          </th>
+          <th className="border border-black p-0.5 text-center text-sm-minus w-[45px] bg-header-bg font-bold leading-tight align-middle">
+            {labels[8].split('\n').map((line, index) => (
+              <React.Fragment key={index}>
+                {line}
+                {index < labels[8].split('\n').length - 1 && <br />}
+              </React.Fragment>
+            ))}
+          </th>
+          <th className="border border-black p-0.5 text-center text-sm-minus w-[48px] bg-header-bg font-bold leading-tight align-middle">
+            {labels[9].split('\n').map((line, index) => (
+              <React.Fragment key={index}>
+                {line}
+                {index < labels[9].split('\n').length - 1 && <br />}
+              </React.Fragment>
+            ))}
+          </th>
+          <th className="border border-black p-0.5 text-center text-sm-minus w-[42px] bg-header-bg font-bold leading-tight align-middle">
+            {labels[10].split('\n').map((line, index) => (
+              <React.Fragment key={index}>
+                {line}
+                {index < labels[10].split('\n').length - 1 && <br />}
+              </React.Fragment>
+            ))}
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td colSpan={11} className="border border-black p-0.5 text-center text-[12px] font-bold">
+            WORK SHEET
+          </td>
+        </tr>
+        {workData.map((entry, rowIndex) => {
+          const isFridayRow = isFriday(year, month, entry.day);
+          const derivedValues = getVehicleTimeValues(entry);
+
+          return (
+            <tr key={entry.day}>
+              <td className={`border border-black p-0.5 text-left pl-1 text-[12px] whitespace-nowrap align-middle ${isFridayRow ? 'bg-header-bg' : ''}`}>
+                <span className="inline-block h-[13px] leading-[13px]">{formatDate(year, month, entry.day)}</span>
+              </td>
+              <td className="border border-black p-0.5 text-center text-[12px] align-middle">
+                <input
+                  type="text"
+                  value={derivedValues.timeIn}
+                  onChange={(e) => onUpdateDayEntry(entry.day, 'timeIn', e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(e, rowIndex, 0)}
+                  data-worktable-row={rowIndex}
+                  data-worktable-col={0}
+                  readOnly={readOnly}
+                  className="w-full outline-none text-center text-[12px] bg-transparent h-[13px] leading-[13px]"
+                />
+              </td>
+              <td className="border border-black p-0.5 text-center text-[12px] align-middle">
+                <input
+                  type="text"
+                  value={derivedValues.timeOutLunch}
+                  onChange={(e) => onUpdateDayEntry(entry.day, 'timeOutLunch', e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(e, rowIndex, 1)}
+                  data-worktable-row={rowIndex}
+                  data-worktable-col={1}
+                  readOnly={readOnly}
+                  className="w-full outline-none text-center text-[12px] bg-transparent h-[13px] leading-[13px]"
+                />
+              </td>
+              <td className="p-0.5 text-center text-[12px] align-middle" style={{ border: 'none' }}>
+                <input
+                  type="text"
+                  value={derivedValues.lunchBreak}
+                  onChange={(e) => onUpdateDayEntry(entry.day, 'lunchBreak', e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(e, rowIndex, 2)}
+                  data-worktable-row={rowIndex}
+                  data-worktable-col={2}
+                  readOnly={readOnly}
+                  className="w-full outline-none text-center text-[12px] bg-transparent h-[13px] leading-[13px]"
+                />
+              </td>
+              <td className="border border-black p-0.5 text-center text-[12px] align-middle">
+                <input
+                  type="text"
+                  value={derivedValues.timeIn2}
+                  onChange={(e) => onUpdateDayEntry(entry.day, 'timeIn2', e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(e, rowIndex, 3)}
+                  data-worktable-row={rowIndex}
+                  data-worktable-col={3}
+                  readOnly={readOnly}
+                  className="w-full outline-none text-center text-[12px] bg-transparent h-[13px] leading-[13px]"
+                />
+              </td>
+              <td className="border border-black p-0.5 text-center text-[12px] align-middle">
+                <input
+                  type="text"
+                  value={derivedValues.timeOut2}
+                  onChange={(e) => onUpdateDayEntry(entry.day, 'timeOut2', e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(e, rowIndex, 4)}
+                  data-worktable-row={rowIndex}
+                  data-worktable-col={4}
+                  readOnly={readOnly}
+                  className="w-full outline-none text-center text-[12px] bg-transparent h-[13px] leading-[13px]"
+                />
+              </td>
+              <td className="border border-black p-0.5 text-center text-[12px] align-middle">
+                <input
+                  type="number"
+                  value={entry.totalDuration || ''}
+                  onChange={(e) => onUpdateDayEntry(entry.day, 'totalDuration', Number(e.target.value))}
+                  onKeyDown={(e) => handleKeyDown(e, rowIndex, 5)}
+                  data-worktable-row={rowIndex}
+                  data-worktable-col={5}
+                  readOnly={readOnly}
+                  className="w-full outline-none text-center text-[12px] bg-transparent h-[13px] leading-[13px]"
+                />
+              </td>
+              <td className="border border-black p-0.5 text-center text-[12px] align-middle">
+                <input
+                  type="number"
+                  value={entry.overTime || ''}
+                  onChange={(e) => onUpdateDayEntry(entry.day, 'overTime', Number(e.target.value))}
+                  onKeyDown={(e) => handleKeyDown(e, rowIndex, 6)}
+                  data-worktable-row={rowIndex}
+                  data-worktable-col={6}
+                  readOnly={readOnly}
+                  className="w-full outline-none text-center text-[12px] bg-transparent h-[13px] leading-[13px]"
+                />
+              </td>
+              <td className="border border-black p-0.5 text-center text-[12px] align-middle">
+                <input
+                  type="number"
+                  value={entry.actualWorked || ''}
+                  onChange={(e) => {
+                    const rawValue = e.target.value;
+                    const explicitActualWorked = rawValue === '' ? null : Number(rawValue);
+                    const effectiveActualWorked = explicitActualWorked !== null
+                      ? Math.max(explicitActualWorked, 0)
+                      : 0;
+                    const derivedTotalDuration = Math.max(effectiveActualWorked - (Number(entry.overTime) || 0), 0);
+                    const firstShiftStartMinutes = parseClockValue('5:30');
+                    const firstShiftDurationHours = Math.min(Math.max(effectiveActualWorked, 0), 7);
+                    const firstShiftOut = effectiveActualWorked > 0 ? formatClockValue(firstShiftStartMinutes + firstShiftDurationHours * 60) : '';
+                    const secondShiftStartMinutes = parseClockValue('3:30');
+                    const secondShiftExtraHours = Math.max(effectiveActualWorked - 7, 0);
+                    const secondShiftOut = secondShiftExtraHours > 0 ? formatClockValue(secondShiftStartMinutes + secondShiftExtraHours * 60) : '';
+
+                    onUpdateDayEntry(entry.day, 'actualWorked', effectiveActualWorked);
+                    onUpdateDayEntry(entry.day, 'totalDuration', derivedTotalDuration);
+                    onUpdateDayEntry(entry.day, 'timeOutLunch', firstShiftOut);
+                    onUpdateDayEntry(entry.day, 'timeOut2', effectiveActualWorked > 7 ? secondShiftOut : '');
+                  }}
+                  onKeyDown={(e) => handleKeyDown(e, rowIndex, 7)}
+                  data-worktable-row={rowIndex}
+                  data-worktable-col={7}
+                  readOnly={readOnly}
+                  className="w-full outline-none text-center text-[12px] bg-transparent h-[13px] leading-[13px]"
+                />
+              </td>
+              <td className="border border-black p-0.5 text-center text-[12px] align-middle">
+                <input
+                  type="text"
+                  value={entry.approverSig}
+                  onChange={(e) => onUpdateDayEntry(entry.day, 'approverSig', e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(e, rowIndex, 8)}
+                  data-worktable-row={rowIndex}
+                  data-worktable-col={8}
+                  readOnly={readOnly}
+                  className="w-full outline-none text-center text-[12px] bg-transparent h-[13px] leading-[13px]"
+                />
+              </td>
+              <td className="border border-black p-0.5 text-center text-[12px] align-middle">
+                <input
+                  type="text"
+                  value={entry.remarks}
+                  onChange={(e) => onUpdateDayEntry(entry.day, 'remarks', e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(e, rowIndex, 9)}
+                  data-worktable-row={rowIndex}
+                  data-worktable-col={9}
+                  readOnly={readOnly}
+                  className="w-full outline-none text-center text-[12px] bg-transparent h-[13px] leading-[13px]"
+                />
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colSpan={6} className="border border-black p-0.5 text-right pr-2 text-[12px] font-bold">
+            TOTAL WORKED HOURS
+          </td>
+          <td className="border border-black p-0.5"></td>
+          <td className="border border-black p-0.5"></td>
+          <td className="border border-black p-0.5 text-center text-[12px] font-bold">
+            {totalActual || 0}
+          </td>
+          <td className="border border-black p-0.5"></td>
+          <td className="border border-black p-0.5"></td>
+        </tr>
+      </tfoot>
+    </table>
+  );
+}
