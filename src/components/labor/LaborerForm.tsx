@@ -207,7 +207,7 @@ export function LaborerForm({ initial, onSubmit, submitLabel = 'Save' }: Props) 
               <select required value={form.designation ?? ''} onChange={e => set('designation', e.target.value)}
                 className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={inputStyle} onFocus={onFocus} onBlur={onBlur}>
                 <option value="">— Select —</option>
-                {['Mason', 'Carpenter', 'Rigger', 'Helper', 'Tunnel Helper', 'Electrician', 'Scaffolder', 'Steelfixer', 'Cleaner', 'Forman / Safety', 'Tunnel Security', 'Other'].map(d => (
+                {['Mason', 'Carpenter', 'Rigger', 'Helper', 'Tunnel Helper', 'Electrician', 'Scaffolder', 'Steelfixer', 'Cleaner', 'Welder', 'Plumber', 'Forman / Safety', 'Tunnel Security', 'Other'].map(d => (
                   <option key={d} value={d}>{d}</option>
                 ))}
               </select>
