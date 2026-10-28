@@ -60,21 +60,27 @@ export default function LatestTimesheetHeader({
   onYearChange,
   readOnly = false,
 }: LatestTimesheetHeaderProps) {
+  // The xlsx header block (rows 1-5) has almost no cell borders — label/value boxes
+  // are just solid color blocks sitting next to each other, with only a couple of
+  // "thick" left-edge dividers (applied below via dividerLeftStyle). The work table
+  // below this header is the part that has the full grid of borders.
   const labelCellStyle: React.CSSProperties = {
     background: NAVY,
     color: '#fff',
     fontSize: 10,
     fontWeight: 700,
     padding: '4px 6px',
-    border: thinBorder,
     whiteSpace: 'nowrap',
   };
 
   const valueCellStyle: React.CSSProperties = {
     background: TEAL,
-    border: thinBorder,
     padding: 0,
   };
+
+  // Vertical divider matching the xlsx's "thick" left border on the first label
+  // cell of each group (column A/logo | Project.../Vehicle... | LPO/Driver/Site Eng.)
+  const dividerLeftStyle: React.CSSProperties = { borderLeft: '2px solid #000' };
 
   const inputStyle: React.CSSProperties = {
     fontSize: 10,
@@ -88,7 +94,18 @@ export default function LatestTimesheetHeader({
   };
 
   return (
-    <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FONT, border: '1px solid #000', tableLayout: 'fixed' }}>
+    <div style={{ position: 'relative' }}>
+      {/* Logo — floats as an overlay spanning the FULL header height (rows 1-5), exactly like the
+          floating picture anchored over column A in the xlsx. Kept outside the table so it never
+          has to compete with row 1 for column-A space (which would shrink it or break centering). */}
+      <div style={{
+        position: 'absolute', top: 0, left: 0, bottom: 0, width: '13%',
+        padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        pointerEvents: 'none',
+      }}>
+        <img src="/latest-timesheet-logo.png" alt="NPC Logo" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
+      </div>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FONT, border: '1px solid #000', tableLayout: 'fixed' }}>
       <colgroup>
         <col style={{ width: '13%' }} />
         <col style={{ width: '7%' }} />
@@ -105,22 +122,20 @@ export default function LatestTimesheetHeader({
       <tbody>
         {/* Row 1 — standalone full-width title bar, truly centered across the whole sheet (logo starts on row 2) */}
         <tr>
-          <td colSpan={11} style={{ background: NAVY, color: '#fff', fontSize: 15, fontWeight: 700, textAlign: 'center', padding: '7px 0', border: thinBorder }}>
+          <td colSpan={11} style={{ background: NAVY, color: '#fff', fontSize: 15, fontWeight: 700, textAlign: 'center', padding: '7px 0', borderTop: '3px solid #000' }}>
             {title}
           </td>
         </tr>
 
         {/* Row 2 — Project Name: | LPO No: */}
         <tr>
-          {/* Logo — anchored column A, spans rows 2-5, matches npclogo image placement in the xlsx */}
-          <td rowSpan={4} style={{ border: thinBorder, background: NAVY, padding: 4, verticalAlign: 'middle', textAlign: 'center' }}>
-            <img src="/latest-timesheet-logo.png" alt="NPC Logo" style={{ width: '100%', height: 'auto', maxHeight: '100%', objectFit: 'contain', display: 'block', margin: '0 auto' }} />
-          </td>
-          <td colSpan={2} style={labelCellStyle}>Project Name:</td>
+          {/* Column A, rows 2-5 — blank navy background; the logo image floats on top as an absolute overlay above */}
+          <td rowSpan={4} style={{ background: NAVY }} />
+          <td colSpan={2} style={{ ...labelCellStyle, ...dividerLeftStyle }}>Project Name:</td>
           <td colSpan={4} style={valueCellStyle}>
             <input type="text" value={projectName} onChange={e => onProjectNameChange(e.target.value)} readOnly={readOnly} style={inputStyle} />
           </td>
-          <td colSpan={2} style={labelCellStyle}>LPO No:</td>
+          <td colSpan={2} style={{ ...labelCellStyle, ...dividerLeftStyle }}>LPO No:</td>
           <td colSpan={2} style={valueCellStyle}>
             <input type="text" value={lpoNumber} onChange={e => onLpoNumberChange(e.target.value)} readOnly={readOnly} style={inputStyle} />
           </td>
@@ -128,17 +143,17 @@ export default function LatestTimesheetHeader({
 
         {/* Row 3 — Supplier Name: | Driver Name: (decorative — no tunnel2 field maps here, matches xlsx) */}
         <tr>
-          <td colSpan={2} style={labelCellStyle}>Supplier Name:</td>
+          <td colSpan={2} style={{ ...labelCellStyle, ...dividerLeftStyle }}>Supplier Name:</td>
           <td colSpan={4} style={valueCellStyle}>
             <input type="text" value={supplierName} onChange={e => onSupplierNameChange(e.target.value)} readOnly={readOnly} style={inputStyle} />
           </td>
-          <td colSpan={2} style={labelCellStyle}>Driver Name:</td>
+          <td colSpan={2} style={{ ...labelCellStyle, ...dividerLeftStyle }}>Driver Name:</td>
           <td colSpan={2} style={valueCellStyle} />
         </tr>
 
         {/* Row 4 — Vehicle Type: (holds Labour Name) | Site Engineer Name: (holds name + ID) */}
         <tr>
-          <td colSpan={2} style={labelCellStyle}>Vehicle Type:</td>
+          <td colSpan={2} style={{ ...labelCellStyle, ...dividerLeftStyle }}>Vehicle Type:</td>
           <td colSpan={4} style={{ ...valueCellStyle, overflow: 'hidden' }}>
             <div style={{ display: 'flex', alignItems: 'center', width: '100%', height: '100%' }}>
               <input
@@ -159,7 +174,7 @@ export default function LatestTimesheetHeader({
               </select>
             </div>
           </td>
-          <td colSpan={2} style={labelCellStyle}>Site Engineer Name:</td>
+          <td colSpan={2} style={{ ...labelCellStyle, ...dividerLeftStyle }}>Site Engineer Name:</td>
           <td colSpan={2} style={valueCellStyle}>
             <input
               type="text" value={siteEngineerName} onChange={e => onSiteEngineerNameChange(e.target.value)} readOnly={readOnly}
@@ -170,11 +185,11 @@ export default function LatestTimesheetHeader({
 
         {/* Row 5 — Vechicle NO (holds Designation) | Year: | Month: */}
         <tr>
-          <td colSpan={2} style={labelCellStyle}>Vechicle NO</td>
+          <td colSpan={2} style={{ ...labelCellStyle, ...dividerLeftStyle }}>Vechicle NO</td>
           <td colSpan={4} style={valueCellStyle}>
             <input type="text" value={designation} onChange={e => onDesignationChange(e.target.value)} readOnly={readOnly} style={inputStyle} />
           </td>
-          <td style={labelCellStyle}>Year:</td>
+          <td style={{ ...labelCellStyle, ...dividerLeftStyle }}>Year:</td>
           <td style={labelCellStyle}>
             <input
               type="number" value={year} onChange={e => onYearChange(Number(e.target.value))}
@@ -182,7 +197,7 @@ export default function LatestTimesheetHeader({
               style={{ ...inputStyle, textAlign: 'center', padding: 0 }}
             />
           </td>
-          <td style={{ background: TEAL, color: '#fff', fontSize: 10, fontWeight: 700, padding: '4px 6px', border: thinBorder, whiteSpace: 'nowrap' }}>Month:</td>
+          <td style={{ background: TEAL, color: '#fff', fontSize: 10, fontWeight: 700, padding: '4px 6px', whiteSpace: 'nowrap' }}>Month:</td>
           <td style={valueCellStyle}>
             <select
               value={month} onChange={e => onMonthChange(Number(e.target.value))} disabled={readOnly}
@@ -199,6 +214,7 @@ export default function LatestTimesheetHeader({
           </td>
         </tr>
       </tbody>
-    </table>
+      </table>
+    </div>
   );
 }
