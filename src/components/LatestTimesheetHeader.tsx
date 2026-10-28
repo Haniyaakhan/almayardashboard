@@ -103,18 +103,19 @@ export default function LatestTimesheetHeader({
         <col style={{ width: '10%' }} />
       </colgroup>
       <tbody>
+        {/* Row 1 — standalone full-width title bar, truly centered across the whole sheet (logo starts on row 2) */}
         <tr>
-          {/* Logo — anchored column A, spans all 5 header rows, matches npclogo image placement in the xlsx */}
-          <td rowSpan={5} style={{ border: thinBorder, background: NAVY, padding: 4, verticalAlign: 'middle', textAlign: 'center' }}>
-            <img src="/latest-timesheet-logo.png" alt="NPC Logo" style={{ width: '100%', height: 'auto', maxHeight: '100%', objectFit: 'contain', display: 'block', margin: '0 auto' }} />
-          </td>
-          <td colSpan={10} style={{ background: NAVY, color: '#fff', fontSize: 15, fontWeight: 700, textAlign: 'center', padding: '7px 0', border: thinBorder }}>
+          <td colSpan={11} style={{ background: NAVY, color: '#fff', fontSize: 15, fontWeight: 700, textAlign: 'center', padding: '7px 0', border: thinBorder }}>
             {title}
           </td>
         </tr>
 
         {/* Row 2 — Project Name: | LPO No: */}
         <tr>
+          {/* Logo — anchored column A, spans rows 2-5, matches npclogo image placement in the xlsx */}
+          <td rowSpan={4} style={{ border: thinBorder, background: NAVY, padding: 4, verticalAlign: 'middle', textAlign: 'center' }}>
+            <img src="/latest-timesheet-logo.png" alt="NPC Logo" style={{ width: '100%', height: 'auto', maxHeight: '100%', objectFit: 'contain', display: 'block', margin: '0 auto' }} />
+          </td>
           <td colSpan={2} style={labelCellStyle}>Project Name:</td>
           <td colSpan={4} style={valueCellStyle}>
             <input type="text" value={projectName} onChange={e => onProjectNameChange(e.target.value)} readOnly={readOnly} style={inputStyle} />
