@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { DayEntry, UseTimesheetReturn } from '@/types/timesheet';
+import { DayEntry, TimesheetShift, UseTimesheetReturn } from '@/types/timesheet';
 import { generateDaysInMonth, getPreviousMonthYear, isFriday } from '@/lib/dateUtils';
 
 type LoadMeta = {
   month: number; year: number;
   laborName?: string; projectName?: string;
   supplierName?: string; siteEngineerName?: string; siteEngineerId?: string; lpoNumber?: string; designation?: string;
+  shift?: TimesheetShift;
 };
 
 export function useTimesheet(): UseTimesheetReturn & {
@@ -26,6 +27,7 @@ export function useTimesheet(): UseTimesheetReturn & {
   const [siteEngineerId, setSiteEngineerId] = useState('');
   const [lpoNumber, setLpoNumber] = useState('');
   const [designation, setDesignation] = useState('');
+  const [shift, setShift] = useState<TimesheetShift>('day');
   const [workData, setWorkData] = useState<DayEntry[]>([]);
   const skipResetRef = useRef(false);
 
@@ -70,6 +72,7 @@ export function useTimesheet(): UseTimesheetReturn & {
     if (meta.siteEngineerId !== undefined) setSiteEngineerId(meta.siteEngineerId);
     if (meta.lpoNumber !== undefined) setLpoNumber(meta.lpoNumber);
     if (meta.designation !== undefined) setDesignation(meta.designation);
+    if (meta.shift !== undefined) setShift(meta.shift);
     const sortedEntries = [...entries].sort((a, b) => Number(a.day) - Number(b.day));
     setWorkData(sortedEntries);
   }, []);
@@ -123,9 +126,9 @@ export function useTimesheet(): UseTimesheetReturn & {
   }, [workData]);
 
   return {
-    month, year, laborName, projectName, supplierName, siteEngineerName, siteEngineerId, lpoNumber, designation,
+    month, year, laborName, projectName, supplierName, siteEngineerName, siteEngineerId, lpoNumber, designation, shift,
     workData, totalWorked, totalOT, totalActual,
     setMonth, setYear, setLaborName, setProjectName, setSupplierName,
-    setSiteEngineerName, setSiteEngineerId, setLpoNumber, setDesignation, updateDayEntry, loadEntries, clearDayRange, fillDayRange, setWorkData,
+    setSiteEngineerName, setSiteEngineerId, setLpoNumber, setDesignation, setShift, updateDayEntry, loadEntries, clearDayRange, fillDayRange, setWorkData,
   };
 }

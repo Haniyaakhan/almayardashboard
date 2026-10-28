@@ -32,7 +32,7 @@ BEGIN
 
 	ALTER TABLE public.timesheets
 		ADD CONSTRAINT timesheets_sheet_type_check
-		CHECK (sheet_type IN ('labor','vehicle','equipment','tunnel_employee','tunnel_vehicle'));
+		CHECK (sheet_type IN ('labor','vehicle','equipment','tunnel_employee','tunnel_vehicle','latest_timesheet'));
 END $$;
 
 -- 5b. Enforce numeric + unique Labour ID at DB level
@@ -339,5 +339,19 @@ BEGIN
 	END IF;
 	IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'npc_invoice_items' AND policyname = 'auth_all') THEN
 		CREATE POLICY "auth_all" ON public.npc_invoice_items FOR ALL TO authenticated USING (true) WITH CHECK (true);
+	END IF;
+END $$;
+
+-- 14. Add day/night shift indicator used by the Latest Timesheet module
+ALTER TABLE public.timesheets ADD COLUMN IF NOT EXISTS shift text;
+
+DO $$
+BEGIN
+	IF NOT EXISTS (
+		SELECT 1 FROM pg_constraint WHERE conname = 'timesheets_shift_check'
+	) THEN
+		ALTER TABLE public.timesheets
+			ADD CONSTRAINT timesheets_shift_check
+			CHECK (shift IS NULL OR shift IN ('day','night'));
 	END IF;
 END $$;

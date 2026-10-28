@@ -229,6 +229,7 @@ export default function DashboardPage() {
               <Link href="/equipment-timesheet" style={actionBtnStyle('#14b8a6', 'rgba(20,184,166,0.08)')}>+ Equipment</Link>
               <Link href="/tunnelemployeestimesheet" style={actionBtnStyle('#7c3aed', 'rgba(124,58,237,0.08)')}>+ Tunnel 1</Link>
               <Link href="/tunnelemployeestimesheet2" style={actionBtnStyle('#6d28d9', 'rgba(109,40,217,0.08)')}>+ Tunnel 2</Link>
+              <Link href="/latest-timesheet" style={actionBtnStyle('#2A9D8F', 'rgba(42,157,143,0.1)')}>+ Latest Timesheet</Link>
             </div>
           </div>
 

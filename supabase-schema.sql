@@ -109,7 +109,7 @@ create table public.timesheets (
   id                  uuid primary key default uuid_generate_v4(),
   laborer_id          uuid, -- no FK: stores laborer OR machine UUID
   sheet_type          text not null default 'labor'
-                        check (sheet_type in ('labor','vehicle','equipment','tunnel_employee','tunnel_vehicle')),
+                        check (sheet_type in ('labor','vehicle','equipment','tunnel_employee','tunnel_vehicle','latest_timesheet')),
   labor_name          text,
   month               int not null check (month between 0 and 11),
   year                int not null,
@@ -117,6 +117,7 @@ create table public.timesheets (
   supplier_name       text not null default '',
   site_engineer_name  text not null default '',
   designation         text not null default '',
+  shift               text check (shift is null or shift in ('day','night')),
   total_worked        numeric(7,2) not null default 0,
   total_ot            numeric(7,2) not null default 0,
   total_actual        numeric(7,2) not null default 0,

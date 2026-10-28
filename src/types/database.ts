@@ -79,7 +79,7 @@ export interface MachineUsageLog {
 export interface Timesheet {
   id: string;
   laborer_id: string | null;
-  sheet_type: 'labor' | 'vehicle' | 'equipment' | 'tunnel_employee' | null;
+  sheet_type: 'labor' | 'vehicle' | 'equipment' | 'tunnel_employee' | 'tunnel_vehicle' | 'latest_timesheet' | null;
   labor_name: string | null;
   month: number;
   year: number;
@@ -87,6 +87,7 @@ export interface Timesheet {
   supplier_name: string;
   site_engineer_name: string;
   designation: string;
+  shift: 'day' | 'night' | null;
   total_worked: number;
   total_ot: number;
   total_actual: number;
