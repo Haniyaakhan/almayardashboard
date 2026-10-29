@@ -24,6 +24,7 @@ export interface TimesheetState {
   siteEngineerId: string;
   lpoNumber: string;
   designation: string;
+  driverName: string;
   shift: TimesheetShift;
   workData: DayEntry[];
 
@@ -43,6 +44,7 @@ export interface TimesheetActions {
   setSiteEngineerId: (id: string) => void;
   setLpoNumber: (number: string) => void;
   setDesignation: (designation: string) => void;
+  setDriverName: (name: string) => void;
   setShift: (shift: TimesheetShift) => void;
   updateDayEntry: (day: number, field: keyof DayEntry, value: string | number) => void;
 }

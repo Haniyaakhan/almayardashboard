@@ -11,6 +11,7 @@ interface LatestTimesheetHeaderProps {
   laborName: string;
   designation: string;
   lpoNumber?: string;
+  driverName?: string;
   shift: TimesheetShift;
   month: number;
   year: number;
@@ -21,6 +22,7 @@ interface LatestTimesheetHeaderProps {
   onLaborNameChange: (value: string) => void;
   onDesignationChange: (value: string) => void;
   onLpoNumberChange: (value: string) => void;
+  onDriverNameChange: (value: string) => void;
   onShiftChange: (shift: TimesheetShift) => void;
   onMonthChange: (month: number) => void;
   onYearChange: (year: number) => void;
@@ -30,7 +32,7 @@ interface LatestTimesheetHeaderProps {
 // ── Exact palette + labels extracted from TIMESHEET I069A SEP 2026(SAMPLE).xlsx ──
 // Labels are verbatim from the xlsx ("Vehicle Type:", "Vechicle NO", "Driver Name:", "Site Engineer Name:")
 // even though this sheet is repurposed for labour data — only the VALUES bound to each
-// box map to the tunnel2 data model (laborName sits under "Vehicle Type:", etc.)
+// box map to the tunnel2 data model (laborName sits under "Vehicle Type:", driverName is its own field, etc.)
 const NAVY = '#264653';
 const TEAL = '#2A9D8F';
 const FONT = "'Arial Narrow', Arial, Helvetica, sans-serif";
@@ -45,6 +47,7 @@ export default function LatestTimesheetHeader({
   laborName,
   designation,
   lpoNumber = '',
+  driverName = '',
   shift,
   month,
   year,
@@ -55,6 +58,7 @@ export default function LatestTimesheetHeader({
   onLaborNameChange,
   onDesignationChange,
   onLpoNumberChange,
+  onDriverNameChange,
   onShiftChange,
   onMonthChange,
   onYearChange,
@@ -79,8 +83,9 @@ export default function LatestTimesheetHeader({
   };
 
   // Vertical divider matching the xlsx's "thick" left border on the first label
-  // cell of each group (column A/logo | Project.../Vehicle... | LPO/Driver/Site Eng.)
-  const dividerLeftStyle: React.CSSProperties = { borderLeft: '2px solid #000' };
+  // cell of each group (column A/logo | Project.../Vehicle... | LPO/Driver/Site Eng.) — white
+  // so it reads as a clean separator against the navy, matching the white label/value text.
+  const dividerLeftStyle: React.CSSProperties = { borderLeft: '2px solid #fff' };
 
   const inputStyle: React.CSSProperties = {
     fontSize: 10,
@@ -129,9 +134,12 @@ export default function LatestTimesheetHeader({
 
         {/* Row 2 — Project Name: | LPO No: */}
         <tr>
-          {/* Column A, rows 2-5 — blank navy background; the logo image floats on top as an absolute overlay above */}
-          <td rowSpan={4} style={{ background: NAVY }} />
-          <td colSpan={2} style={{ ...labelCellStyle, ...dividerLeftStyle }}>Project Name:</td>
+          {/* Column A, rows 2-5 — blank navy background; the logo image floats on top as an absolute overlay above.
+              The divider to column B is drawn here (border-right on this single rowSpan cell) rather than as
+              border-left on each adjacent label cell — border-collapse unreliably resolves a border competing
+              across a rowSpan cell's shared edge (renders as a gap in some browsers), so only one side declares it. */}
+          <td rowSpan={4} style={{ background: NAVY, borderRight: '2px solid #fff' }} />
+          <td colSpan={2} style={labelCellStyle}>Project Name:</td>
           <td colSpan={4} style={valueCellStyle}>
             <input type="text" value={projectName} onChange={e => onProjectNameChange(e.target.value)} readOnly={readOnly} style={inputStyle} />
           </td>
@@ -141,19 +149,21 @@ export default function LatestTimesheetHeader({
           </td>
         </tr>
 
-        {/* Row 3 — Supplier Name: | Driver Name: (decorative — no tunnel2 field maps here, matches xlsx) */}
+        {/* Row 3 — Supplier Name: | Driver Name: */}
         <tr>
-          <td colSpan={2} style={{ ...labelCellStyle, ...dividerLeftStyle }}>Supplier Name:</td>
+          <td colSpan={2} style={labelCellStyle}>Supplier Name:</td>
           <td colSpan={4} style={valueCellStyle}>
             <input type="text" value={supplierName} onChange={e => onSupplierNameChange(e.target.value)} readOnly={readOnly} style={inputStyle} />
           </td>
           <td colSpan={2} style={{ ...labelCellStyle, ...dividerLeftStyle }}>Driver Name:</td>
-          <td colSpan={2} style={valueCellStyle} />
+          <td colSpan={2} style={valueCellStyle}>
+            <input type="text" value={driverName} onChange={e => onDriverNameChange(e.target.value)} readOnly={readOnly} style={inputStyle} />
+          </td>
         </tr>
 
         {/* Row 4 — Vehicle Type: (holds Labour Name) | Site Engineer Name: (holds name + ID) */}
         <tr>
-          <td colSpan={2} style={{ ...labelCellStyle, ...dividerLeftStyle }}>Vehicle Type:</td>
+          <td colSpan={2} style={labelCellStyle}>Vehicle Type:</td>
           <td colSpan={4} style={{ ...valueCellStyle, overflow: 'hidden' }}>
             <div style={{ display: 'flex', alignItems: 'center', width: '100%', height: '100%' }}>
               <input
@@ -185,7 +195,7 @@ export default function LatestTimesheetHeader({
 
         {/* Row 5 — Vechicle NO (holds Designation) | Year: | Month: */}
         <tr>
-          <td colSpan={2} style={{ ...labelCellStyle, ...dividerLeftStyle }}>Vechicle NO</td>
+          <td colSpan={2} style={labelCellStyle}>Vechicle NO</td>
           <td colSpan={4} style={valueCellStyle}>
             <input type="text" value={designation} onChange={e => onDesignationChange(e.target.value)} readOnly={readOnly} style={inputStyle} />
           </td>

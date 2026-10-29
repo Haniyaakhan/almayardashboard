@@ -118,6 +118,7 @@ create table public.timesheets (
   site_engineer_name  text not null default '',
   designation         text not null default '',
   shift               text check (shift is null or shift in ('day','night')),
+  driver_name         text,
   total_worked        numeric(7,2) not null default 0,
   total_ot            numeric(7,2) not null default 0,
   total_actual        numeric(7,2) not null default 0,

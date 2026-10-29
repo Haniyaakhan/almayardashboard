@@ -355,3 +355,6 @@ BEGIN
 			CHECK (shift IS NULL OR shift IN ('day','night'));
 	END IF;
 END $$;
+
+-- 15. Add driver name field used by the Latest Timesheet module
+ALTER TABLE public.timesheets ADD COLUMN IF NOT EXISTS driver_name text;

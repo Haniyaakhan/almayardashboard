@@ -133,6 +133,7 @@ function LatestTimesheetPageInner() {
           supplierName: ts.supplier_name ?? '',
           siteEngineerName: ts.site_engineer_name ?? '',
           designation: ts.designation ?? '',
+          driverName: ts.driver_name ?? '',
           shift: ts.shift === 'night' ? 'night' : 'day',
         });
       });
@@ -196,6 +197,7 @@ function LatestTimesheetPageInner() {
           supplierName: existing.supplier_name ?? timesheet.supplierName,
           siteEngineerName: existing.site_engineer_name ?? timesheet.siteEngineerName,
           designation: existing.designation ?? lab.designation ?? '',
+          driverName: existing.driver_name ?? timesheet.driverName,
           shift: existing.shift === 'night' ? 'night' : 'day',
         });
       } else {
@@ -294,6 +296,7 @@ function LatestTimesheetPageInner() {
       supplier_name: timesheet.supplierName,
       site_engineer_name: timesheet.siteEngineerName,
       designation: timesheet.designation,
+      driver_name: timesheet.driverName,
       shift: timesheet.shift,
       total_worked: timesheet.totalWorked,
       total_ot: timesheet.totalOT,
@@ -463,6 +466,7 @@ function LatestTimesheetPageInner() {
             laborName={timesheet.laborName}
             designation={timesheet.designation}
             lpoNumber={timesheet.lpoNumber}
+            driverName={timesheet.driverName}
             shift={timesheet.shift}
             month={timesheet.month}
             year={timesheet.year}
@@ -473,6 +477,7 @@ function LatestTimesheetPageInner() {
             onLaborNameChange={timesheet.setLaborName}
             onDesignationChange={timesheet.setDesignation}
             onLpoNumberChange={timesheet.setLpoNumber}
+            onDriverNameChange={timesheet.setDriverName}
             onShiftChange={timesheet.setShift}
             onMonthChange={timesheet.setMonth}
             onYearChange={timesheet.setYear}
