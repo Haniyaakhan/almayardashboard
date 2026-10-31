@@ -594,3 +594,28 @@ DROP POLICY IF EXISTS "update_non_approved_or_admin" ON public.shifts;
 CREATE POLICY "update_non_approved_or_admin" ON public.shifts FOR UPDATE TO authenticated
 	USING (status <> 'approved' OR public.is_admin())
 	WITH CHECK (public.is_admin() OR status IN ('draft','submitted','cancelled'));
+
+-- ============================================================
+-- 18. VEHICLE LPO & SHIFT MANAGEMENT — PHASE 4: MONTHLY REVIEW
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS public.vehicle_register_reviews (
+	id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+	vehicle_id uuid NOT NULL REFERENCES public.machines(id),
+	review_month int NOT NULL CHECK (review_month BETWEEN 0 AND 11),
+	review_year int NOT NULL,
+	classification text NOT NULL CHECK (classification IN ('unchanged','driver_changed','left_fleet')),
+	previous_driver_name text,
+	new_driver_name text,
+	effective_date date NOT NULL,
+	notes text,
+	reviewed_by uuid REFERENCES auth.users(id),
+	created_at timestamptz NOT NULL DEFAULT now(),
+	UNIQUE (vehicle_id, review_month, review_year)
+);
+
+ALTER TABLE public.vehicle_register_reviews ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "select_all" ON public.vehicle_register_reviews;
+CREATE POLICY "select_all" ON public.vehicle_register_reviews FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "admin_write" ON public.vehicle_register_reviews;
+CREATE POLICY "admin_write" ON public.vehicle_register_reviews FOR INSERT TO authenticated WITH CHECK (public.is_admin());

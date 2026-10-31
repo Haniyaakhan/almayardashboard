@@ -444,3 +444,26 @@ create policy "insert_shifts" on public.shifts for insert to authenticated
 create policy "update_non_approved_or_admin" on public.shifts for update to authenticated
   using (status <> 'approved' or public.is_admin())
   with check (public.is_admin() or status in ('draft','submitted','cancelled'));
+
+-- ============================================================
+-- VEHICLE LPO & SHIFT MANAGEMENT — PHASE 4
+-- ============================================================
+
+create table public.vehicle_register_reviews (
+  id uuid primary key default uuid_generate_v4(),
+  vehicle_id uuid not null references public.machines(id),
+  review_month int not null check (review_month between 0 and 11),
+  review_year int not null,
+  classification text not null check (classification in ('unchanged','driver_changed','left_fleet')),
+  previous_driver_name text,
+  new_driver_name text,
+  effective_date date not null,
+  notes text,
+  reviewed_by uuid references auth.users(id),
+  created_at timestamptz not null default now(),
+  unique (vehicle_id, review_month, review_year)
+);
+
+alter table public.vehicle_register_reviews enable row level security;
+create policy "select_all" on public.vehicle_register_reviews for select to authenticated using (true);
+create policy "admin_write" on public.vehicle_register_reviews for insert to authenticated with check (public.is_admin());

@@ -37,6 +37,14 @@ export default function ShiftHistoryPage() {
     if (err) toast.error(err.message); else { toast.success('Shift submitted'); refetch(); }
   }
   async function handleApprove(id: string) {
+    const shift = shifts.find(s => s.id === id);
+    const remaining = shift?.lpo ? shift.lpo.quantity_total - shift.lpo.quantity_used : null;
+    if (remaining !== null && remaining <= 0) {
+      const proceed = window.confirm(
+        `This LPO (${shift?.lpo?.lpo_number}) has ${remaining} remaining. Approving will take it further into deficit. Approve anyway?`
+      );
+      if (!proceed) return;
+    }
     const err = await approveShift(id);
     if (err) toast.error(err.message); else { toast.success('Shift approved — LPO balance updated'); refetch(); }
   }

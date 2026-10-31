@@ -23,7 +23,7 @@ export function useShifts(filters: ShiftFilters = {}) {
     const supabase = createClient();
     let q = supabase
       .from('shifts')
-      .select('*, vehicle:machines(id, name, type, plate_number), lpo:lpos(id, lpo_number, status)')
+      .select('*, vehicle:machines(id, name, type, plate_number), lpo:lpos(id, lpo_number, status, quantity_total, quantity_used)')
       .order('shift_date', { ascending: false })
       .order('shift_type', { ascending: true });
     if (filters.vehicleId) q = q.eq('vehicle_id', filters.vehicleId);

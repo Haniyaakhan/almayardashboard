@@ -145,6 +145,23 @@ export interface Shift {
   lpo?: Lpo;
 }
 
+export type VehicleReviewClassification = 'unchanged' | 'driver_changed' | 'left_fleet';
+
+export interface VehicleRegisterReview {
+  id: string;
+  vehicle_id: string;
+  review_month: number;
+  review_year: number;
+  classification: VehicleReviewClassification;
+  previous_driver_name: string | null;
+  new_driver_name: string | null;
+  effective_date: string;
+  notes: string | null;
+  reviewed_by: string | null;
+  created_at: string;
+  vehicle?: Machine;
+}
+
 export interface MachineUsageLog {
   id: string;
   machine_id: string;
