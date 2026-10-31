@@ -6,6 +6,7 @@ import type { Shift, ShiftType, Lpo } from '@/types/database';
 
 export interface ShiftFilters {
   vehicleId?: string;
+  lpoId?: string;
   shiftType?: ShiftType;
   status?: Shift['status'];
   dateFrom?: string;
@@ -26,6 +27,7 @@ export function useShifts(filters: ShiftFilters = {}) {
       .order('shift_date', { ascending: false })
       .order('shift_type', { ascending: true });
     if (filters.vehicleId) q = q.eq('vehicle_id', filters.vehicleId);
+    if (filters.lpoId) q = q.eq('lpo_id', filters.lpoId);
     if (filters.shiftType) q = q.eq('shift_type', filters.shiftType);
     if (filters.status) q = q.eq('status', filters.status);
     if (filters.dateFrom) q = q.gte('shift_date', filters.dateFrom);
@@ -34,7 +36,7 @@ export function useShifts(filters: ShiftFilters = {}) {
     if (error) setError(error.message);
     else setShifts((data ?? []) as Shift[]);
     setLoading(false);
-  }, [filters.vehicleId, filters.shiftType, filters.status, filters.dateFrom, filters.dateTo]);
+  }, [filters.vehicleId, filters.lpoId, filters.shiftType, filters.status, filters.dateFrom, filters.dateTo]);
 
   useEffect(() => { fetch(); }, [fetch]);
   return { shifts, loading, error, refetch: fetch };
