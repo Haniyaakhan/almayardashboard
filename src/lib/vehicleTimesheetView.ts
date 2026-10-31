@@ -13,7 +13,6 @@ export function buildVehicleTimesheetDayEntries(
 ): DayEntry[] {
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const byDate = new Map(approvedShifts.map(s => [s.shift_date, s]));
-  const template = approvedShifts[0]?.shift_type === 'night' ? NIGHT_TEMPLATE : DAY_TEMPLATE;
 
   const entries: DayEntry[] = [];
   for (let day = 1; day <= daysInMonth; day++) {
@@ -26,7 +25,7 @@ export function buildVehicleTimesheetDayEntries(
       });
       continue;
     }
-    const t = shift.shift_type === 'night' ? NIGHT_TEMPLATE : template;
+    const t = shift.shift_type === 'night' ? NIGHT_TEMPLATE : DAY_TEMPLATE;
     entries.push({
       day,
       timeIn: t.firstIn,
