@@ -249,3 +249,99 @@ create policy "auth_all" on public.salary_sheets     for all to authenticated us
 create policy "auth_all" on public.salary_sheet_entries for all to authenticated using (true) with check (true);
 create policy "auth_all" on public.npc_invoices       for all to authenticated using (true) with check (true);
 create policy "auth_all" on public.npc_invoice_items  for all to authenticated using (true) with check (true);
+
+-- ============================================================
+-- VEHICLE LPO & SHIFT MANAGEMENT — PHASE 1
+-- ============================================================
+
+create type public.user_role as enum ('admin','operations');
+
+create table public.profiles (
+  id         uuid primary key references auth.users(id) on delete cascade,
+  email      text,
+  full_name  text,
+  role       public.user_role not null default 'operations',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create function public.handle_new_user() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  insert into public.profiles (id, email) values (new.id, new.email)
+  on conflict (id) do nothing;
+  return new;
+end; $$;
+
+create trigger on_auth_user_created after insert on auth.users
+  for each row execute procedure public.handle_new_user();
+
+create function public.is_admin() returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists(select 1 from public.profiles where id = auth.uid() and role = 'admin');
+$$;
+
+create table public.vehicle_types (
+  id uuid primary key default uuid_generate_v4(),
+  name text not null unique,
+  is_active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+insert into public.vehicle_types (name) values
+  ('Bob Cat'),('Bus'),('Crane'),('Diesel Tanker'),('Dozer'),('Excavator'),
+  ('Flat Bed'),('Forklift'),('Grader'),('Hiab'),('JCB'),('Low Bed'),
+  ('Manlift'),('Pick Up'),('Roller'),('Shovel'),('Six Wheel Truck'),
+  ('Tipper'),('Water Tanker'),('Other');
+
+alter table public.machines add column vehicle_type_id uuid references public.vehicle_types(id);
+
+create table public.lpos (
+  id uuid primary key default uuid_generate_v4(),
+  lpo_number text not null,
+  vehicle_type_id uuid not null references public.vehicle_types(id),
+  quantity_total int not null check (quantity_total > 0),
+  quantity_used int not null default 0 check (quantity_used >= 0),
+  status text not null default 'active' check (status in ('active','pending_renewal','closed')),
+  valid_from date,
+  valid_to date,
+  notes text,
+  created_by uuid references auth.users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index lpos_vehicle_type_status_idx on public.lpos(vehicle_type_id, status);
+
+create table public.lpo_renewals (
+  id uuid primary key default uuid_generate_v4(),
+  lpo_id uuid not null references public.lpos(id) on delete cascade,
+  added_quantity int not null check (added_quantity > 0),
+  previous_quantity_total int not null,
+  new_quantity_total int not null,
+  note text,
+  created_by uuid references auth.users(id),
+  created_at timestamptz not null default now()
+);
+
+alter table public.profiles      enable row level security;
+alter table public.vehicle_types enable row level security;
+alter table public.lpos          enable row level security;
+alter table public.lpo_renewals  enable row level security;
+
+create policy "select_own_or_admin" on public.profiles for select to authenticated
+  using (id = auth.uid() or public.is_admin());
+create policy "update_own_no_role_change" on public.profiles for update to authenticated
+  using (id = auth.uid()) with check (id = auth.uid() and role = (select role from public.profiles where id = auth.uid()));
+create policy "admin_update_any" on public.profiles for update to authenticated
+  using (public.is_admin());
+
+create policy "select_all" on public.vehicle_types for select to authenticated using (true);
+create policy "admin_write" on public.vehicle_types for insert to authenticated with check (public.is_admin());
+create policy "admin_update" on public.vehicle_types for update to authenticated using (public.is_admin());
+
+create policy "select_all" on public.lpos for select to authenticated using (true);
+create policy "admin_write" on public.lpos for insert to authenticated with check (public.is_admin());
+create policy "admin_update" on public.lpos for update to authenticated using (public.is_admin());
+
+create policy "select_all" on public.lpo_renewals for select to authenticated using (true);
+create policy "admin_write" on public.lpo_renewals for insert to authenticated with check (public.is_admin());

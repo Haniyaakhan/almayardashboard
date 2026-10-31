@@ -57,9 +57,58 @@ export interface Machine {
   vehicle_photo: string | null;
   vehicle_card: string | null;
   operator_card: string | null;
+  vehicle_type_id: string | null;
   created_at: string;
   updated_at: string;
   vendor?: Vendor;
+  vehicle_type?: VehicleType;
+}
+
+export type UserRole = 'admin' | 'operations';
+
+export interface Profile {
+  id: string;
+  email: string | null;
+  full_name: string | null;
+  role: UserRole;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface VehicleType {
+  id: string;
+  name: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+export type LpoStatus = 'active' | 'pending_renewal' | 'closed';
+
+export interface Lpo {
+  id: string;
+  lpo_number: string;
+  vehicle_type_id: string;
+  quantity_total: number;
+  quantity_used: number;
+  status: LpoStatus;
+  valid_from: string | null;
+  valid_to: string | null;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  vehicle_type?: VehicleType;
+}
+
+export interface LpoRenewal {
+  id: string;
+  lpo_id: string;
+  added_quantity: number;
+  previous_quantity_total: number;
+  new_quantity_total: number;
+  note: string | null;
+  created_by: string | null;
+  created_at: string;
 }
 
 export interface MachineUsageLog {

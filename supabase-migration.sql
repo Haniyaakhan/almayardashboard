@@ -358,3 +358,129 @@ END $$;
 
 -- 15. Add driver name field used by the Latest Timesheet module
 ALTER TABLE public.timesheets ADD COLUMN IF NOT EXISTS driver_name text;
+
+-- ============================================================
+-- 16. VEHICLE LPO & SHIFT MANAGEMENT — PHASE 1: CORE SETUP
+-- Roles/RBAC, vehicle type reconciliation, LPO shape
+-- ============================================================
+
+-- 16a. Roles
+DO $$ BEGIN
+	IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role') THEN
+		CREATE TYPE public.user_role AS ENUM ('admin','operations');
+	END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS public.profiles (
+	id         uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+	email      text,
+	full_name  text,
+	role       public.user_role NOT NULL DEFAULT 'operations',
+	created_at timestamptz NOT NULL DEFAULT now(),
+	updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE OR REPLACE FUNCTION public.handle_new_user() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+	INSERT INTO public.profiles (id, email) VALUES (new.id, new.email)
+	ON CONFLICT (id) DO NOTHING;
+	RETURN new;
+END; $$;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users
+	FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+CREATE OR REPLACE FUNCTION public.is_admin() RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+	SELECT EXISTS(SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin');
+$$;
+
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "select_own_or_admin" ON public.profiles;
+CREATE POLICY "select_own_or_admin" ON public.profiles FOR SELECT TO authenticated
+	USING (id = auth.uid() OR public.is_admin());
+DROP POLICY IF EXISTS "update_own_no_role_change" ON public.profiles;
+CREATE POLICY "update_own_no_role_change" ON public.profiles FOR UPDATE TO authenticated
+	USING (id = auth.uid()) WITH CHECK (id = auth.uid() AND role = (SELECT role FROM public.profiles WHERE id = auth.uid()));
+DROP POLICY IF EXISTS "admin_update_any" ON public.profiles;
+CREATE POLICY "admin_update_any" ON public.profiles FOR UPDATE TO authenticated
+	USING (public.is_admin());
+
+-- Backfill profiles for any existing auth.users rows that predate the trigger
+INSERT INTO public.profiles (id, email)
+SELECT u.id, u.email FROM auth.users u
+LEFT JOIN public.profiles p ON p.id = u.id
+WHERE p.id IS NULL;
+
+-- 16b. Vehicle type reconciliation
+CREATE TABLE IF NOT EXISTS public.vehicle_types (
+	id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+	name text NOT NULL UNIQUE,
+	is_active boolean NOT NULL DEFAULT true,
+	created_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.vehicle_types ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "select_all" ON public.vehicle_types;
+CREATE POLICY "select_all" ON public.vehicle_types FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "admin_write" ON public.vehicle_types;
+CREATE POLICY "admin_write" ON public.vehicle_types FOR INSERT TO authenticated WITH CHECK (public.is_admin());
+DROP POLICY IF EXISTS "admin_update" ON public.vehicle_types;
+CREATE POLICY "admin_update" ON public.vehicle_types FOR UPDATE TO authenticated USING (public.is_admin());
+
+INSERT INTO public.vehicle_types (name) VALUES
+	('Bob Cat'),('Bus'),('Crane'),('Diesel Tanker'),('Dozer'),('Excavator'),
+	('Flat Bed'),('Forklift'),('Grader'),('Hiab'),('JCB'),('Low Bed'),
+	('Manlift'),('Pick Up'),('Roller'),('Shovel'),('Six Wheel Truck'),
+	('Tipper'),('Water Tanker'),('Other')
+ON CONFLICT (name) DO NOTHING;
+
+ALTER TABLE public.machines ADD COLUMN IF NOT EXISTS vehicle_type_id uuid REFERENCES public.vehicle_types(id);
+
+UPDATE public.machines m
+SET vehicle_type_id = vt.id
+FROM public.vehicle_types vt
+WHERE m.category = 'vehicle' AND m.vehicle_type_id IS NULL AND m.type = vt.name;
+
+-- 16c. LPOs (type-linked, count-based)
+CREATE TABLE IF NOT EXISTS public.lpos (
+	id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+	lpo_number text NOT NULL,
+	vehicle_type_id uuid NOT NULL REFERENCES public.vehicle_types(id),
+	quantity_total int NOT NULL CHECK (quantity_total > 0),
+	quantity_used int NOT NULL DEFAULT 0 CHECK (quantity_used >= 0),
+	status text NOT NULL DEFAULT 'active' CHECK (status IN ('active','pending_renewal','closed')),
+	valid_from date,
+	valid_to date,
+	notes text,
+	created_by uuid REFERENCES auth.users(id),
+	created_at timestamptz NOT NULL DEFAULT now(),
+	updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS lpos_vehicle_type_status_idx ON public.lpos(vehicle_type_id, status);
+
+CREATE TABLE IF NOT EXISTS public.lpo_renewals (
+	id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+	lpo_id uuid NOT NULL REFERENCES public.lpos(id) ON DELETE CASCADE,
+	added_quantity int NOT NULL CHECK (added_quantity > 0),
+	previous_quantity_total int NOT NULL,
+	new_quantity_total int NOT NULL,
+	note text,
+	created_by uuid REFERENCES auth.users(id),
+	created_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.lpos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.lpo_renewals ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "select_all" ON public.lpos;
+CREATE POLICY "select_all" ON public.lpos FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "admin_write" ON public.lpos;
+CREATE POLICY "admin_write" ON public.lpos FOR INSERT TO authenticated WITH CHECK (public.is_admin());
+DROP POLICY IF EXISTS "admin_update" ON public.lpos;
+CREATE POLICY "admin_update" ON public.lpos FOR UPDATE TO authenticated USING (public.is_admin());
+DROP POLICY IF EXISTS "select_all" ON public.lpo_renewals;
+CREATE POLICY "select_all" ON public.lpo_renewals FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "admin_write" ON public.lpo_renewals;
+CREATE POLICY "admin_write" ON public.lpo_renewals FOR INSERT TO authenticated WITH CHECK (public.is_admin());
