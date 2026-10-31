@@ -484,3 +484,113 @@ DROP POLICY IF EXISTS "select_all" ON public.lpo_renewals;
 CREATE POLICY "select_all" ON public.lpo_renewals FOR SELECT TO authenticated USING (true);
 DROP POLICY IF EXISTS "admin_write" ON public.lpo_renewals;
 CREATE POLICY "admin_write" ON public.lpo_renewals FOR INSERT TO authenticated WITH CHECK (public.is_admin());
+
+-- ============================================================
+-- 17. VEHICLE LPO & SHIFT MANAGEMENT — PHASE 2: SHIFT OPERATIONS
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS public.shifts (
+	id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+	vehicle_id uuid NOT NULL REFERENCES public.machines(id),
+	shift_date date NOT NULL,
+	shift_type text NOT NULL CHECK (shift_type IN ('day','night')),
+	start_at timestamptz NOT NULL,
+	end_at timestamptz NOT NULL,
+	break_minutes int NOT NULL DEFAULT 60,
+	net_hours numeric(5,2) NOT NULL DEFAULT 10,
+	driver_name_snapshot text,
+	vehicle_type_snapshot text,
+	vehicle_plate_snapshot text,
+	lpo_id uuid REFERENCES public.lpos(id),
+	lpo_number_snapshot text,
+	overridden_driver boolean NOT NULL DEFAULT false,
+	override_reason text,
+	override_duplicate boolean NOT NULL DEFAULT false,
+	status text NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','submitted','approved','cancelled')),
+	project_name text,
+	supplier_name text,
+	site_engineer_name text,
+	remarks text,
+	created_by uuid REFERENCES auth.users(id),
+	approved_by uuid REFERENCES auth.users(id),
+	approved_at timestamptz,
+	created_at timestamptz NOT NULL DEFAULT now(),
+	updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS shifts_vehicle_date_type_uq ON public.shifts(vehicle_id, shift_date, shift_type)
+	WHERE status <> 'cancelled' AND NOT override_duplicate;
+CREATE INDEX IF NOT EXISTS shifts_status_idx ON public.shifts(status);
+CREATE INDEX IF NOT EXISTS shifts_lpo_idx ON public.shifts(lpo_id);
+
+-- Snapshot driver/vehicle-type/plate/LPO-number at insert time so historical
+-- shifts never silently change meaning if the vehicle/driver/LPO record changes later.
+CREATE OR REPLACE FUNCTION public.snapshot_shift_fields() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+	m record;
+	l record;
+BEGIN
+	SELECT type, operator_name, plate_number INTO m FROM public.machines WHERE id = new.vehicle_id;
+	IF NOT FOUND THEN
+		RAISE EXCEPTION 'Vehicle % not found', new.vehicle_id;
+	END IF;
+	new.vehicle_type_snapshot := m.type;
+	new.driver_name_snapshot := COALESCE(new.driver_name_snapshot, m.operator_name);
+	new.vehicle_plate_snapshot := m.plate_number;
+
+	IF new.lpo_id IS NOT NULL THEN
+		SELECT lpo_number INTO l FROM public.lpos WHERE id = new.lpo_id;
+		new.lpo_number_snapshot := l.lpo_number;
+	END IF;
+
+	RETURN new;
+END; $$;
+
+DROP TRIGGER IF EXISTS before_insert_shift_snapshot ON public.shifts;
+CREATE TRIGGER before_insert_shift_snapshot BEFORE INSERT ON public.shifts
+	FOR EACH ROW EXECUTE PROCEDURE public.snapshot_shift_fields();
+
+-- Deduct/restore 1 unit from the linked LPO's quantity_used when a shift's
+-- status transitions into/out of 'approved'.
+CREATE OR REPLACE FUNCTION public.adjust_lpo_balance() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+	IF new.status = 'approved' AND old.status <> 'approved' AND new.lpo_id IS NOT NULL THEN
+		UPDATE public.lpos SET quantity_used = quantity_used + 1, updated_at = now() WHERE id = new.lpo_id;
+	ELSIF old.status = 'approved' AND new.status <> 'approved' AND old.lpo_id IS NOT NULL THEN
+		UPDATE public.lpos SET quantity_used = GREATEST(quantity_used - 1, 0), updated_at = now() WHERE id = old.lpo_id;
+	END IF;
+	RETURN new;
+END; $$;
+
+DROP TRIGGER IF EXISTS after_update_shift_adjust_lpo ON public.shifts;
+CREATE TRIGGER after_update_shift_adjust_lpo AFTER UPDATE ON public.shifts
+	FOR EACH ROW EXECUTE PROCEDURE public.adjust_lpo_balance();
+
+-- Flip LPO status between active/pending_renewal whenever its balance changes.
+CREATE OR REPLACE FUNCTION public.update_lpo_status() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+	IF new.quantity_used >= new.quantity_total AND new.status = 'active' THEN
+		new.status := 'pending_renewal';
+	ELSIF new.quantity_used < new.quantity_total AND new.status = 'pending_renewal' THEN
+		new.status := 'active';
+	END IF;
+	RETURN new;
+END; $$;
+
+DROP TRIGGER IF EXISTS before_update_lpo_status ON public.lpos;
+CREATE TRIGGER before_update_lpo_status BEFORE UPDATE ON public.lpos
+	FOR EACH ROW EXECUTE PROCEDURE public.update_lpo_status();
+
+ALTER TABLE public.shifts ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "select_all" ON public.shifts;
+CREATE POLICY "select_all" ON public.shifts FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "insert_shifts" ON public.shifts;
+CREATE POLICY "insert_shifts" ON public.shifts FOR INSERT TO authenticated
+	WITH CHECK (override_duplicate = false OR public.is_admin());
+DROP POLICY IF EXISTS "update_non_approved_or_admin" ON public.shifts;
+CREATE POLICY "update_non_approved_or_admin" ON public.shifts FOR UPDATE TO authenticated
+	USING (status <> 'approved' OR public.is_admin())
+	WITH CHECK (public.is_admin() OR status IN ('draft','submitted','cancelled'));

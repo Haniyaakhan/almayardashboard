@@ -345,3 +345,102 @@ create policy "admin_update" on public.lpos for update to authenticated using (p
 
 create policy "select_all" on public.lpo_renewals for select to authenticated using (true);
 create policy "admin_write" on public.lpo_renewals for insert to authenticated with check (public.is_admin());
+
+-- ============================================================
+-- VEHICLE LPO & SHIFT MANAGEMENT — PHASE 2
+-- ============================================================
+
+create table public.shifts (
+  id uuid primary key default uuid_generate_v4(),
+  vehicle_id uuid not null references public.machines(id),
+  shift_date date not null,
+  shift_type text not null check (shift_type in ('day','night')),
+  start_at timestamptz not null,
+  end_at timestamptz not null,
+  break_minutes int not null default 60,
+  net_hours numeric(5,2) not null default 10,
+  driver_name_snapshot text,
+  vehicle_type_snapshot text,
+  vehicle_plate_snapshot text,
+  lpo_id uuid references public.lpos(id),
+  lpo_number_snapshot text,
+  overridden_driver boolean not null default false,
+  override_reason text,
+  override_duplicate boolean not null default false,
+  status text not null default 'draft' check (status in ('draft','submitted','approved','cancelled')),
+  project_name text,
+  supplier_name text,
+  site_engineer_name text,
+  remarks text,
+  created_by uuid references auth.users(id),
+  approved_by uuid references auth.users(id),
+  approved_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create unique index shifts_vehicle_date_type_uq on public.shifts(vehicle_id, shift_date, shift_type)
+  where status <> 'cancelled' and not override_duplicate;
+create index shifts_status_idx on public.shifts(status);
+create index shifts_lpo_idx on public.shifts(lpo_id);
+
+create function public.snapshot_shift_fields() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare
+  m record;
+  l record;
+begin
+  select type, operator_name, plate_number into m from public.machines where id = new.vehicle_id;
+  if not found then
+    raise exception 'Vehicle % not found', new.vehicle_id;
+  end if;
+  new.vehicle_type_snapshot := m.type;
+  new.driver_name_snapshot := coalesce(new.driver_name_snapshot, m.operator_name);
+  new.vehicle_plate_snapshot := m.plate_number;
+
+  if new.lpo_id is not null then
+    select lpo_number into l from public.lpos where id = new.lpo_id;
+    new.lpo_number_snapshot := l.lpo_number;
+  end if;
+
+  return new;
+end; $$;
+
+create trigger before_insert_shift_snapshot before insert on public.shifts
+  for each row execute procedure public.snapshot_shift_fields();
+
+create function public.adjust_lpo_balance() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.status = 'approved' and old.status <> 'approved' and new.lpo_id is not null then
+    update public.lpos set quantity_used = quantity_used + 1, updated_at = now() where id = new.lpo_id;
+  elsif old.status = 'approved' and new.status <> 'approved' and old.lpo_id is not null then
+    update public.lpos set quantity_used = greatest(quantity_used - 1, 0), updated_at = now() where id = old.lpo_id;
+  end if;
+  return new;
+end; $$;
+
+create trigger after_update_shift_adjust_lpo after update on public.shifts
+  for each row execute procedure public.adjust_lpo_balance();
+
+create function public.update_lpo_status() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.quantity_used >= new.quantity_total and new.status = 'active' then
+    new.status := 'pending_renewal';
+  elsif new.quantity_used < new.quantity_total and new.status = 'pending_renewal' then
+    new.status := 'active';
+  end if;
+  return new;
+end; $$;
+
+create trigger before_update_lpo_status before update on public.lpos
+  for each row execute procedure public.update_lpo_status();
+
+alter table public.shifts enable row level security;
+create policy "select_all" on public.shifts for select to authenticated using (true);
+create policy "insert_shifts" on public.shifts for insert to authenticated
+  with check (override_duplicate = false or public.is_admin());
+create policy "update_non_approved_or_admin" on public.shifts for update to authenticated
+  using (status <> 'approved' or public.is_admin())
+  with check (public.is_admin() or status in ('draft','submitted','cancelled'));

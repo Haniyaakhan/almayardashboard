@@ -111,6 +111,40 @@ export interface LpoRenewal {
   created_at: string;
 }
 
+export type ShiftType = 'day' | 'night';
+export type ShiftStatus = 'draft' | 'submitted' | 'approved' | 'cancelled';
+
+export interface Shift {
+  id: string;
+  vehicle_id: string;
+  shift_date: string;
+  shift_type: ShiftType;
+  start_at: string;
+  end_at: string;
+  break_minutes: number;
+  net_hours: number;
+  driver_name_snapshot: string | null;
+  vehicle_type_snapshot: string | null;
+  vehicle_plate_snapshot: string | null;
+  lpo_id: string | null;
+  lpo_number_snapshot: string | null;
+  overridden_driver: boolean;
+  override_reason: string | null;
+  override_duplicate: boolean;
+  status: ShiftStatus;
+  project_name: string | null;
+  supplier_name: string | null;
+  site_engineer_name: string | null;
+  remarks: string | null;
+  created_by: string | null;
+  approved_by: string | null;
+  approved_at: string | null;
+  created_at: string;
+  updated_at: string;
+  vehicle?: Machine;
+  lpo?: Lpo;
+}
+
 export interface MachineUsageLog {
   id: string;
   machine_id: string;
