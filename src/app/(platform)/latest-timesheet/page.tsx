@@ -32,7 +32,8 @@ function getTimesheetDisplayName(value: string | undefined | null) {
 
 function LatestTimesheetPageInner() {
   const timesheetRef = useRef<HTMLDivElement>(null);
-  usePrintFit(timesheetRef);
+  const printWrapRef = useRef<HTMLDivElement>(null);
+  usePrintFit(printWrapRef, timesheetRef);
   const hasAutoPrintedRef = useRef(false);
   const timesheet = useTimesheet();
   const { laborers } = useLaborers();
@@ -453,7 +454,7 @@ function LatestTimesheetPageInner() {
         <TemplateRow sheetType="latest_timesheet" month={timesheet.month} year={timesheet.year} workData={timesheet.workData} onUpdateDayEntry={timesheet.updateDayEntry} onMonthChange={timesheet.setMonth} readOnly={isApproved} />
       </div>
 
-      <div className="p-4" style={{ paddingBottom: 24 }}>
+      <div ref={printWrapRef} className="p-4" style={{ paddingBottom: 24 }}>
         <div
           ref={timesheetRef}
           className="w-a4 min-h-a4 bg-white mx-auto"
