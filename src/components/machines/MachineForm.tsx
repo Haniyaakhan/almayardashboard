@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/Button';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { useToast } from '@/components/ui/Toast';
 import { useVendors } from '@/hooks/useVendors';
 import { useVehicleTypes } from '@/hooks/useVehicleTypes';
@@ -278,19 +279,16 @@ export function MachineForm({ initial, onSubmit, submitLabel = 'Save' }: Props) 
       <div>
         <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>{form.category === 'equipment' ? 'Equipment Type' : 'Vehicle Type'} <span style={{ color: '#e8762b' }}>*</span></label>
         {form.category === 'vehicle' ? (
-          <select
-            required
+          <SearchableSelect
+            options={vehicleTypes.map(vt => ({ value: vt.id, label: vt.name }))}
             value={form.vehicle_type_id ?? ''}
-            onChange={e => {
-              const vt = vehicleTypes.find(v => v.id === e.target.value);
+            onChange={id => {
+              const vt = vehicleTypes.find(v => v.id === id);
               set('vehicle_type_id', vt?.id ?? null);
               set('type', vt?.name ?? '');
             }}
-            className={inputClass} style={inputStyle} onFocus={focus} onBlur={blur}
-          >
-            <option value="">Select type…</option>
-            {vehicleTypes.map(vt => <option key={vt.id} value={vt.id}>{vt.name}</option>)}
-          </select>
+            placeholder="Select type…"
+          />
         ) : (
           <select required value={form.type} onChange={e => set('type', e.target.value)} className={inputClass} style={inputStyle} onFocus={focus} onBlur={blur}>
             <option value="">Select type…</option>

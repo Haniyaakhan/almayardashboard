@@ -5,6 +5,7 @@ import { useVehicleTypes } from '@/hooks/useVehicleTypes';
 import { createLpo } from '@/hooks/useLpos';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { useToast } from '@/components/ui/Toast';
 import { FileText } from 'lucide-react';
 
@@ -64,10 +65,12 @@ export default function NewLpoPage() {
           </div>
           <div>
             <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Vehicle Type <span style={{ color: '#e8762b' }}>*</span></label>
-            <select value={vehicleTypeId} onChange={e => setVehicleTypeId(e.target.value)} className={inputClass} style={inputStyle} onFocus={focus} onBlur={blur}>
-              <option value="">Select type…</option>
-              {vehicleTypes.map(vt => <option key={vt.id} value={vt.id}>{vt.name}</option>)}
-            </select>
+            <SearchableSelect
+              options={vehicleTypes.map(vt => ({ value: vt.id, label: vt.name }))}
+              value={vehicleTypeId}
+              onChange={setVehicleTypeId}
+              placeholder="Select type…"
+            />
           </div>
           <div>
             <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Quantity (number of shifts) <span style={{ color: '#e8762b' }}>*</span></label>
