@@ -2,15 +2,16 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useMachines } from '@/hooks/useMachines';
+import { useVehicleTypes } from '@/hooks/useVehicleTypes';
 import { PageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { machineStatusBadge } from '@/components/ui/Badge';
 import { Truck, Plus, Search, Pencil } from 'lucide-react';
 
-const vehicleTypes = ['All', 'Tipper', 'Pickup', 'Crane', 'Forklift', 'Trailer', 'Tanker'];
-
 export default function VehiclesPage() {
   const { machines, loading } = useMachines();
+  const { vehicleTypes: vehicleTypeRows } = useVehicleTypes();
+  const vehicleTypes = ['All', ...vehicleTypeRows.map(vt => vt.name)];
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('All');
 
