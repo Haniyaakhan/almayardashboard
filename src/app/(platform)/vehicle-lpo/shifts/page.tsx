@@ -7,6 +7,7 @@ import { useProfile } from '@/hooks/useProfile';
 import { PageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Badge } from '@/components/ui/Badge';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { useToast } from '@/components/ui/Toast';
 import { Plus, ClipboardList } from 'lucide-react';
 import type { ShiftStatus, ShiftType } from '@/types/database';
@@ -31,6 +32,10 @@ export default function ShiftHistoryPage() {
   const { isAdmin } = useProfile();
   const toast = useToast();
   const vehicles = machines.filter(m => m.category === 'vehicle');
+  const vehicleOptions = [
+    { value: '', label: 'All Vehicles' },
+    ...vehicles.map(v => ({ value: v.id, label: `${v.name}${v.plate_number ? ` (${v.plate_number})` : ''}`, sublabel: v.type })),
+  ];
 
   async function handleSubmit(id: string) {
     const err = await submitShift(id);
@@ -58,13 +63,9 @@ export default function ShiftHistoryPage() {
     <div style={{ padding: '20px 24px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
         <div className="flex items-center gap-2 flex-wrap">
-          <select value={vehicleId} onChange={e => setVehicleId(e.target.value)} style={{
-            fontSize: 12, fontWeight: 500, padding: '7px 13px', borderRadius: 9,
-            border: '1px solid var(--border2)', background: 'var(--bg-card)', color: 'var(--text-light)', cursor: 'pointer', outline: 'none',
-          }}>
-            <option value="">All Vehicles</option>
-            {vehicles.map(v => <option key={v.id} value={v.id}>{v.name} ({v.type})</option>)}
-          </select>
+          <div style={{ width: 220 }}>
+            <SearchableSelect options={vehicleOptions} value={vehicleId} onChange={setVehicleId} placeholder="All Vehicles" />
+          </div>
           <select value={shiftType} onChange={e => setShiftType(e.target.value as ShiftType | '')} style={{
             fontSize: 12, fontWeight: 500, padding: '7px 13px', borderRadius: 9,
             border: '1px solid var(--border2)', background: 'var(--bg-card)', color: 'var(--text-light)', cursor: 'pointer', outline: 'none',

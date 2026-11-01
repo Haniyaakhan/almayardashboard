@@ -7,8 +7,9 @@ import { createShift, findActiveLpoForVehicle, hasExistingShift } from '@/hooks/
 import { computeShiftTimes, DAY_TEMPLATE, NIGHT_TEMPLATE } from '@/lib/shiftTemplates';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { useToast } from '@/components/ui/Toast';
-import { Truck, AlertTriangle } from 'lucide-react';
+import { Truck, AlertTriangle, CalendarRange } from 'lucide-react';
 import type { Machine, Lpo, ShiftType } from '@/types/database';
 
 const inputClass = 'w-full px-3 py-2 rounded-lg text-sm outline-none';
@@ -26,15 +27,36 @@ function todayDate(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+function dateRange(from: string, to: string): string[] {
+  const dates: string[] = [];
+  const start = new Date(from + 'T00:00:00Z');
+  const end = new Date(to + 'T00:00:00Z');
+  if (end < start) return dates;
+  const cursor = new Date(start);
+  while (cursor <= end) {
+    dates.push(cursor.toISOString().slice(0, 10));
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+  return dates;
+}
+
 export default function NewShiftPage() {
   const router = useRouter();
   const toast = useToast();
   const { machines, loading: machinesLoading } = useMachines();
   const { isAdmin } = useProfile();
   const vehicles = useMemo(() => machines.filter(m => m.category === 'vehicle'), [machines]);
+  const vehicleOptions = useMemo(() => vehicles.map(v => ({
+    value: v.id,
+    label: `${v.name}${v.plate_number ? ` (${v.plate_number})` : ''}`,
+    sublabel: v.type,
+  })), [vehicles]);
 
+  const [bulkMode, setBulkMode] = useState(false);
   const [vehicleId, setVehicleId] = useState('');
   const [shiftDate, setShiftDate] = useState(todayDate());
+  const [rangeFrom, setRangeFrom] = useState(todayDate());
+  const [rangeTo, setRangeTo] = useState(todayDate());
   const [shiftType, setShiftType] = useState<ShiftType>('day');
   const [driverOverride, setDriverOverride] = useState('');
   const [overrideReason, setOverrideReason] = useState('');
@@ -46,8 +68,9 @@ export default function NewShiftPage() {
   const [submitting, setSubmitting] = useState(false);
 
   const selectedVehicle: Machine | undefined = vehicles.find(v => v.id === vehicleId);
-  const times = shiftDate ? computeShiftTimes(shiftDate, shiftType) : null;
+  const times = !bulkMode && shiftDate ? computeShiftTimes(shiftDate, shiftType) : null;
   const template = shiftType === 'day' ? DAY_TEMPLATE : NIGHT_TEMPLATE;
+  const rangeDates = bulkMode ? dateRange(rangeFrom, rangeTo) : [];
 
   useEffect(() => {
     setDriverOverride('');
@@ -59,52 +82,90 @@ export default function NewShiftPage() {
 
   useEffect(() => {
     setOverrideDuplicate(false);
-    if (!vehicleId || !shiftDate) { setDuplicateExists(false); return; }
+    if (bulkMode || !vehicleId || !shiftDate) { setDuplicateExists(false); return; }
     hasExistingShift(vehicleId, shiftDate, shiftType).then(setDuplicateExists);
-  }, [vehicleId, shiftDate, shiftType]);
+  }, [vehicleId, shiftDate, shiftType, bulkMode]);
 
   const remainingQty = lpo ? lpo.quantity_total - lpo.quantity_used : null;
-  const canSubmit = Boolean(vehicleId && shiftDate && lpo && (!duplicateExists || (isAdmin && overrideDuplicate)));
+  const canSubmit = bulkMode
+    ? Boolean(vehicleId && lpo && rangeDates.length > 0)
+    : Boolean(vehicleId && shiftDate && lpo && (!duplicateExists || (isAdmin && overrideDuplicate)));
 
   async function handleSubmit() {
     if (!canSubmit) return;
     setSubmitting(true);
-    const { error } = await createShift({
-      vehicleId,
-      shiftDate,
-      shiftType,
-      driverNameOverride: driverOverride.trim() || undefined,
-      overrideReason: driverOverride.trim() ? overrideReason.trim() || undefined : undefined,
-      overrideDuplicate: duplicateExists ? overrideDuplicate : false,
-      remarks: remarks.trim() || undefined,
-    });
-    setSubmitting(false);
-    if (error) {
-      toast.error(error.message);
+
+    if (!bulkMode) {
+      const { error } = await createShift({
+        vehicleId,
+        shiftDate,
+        shiftType,
+        driverNameOverride: driverOverride.trim() || undefined,
+        overrideReason: driverOverride.trim() ? overrideReason.trim() || undefined : undefined,
+        overrideDuplicate: duplicateExists ? overrideDuplicate : false,
+        remarks: remarks.trim() || undefined,
+      });
+      setSubmitting(false);
+      if (error) { toast.error(error.message); return; }
+      toast.success('Shift created as draft');
+      router.push('/vehicle-lpo/shifts');
       return;
     }
-    toast.success('Shift created as draft');
-    router.push('/vehicle-lpo/shifts');
+
+    // Bulk/date-range mode: one shift per day, silently skipping days that
+    // already have a shift (duplicate-key errors) rather than failing the batch.
+    let created = 0, skipped = 0, failed = 0;
+    for (const date of rangeDates) {
+      const { error } = await createShift({
+        vehicleId,
+        shiftDate: date,
+        shiftType,
+        driverNameOverride: driverOverride.trim() || undefined,
+        overrideReason: driverOverride.trim() ? overrideReason.trim() || undefined : undefined,
+        remarks: remarks.trim() || undefined,
+      });
+      if (!error) created++;
+      else if (/duplicate|unique/i.test(error.message)) skipped++;
+      else failed++;
+    }
+    setSubmitting(false);
+    if (created > 0) toast.success(`Created ${created} shift(s)${skipped ? `, skipped ${skipped} already existing` : ''}${failed ? `, ${failed} failed` : ''}`);
+    else toast.error(skipped > 0 ? 'All days in this range already have a shift' : 'No shifts were created');
+    if (created > 0) router.push('/vehicle-lpo/shifts');
   }
 
   return (
     <div style={{ padding: '20px 24px', maxWidth: 720 }}>
       <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 2 }}>New Shift</h1>
-      <p style={{ fontSize: 12.5, color: 'var(--text-muted)', marginBottom: 20 }}>
+      <p style={{ fontSize: 12.5, color: 'var(--text-muted)', marginBottom: 12 }}>
         Select a vehicle — driver, vehicle type and the applicable LPO auto-fill from its record.
       </p>
+
+      <div className="flex items-center gap-1.5 mb-4">
+        {([
+          { label: 'Single Day', value: false },
+          { label: 'Date Range', value: true },
+        ] as const).map(t => (
+          <button key={String(t.value)} onClick={() => setBulkMode(t.value)} style={{
+            fontSize: 12, fontWeight: 500, padding: '5px 13px', borderRadius: 8, cursor: 'pointer',
+            border: bulkMode === t.value ? '1px solid var(--navy)' : '1px solid var(--border2)',
+            background: bulkMode === t.value ? 'var(--navy)' : 'var(--bg-card)',
+            color: bulkMode === t.value ? '#fff' : 'var(--text-light)',
+          }}>{t.label}</button>
+        ))}
+      </div>
 
       <Card>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div>
             <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Vehicle <span style={{ color: '#e8762b' }}>*</span></label>
-            <select required value={vehicleId} onChange={e => setVehicleId(e.target.value)} disabled={machinesLoading}
-              className={inputClass} style={inputStyle} onFocus={focus} onBlur={blur}>
-              <option value="">Select vehicle…</option>
-              {vehicles.map(v => (
-                <option key={v.id} value={v.id}>{v.name} — {v.type}{v.plate_number ? ` (${v.plate_number})` : ''}</option>
-              ))}
-            </select>
+            <SearchableSelect
+              options={vehicleOptions}
+              value={vehicleId}
+              onChange={setVehicleId}
+              disabled={machinesLoading}
+              placeholder="Type to search vehicles…"
+            />
           </div>
 
           {selectedVehicle && (
@@ -137,32 +198,64 @@ export default function NewShiftPage() {
             </div>
           )}
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div>
-              <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Shift Date <span style={{ color: '#e8762b' }}>*</span></label>
-              <input type="date" required value={shiftDate} onChange={e => setShiftDate(e.target.value)}
-                className={inputClass} style={inputStyle} onFocus={focus} onBlur={blur} />
+          {bulkMode ? (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+              <div>
+                <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>From <span style={{ color: '#e8762b' }}>*</span></label>
+                <input type="date" required value={rangeFrom} onChange={e => setRangeFrom(e.target.value)}
+                  className={inputClass} style={inputStyle} onFocus={focus} onBlur={blur} />
+              </div>
+              <div>
+                <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>To <span style={{ color: '#e8762b' }}>*</span></label>
+                <input type="date" required value={rangeTo} onChange={e => setRangeTo(e.target.value)}
+                  className={inputClass} style={inputStyle} onFocus={focus} onBlur={blur} />
+              </div>
+              <div>
+                <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Shift <span style={{ color: '#e8762b' }}>*</span></label>
+                <select required value={shiftType} onChange={e => setShiftType(e.target.value as ShiftType)}
+                  className={inputClass} style={inputStyle} onFocus={focus} onBlur={blur}>
+                  <option value="day">☀ Day</option>
+                  <option value="night">🌙 Night</option>
+                </select>
+              </div>
             </div>
-            <div>
-              <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Shift <span style={{ color: '#e8762b' }}>*</span></label>
-              <select required value={shiftType} onChange={e => setShiftType(e.target.value as ShiftType)}
-                className={inputClass} style={inputStyle} onFocus={focus} onBlur={blur}>
-                <option value="day">☀ Day</option>
-                <option value="night">🌙 Night</option>
-              </select>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div>
+                <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Shift Date <span style={{ color: '#e8762b' }}>*</span></label>
+                <input type="date" required value={shiftDate} onChange={e => setShiftDate(e.target.value)}
+                  className={inputClass} style={inputStyle} onFocus={focus} onBlur={blur} />
+              </div>
+              <div>
+                <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Shift <span style={{ color: '#e8762b' }}>*</span></label>
+                <select required value={shiftType} onChange={e => setShiftType(e.target.value as ShiftType)}
+                  className={inputClass} style={inputStyle} onFocus={focus} onBlur={blur}>
+                  <option value="day">☀ Day</option>
+                  <option value="night">🌙 Night</option>
+                </select>
+              </div>
             </div>
-          </div>
+          )}
+
+          {bulkMode && rangeDates.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 14px', borderRadius: 10, background: 'var(--orange-lt)', border: '1px solid var(--orange)33' }}>
+              <CalendarRange size={13} style={{ color: 'var(--orange)' }} />
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--orange)' }}>
+                Will create up to {rangeDates.length} {shiftType} shift(s), one per day — days that already have one are skipped automatically.
+              </span>
+            </div>
+          )}
 
           {times && (
             <div style={{ padding: '10px 14px', borderRadius: 10, background: 'var(--orange-lt)', border: '1px solid var(--orange)33' }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--orange)' }}>
                 {template.firstIn}–{template.firstOut}, break {template.breakStart}–{template.breakEnd}, {template.secondIn}–{template.secondOut}
-                {shiftType === 'night' ? ' (next day)' : ''} — calculated {times.netHours} net hours
+                {shiftType === 'night' ? ' (next day)' : ''} — calculated {(times as { netHours: number }).netHours} net hours
               </div>
             </div>
           )}
 
-          {duplicateExists && (
+          {!bulkMode && duplicateExists && (
             <div style={{ padding: '10px 14px', borderRadius: 10, background: '#fef2f2', border: '1px solid #fecaca' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 600, color: '#dc2626' }}>
                 <AlertTriangle size={13} /> A {shiftType} shift already exists for this vehicle on this date.
@@ -195,7 +288,7 @@ export default function NewShiftPage() {
           )}
 
           <div>
-            <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Remarks</label>
+            <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Remarks {bulkMode && <span style={{ fontWeight: 400 }}>(applied to every day created)</span>}</label>
             <textarea value={remarks} onChange={e => setRemarks(e.target.value)} rows={2}
               className={inputClass} style={{ ...inputStyle, resize: 'vertical' }} onFocus={focus} onBlur={blur} />
           </div>
@@ -203,7 +296,7 @@ export default function NewShiftPage() {
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
             <Button variant="secondary" onClick={() => router.push('/vehicle-lpo/shifts')}>Cancel</Button>
             <Button variant="primary" icon={<Truck size={14} />} loading={submitting} disabled={!canSubmit} onClick={handleSubmit}>
-              Create Shift
+              {bulkMode ? `Create ${rangeDates.length || ''} Shifts` : 'Create Shift'}
             </Button>
           </div>
         </div>

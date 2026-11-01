@@ -10,6 +10,7 @@ import LatestTimesheetWorkTable from '@/components/LatestTimesheetWorkTable';
 import LatestTimesheetFooter from '@/components/LatestTimesheetFooter';
 import ExportButtons from '@/components/ExportButtons';
 import { PageSpinner } from '@/components/ui/Spinner';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import type { ShiftType } from '@/types/database';
 
 function VehicleTimesheetReportInner() {
@@ -17,6 +18,7 @@ function VehicleTimesheetReportInner() {
   const router = useRouter();
   const { machines, loading: machinesLoading } = useMachines();
   const vehicles = useMemo(() => machines.filter(m => m.category === 'vehicle'), [machines]);
+  const vehicleOptions = useMemo(() => vehicles.map(v => ({ value: v.id, label: v.name, sublabel: v.type })), [vehicles]);
 
   const now = new Date();
   const vehicleId = searchParams.get('vehicle') || '';
@@ -50,12 +52,9 @@ function VehicleTimesheetReportInner() {
     <div style={{ background: '#f5f5f5', minHeight: '100%' }}>
       <div className="print:hidden flex items-center gap-3 px-6 py-3 flex-wrap"
         style={{ background: 'var(--bg-sidebar)', borderBottom: '1px solid var(--border)' }}>
-        <select value={vehicleId} onChange={e => updateParam('vehicle', e.target.value)} disabled={machinesLoading}
-          className="text-sm rounded-lg px-3 py-1.5 outline-none"
-          style={{ background: 'var(--input-bg)', color: 'var(--text-primary)', border: '1px solid var(--border)', minWidth: 220 }}>
-          <option value="">Select vehicle…</option>
-          {vehicles.map(v => <option key={v.id} value={v.id}>{v.name} — {v.type}</option>)}
-        </select>
+        <div style={{ minWidth: 220 }}>
+          <SearchableSelect options={vehicleOptions} value={vehicleId} onChange={v => updateParam('vehicle', v)} disabled={machinesLoading} placeholder="Select vehicle…" />
+        </div>
         <select value={month} onChange={e => updateParam('month', e.target.value)}
           className="text-sm rounded-lg px-3 py-1.5 outline-none"
           style={{ background: 'var(--input-bg)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}>
