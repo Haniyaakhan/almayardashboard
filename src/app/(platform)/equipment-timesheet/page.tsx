@@ -20,8 +20,7 @@ import { generateDaysInMonth } from '@/lib/dateUtils';
 
 function EquipmentTimesheetPageInner() {
   const timesheetRef = useRef<HTMLDivElement>(null);
-  const printWrapRef = useRef<HTMLDivElement>(null);
-  usePrintFit(printWrapRef, timesheetRef);
+  usePrintFit(timesheetRef);
   const hasAutoPrintedRef = useRef(false);
   const timesheet = useTimesheet();
   const { machines } = useMachines();
@@ -426,7 +425,7 @@ function EquipmentTimesheetPageInner() {
       </div>
 
       {/* A4 Timesheet */}
-      <div ref={printWrapRef} className="p-4" style={{ paddingBottom: 24 }}>
+      <div className="p-4" style={{ paddingBottom: 24 }}>
         <div
           ref={timesheetRef}
           className="w-a4 min-h-a4 bg-white mx-auto"

@@ -12,54 +12,100 @@ const PRINTABLE_HEIGHT_PX = (A4_HEIGHT_MM - 2 * PAGE_MARGIN_MM) * MM_TO_PX;
 // squeeze it unreadable.
 const MIN_SCALE = 0.75;
 
+// Small headroom so the result sits a little under the page edge rather than
+// exactly on it.
+const SAFETY = 0.97;
+
+const PADDING_PROPS = ['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft'] as const;
+
+interface SavedStyle {
+  fontSize: string;
+  paddingTop: string;
+  paddingRight: string;
+  paddingBottom: string;
+  paddingLeft: string;
+}
+
 /**
  * Shrinks a printable `.w-a4` sheet just enough to fit on one A4 page when its
  * natural height slightly overflows.
  *
- * `zoom` was tried first since it reflows layout (unlike `transform: scale`, a
- * paint-only effect that page-break math ignores) — but Chromium's print/PDF
- * pipeline doesn't honor `zoom` at all, so it had no effect on the actual
- * printed output. Instead this scales the sheet with `transform` and, since
- * that alone wouldn't shrink the box pagination measures, also sets an
- * explicit (scaled) height + `overflow: hidden` on its wrapper — a box size
- * print DOES respect — so the page break lands where the shrunk content
- * visually ends.
+ * Two approaches were tried and rejected first: `zoom` reflows on-screen
+ * layout but Chromium's print/PDF pipeline ignores it outright; `transform:
+ * scale()` has the same problem — confirmed by testing against the live site,
+ * where it had literally zero effect on the printed output even at extreme
+ * values. Both are paint-time tricks print doesn't go through.
+ *
+ * What print DOES respect is genuinely smaller content, so this walks every
+ * element in the sheet and scales its actual `font-size` and padding down by
+ * a measured factor (restoring the originals afterwards), then re-measures
+ * and nudges the scale down a little further if it's still not quite under
+ * the page height — border widths and browser-minimum control heights don't
+ * shrink proportionally, so one pass isn't always exact.
  */
-export function usePrintFit(
-  wrapRef: React.RefObject<HTMLElement | null>,
-  sheetRef: React.RefObject<HTMLElement | null>
-) {
+export function usePrintFit(sheetRef: React.RefObject<HTMLElement | null>) {
   useEffect(() => {
-    function fit() {
-      const wrap = wrapRef.current;
-      const sheet = sheetRef.current;
-      if (!wrap || !sheet) return;
+    const original = new WeakMap<HTMLElement, SavedStyle>();
 
-      sheet.style.removeProperty('transform');
-      sheet.style.removeProperty('transform-origin');
-      sheet.style.removeProperty('width');
-      wrap.style.removeProperty('height');
-      wrap.style.removeProperty('overflow');
+    function elementsOf(root: HTMLElement): HTMLElement[] {
+      return [root, ...Array.from(root.querySelectorAll<HTMLElement>('*'))];
+    }
+
+    function restore(root: HTMLElement) {
+      for (const el of elementsOf(root)) {
+        const saved = original.get(el);
+        if (!saved) continue;
+        el.style.fontSize = saved.fontSize;
+        el.style.paddingTop = saved.paddingTop;
+        el.style.paddingRight = saved.paddingRight;
+        el.style.paddingBottom = saved.paddingBottom;
+        el.style.paddingLeft = saved.paddingLeft;
+        original.delete(el);
+      }
+    }
+
+    function scaleBy(root: HTMLElement, factor: number) {
+      for (const el of elementsOf(root)) {
+        const cs = getComputedStyle(el);
+        if (!original.has(el)) {
+          original.set(el, {
+            fontSize: el.style.fontSize,
+            paddingTop: el.style.paddingTop,
+            paddingRight: el.style.paddingRight,
+            paddingBottom: el.style.paddingBottom,
+            paddingLeft: el.style.paddingLeft,
+          });
+        }
+        const fontSize = parseFloat(cs.fontSize);
+        if (fontSize) el.style.fontSize = `${fontSize * factor}px`;
+        for (const prop of PADDING_PROPS) {
+          const value = parseFloat(cs[prop]);
+          if (value) el.style[prop] = `${value * factor}px`;
+        }
+      }
+    }
+
+    function fit() {
+      const sheet = sheetRef.current;
+      if (!sheet) return;
+      restore(sheet);
 
       const naturalHeightPx = sheet.scrollHeight;
       if (naturalHeightPx <= PRINTABLE_HEIGHT_PX) return;
 
-      const scale = Math.max(MIN_SCALE, PRINTABLE_HEIGHT_PX / naturalHeightPx);
-      sheet.style.setProperty('transform', `scale(${scale})`, 'important');
-      sheet.style.setProperty('transform-origin', 'top left', 'important');
-      sheet.style.setProperty('width', `${100 / scale}%`, 'important');
-      wrap.style.setProperty('height', `${naturalHeightPx * scale}px`, 'important');
-      wrap.style.setProperty('overflow', 'hidden', 'important');
+      let scale = Math.max(MIN_SCALE, (PRINTABLE_HEIGHT_PX * SAFETY) / naturalHeightPx);
+      for (let attempt = 0; attempt < 4; attempt++) {
+        restore(sheet);
+        scaleBy(sheet, scale);
+        const heightPx = sheet.scrollHeight;
+        if (heightPx <= PRINTABLE_HEIGHT_PX || scale <= MIN_SCALE) break;
+        scale = Math.max(MIN_SCALE, scale * ((PRINTABLE_HEIGHT_PX * SAFETY) / heightPx));
+      }
     }
 
     function reset() {
-      const wrap = wrapRef.current;
       const sheet = sheetRef.current;
-      sheet?.style.removeProperty('transform');
-      sheet?.style.removeProperty('transform-origin');
-      sheet?.style.removeProperty('width');
-      wrap?.style.removeProperty('height');
-      wrap?.style.removeProperty('overflow');
+      if (sheet) restore(sheet);
     }
 
     window.addEventListener('beforeprint', fit);
@@ -67,6 +113,7 @@ export function usePrintFit(
     return () => {
       window.removeEventListener('beforeprint', fit);
       window.removeEventListener('afterprint', reset);
+      reset();
     };
-  }, [wrapRef, sheetRef]);
+  }, [sheetRef]);
 }
