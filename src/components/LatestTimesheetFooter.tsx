@@ -89,17 +89,17 @@ export default function LatestTimesheetFooter({ totalActual }: LatestTimesheetFo
           <td colSpan={3} style={noBorder} />
         </tr>
 
-        {/* Row 47 — RATE/MONTH (yellow highlight across the whole box) */}
+        {/* Row 47 — RATE/MONTH (yellow highlight across the whole box, narrow like the sample) */}
         <tr>
-          <td colSpan={8} style={noBorder} />
-          <td colSpan={2} style={{ border: 'none', background: YELLOW, fontSize: 9.5, fontWeight: 700, padding: '1px 6px', textAlign: 'left' }}>RATE/MONTH</td>
+          <td colSpan={9} style={noBorder} />
+          <td style={{ border: 'none', background: YELLOW, fontSize: 9.5, fontWeight: 700, padding: '1px 6px', textAlign: 'left' }}>RATE/MONTH</td>
           <td style={{ border: 'none', background: YELLOW, padding: '1px 4px' }} />
         </tr>
 
         {/* Row 48 — INVOICE AMT */}
         <tr>
-          <td colSpan={8} style={noBorder} />
-          <td colSpan={2} style={{ border: 'none', fontSize: 9.5, fontWeight: 700, padding: '1px 6px', textAlign: 'left' }}>INVOICE AMT</td>
+          <td colSpan={9} style={noBorder} />
+          <td style={{ border: 'none', fontSize: 9.5, fontWeight: 700, padding: '1px 6px', textAlign: 'left' }}>INVOICE AMT</td>
           <td style={{ border: 'none', textAlign: 'center', fontSize: 9.5, padding: '1px 4px' }}>-</td>
         </tr>
       </tbody>
