@@ -64,6 +64,12 @@ export function usePrintFit(sheetRef: React.RefObject<HTMLElement | null>) {
       }
     }
 
+    // Scales every element's *computed* font-size/padding, not just the ones
+    // with their own inline value — an element that only inherits its size
+    // shrinks along with its already-scaled ancestor. That compounding is
+    // deliberate: it's the only way this sheet's fixed overhead (borders,
+    // browser-minimum input heights) ends up shrinking at all, which is what
+    // gives `fit()`'s search below enough range to actually reach the target.
     function scaleBy(root: HTMLElement, factor: number) {
       for (const el of elementsOf(root)) {
         const cs = getComputedStyle(el);
@@ -91,16 +97,28 @@ export function usePrintFit(sheetRef: React.RefObject<HTMLElement | null>) {
       restore(sheet);
 
       const naturalHeightPx = sheet.scrollHeight;
-      if (naturalHeightPx <= PRINTABLE_HEIGHT_PX) return;
+      const target = PRINTABLE_HEIGHT_PX * SAFETY;
+      if (naturalHeightPx <= target) return;
 
-      let scale = Math.max(MIN_SCALE, (PRINTABLE_HEIGHT_PX * SAFETY) / naturalHeightPx);
-      for (let attempt = 0; attempt < 4; attempt++) {
+      // Binary-search the largest scale (least shrink) that still fits, so the
+      // sheet fills the page instead of shrinking far past what's needed and
+      // leaving a block of blank space at the bottom.
+      let lo = MIN_SCALE;
+      let hi = 1;
+      let best = MIN_SCALE;
+      for (let i = 0; i < 8; i++) {
+        const mid = (lo + hi) / 2;
         restore(sheet);
-        scaleBy(sheet, scale);
-        const heightPx = sheet.scrollHeight;
-        if (heightPx <= PRINTABLE_HEIGHT_PX || scale <= MIN_SCALE) break;
-        scale = Math.max(MIN_SCALE, scale * ((PRINTABLE_HEIGHT_PX * SAFETY) / heightPx));
+        scaleBy(sheet, mid);
+        if (sheet.scrollHeight <= target) {
+          best = mid;
+          lo = mid;
+        } else {
+          hi = mid;
+        }
       }
+      restore(sheet);
+      scaleBy(sheet, best);
     }
 
     function reset() {
