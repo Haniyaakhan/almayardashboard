@@ -3,7 +3,6 @@
 import React, { useRef, useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useTimesheet } from '@/hooks/useTimesheet';
-import { usePrintFit } from '@/hooks/usePrintFit';
 import { useLaborers, getLaborerByIdNumber, createLaborer } from '@/hooks/useLaborers';
 import { LaborerForm } from '@/components/labor/LaborerForm';
 import { saveTimesheet, getTimesheetWithEntries, getTimesheetByLaborer } from '@/hooks/useTimesheetHistory';
@@ -32,7 +31,6 @@ function getTimesheetDisplayName(value: string | undefined | null) {
 
 function LatestTimesheetPageInner() {
   const timesheetRef = useRef<HTMLDivElement>(null);
-  usePrintFit(timesheetRef);
   const hasAutoPrintedRef = useRef(false);
   const timesheet = useTimesheet();
   const { laborers } = useLaborers();
