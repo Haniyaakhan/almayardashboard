@@ -12,6 +12,16 @@ const PRINTABLE_HEIGHT_PX = (A4_HEIGHT_MM - 2 * PAGE_MARGIN_MM) * MM_TO_PX;
 // squeeze it unreadable.
 const MIN_SCALE = 0.75;
 
+// Ceiling for the opposite case: a sheet that's naturally shorter than one
+// page grows a little to use more of it instead of leaving blank paper below
+// the content. Kept modest (not the 1.3 used on the new Almyar Fleet system)
+// because several of this app's work tables (WorkTable.tsx,
+// EquipmentWorkTable.tsx, VehicalWorkTable.tsx) give their input cells a
+// fixed Tailwind `h-[13px] leading-[13px]` that doesn't scale with
+// font-size — grown too far, 12px text starts feeling cramped inside that
+// fixed 13px line box.
+const MAX_SCALE = 1.1;
+
 // Small headroom so the result sits a little under the page edge rather than
 // exactly on it.
 const SAFETY = 0.97;
@@ -27,13 +37,11 @@ interface SavedStyle {
 }
 
 /**
- * Shrinks a printable `.w-a4` sheet just enough to fit on one A4 page when its
- * natural height overflows — shrink-only (never grows), since this app's
- * sheets mix inline-styled components with Tailwind-arbitrary-value ones
- * (fixed `h-[13px]`-style input heights in WorkTable.tsx) where growing text
- * risks clipping inside a height that doesn't scale with it. Overflow is the
- * safer direction here: shrinking just leaves a little more breathing room
- * inside those fixed heights rather than less.
+ * Scales a printable `.w-a4` sheet to fill one A4 page as closely as
+ * possible — shrinking it if its natural height overflows, growing it a
+ * little if the sheet is naturally shorter than the page. The growth
+ * ceiling is deliberately modest (MAX_SCALE) rather than matching the new
+ * Almyar Fleet system's 1.3x: see that constant's comment for why.
  *
  * Scales every element's *computed* font-size/padding via a binary search for
  * the largest scale that still fits, restoring the originals after printing.
@@ -85,15 +93,16 @@ export function usePrintFit(sheetRef: React.RefObject<HTMLElement | null>) {
       if (!sheet) return;
       restore(sheet);
 
-      const naturalHeightPx = sheet.scrollHeight;
       const target = PRINTABLE_HEIGHT_PX * SAFETY;
-      if (naturalHeightPx <= target) return;
 
-      // Binary-search the largest scale (least shrink) that still fits.
+      // Binary-search the largest scale (between the floor and ceiling)
+      // that still keeps the sheet at or under the target height — runs
+      // both when content overflows (shrinks toward MIN_SCALE) and when
+      // it's naturally shorter than one page (grows toward MAX_SCALE).
       let lo = MIN_SCALE;
-      let hi = 1;
+      let hi = MAX_SCALE;
       let best = MIN_SCALE;
-      for (let i = 0; i < 8; i++) {
+      for (let i = 0; i < 10; i++) {
         const mid = (lo + hi) / 2;
         restore(sheet);
         scaleBy(sheet, mid);
