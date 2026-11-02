@@ -3,6 +3,7 @@
 import React, { useRef, useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useTimesheet } from '@/hooks/useTimesheet';
+import { usePrintFit } from '@/hooks/usePrintFit';
 import { useMachines } from '@/hooks/useMachines';
 import { saveTimesheet, getTimesheetWithEntries, getTimesheetByLaborer, countTimesheetsForEntity } from '@/hooks/useTimesheetHistory';
 import TimesheetHeader from '@/components/TimesheetHeader';
@@ -19,6 +20,7 @@ import { generateDaysInMonth } from '@/lib/dateUtils';
 
 function EquipmentTimesheetPageInner() {
   const timesheetRef = useRef<HTMLDivElement>(null);
+  usePrintFit(timesheetRef);
   const hasAutoPrintedRef = useRef(false);
   const timesheet = useTimesheet();
   const { machines } = useMachines();
