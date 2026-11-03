@@ -4,7 +4,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import {
   LayoutDashboard, ClipboardList, Truck,
-  Wrench, FileBarChart, LogOut, Briefcase, DollarSign, FileSpreadsheet,
+  Wrench, FileBarChart, LogOut, Briefcase, DollarSign,
 } from 'lucide-react';
 
 const navItems = [
@@ -13,7 +13,6 @@ const navItems = [
   { href: '/vehicle-operations', icon: <Truck size={19} />, label: 'Vehicle Ops' },
   { href: '/equipment', icon: <Wrench size={19} />, label: 'Equipment' },
   { href: '/timesheets', icon: <ClipboardList size={19} />, label: 'Timesheets' },
-  { href: '/latest-timesheet', icon: <FileSpreadsheet size={19} />, label: 'Latest Timesheet' },
   { href: '/reports', icon: <FileBarChart size={19} />, label: 'Reports' },
   { href: '/payment-modules', icon: <DollarSign size={19} />, label: 'Payment Modules' },
 ];
