@@ -12,8 +12,6 @@ export interface DayEntry {
   remarks: string;
 }
 
-export type TimesheetShift = 'day' | 'night';
-
 export interface TimesheetState {
   month: number;
   year: number;
@@ -24,7 +22,6 @@ export interface TimesheetState {
   siteEngineerId: string;
   lpoNumber: string;
   designation: string;
-  shift: TimesheetShift;
   workData: DayEntry[];
 
   // Calculated fields
@@ -43,7 +40,6 @@ export interface TimesheetActions {
   setSiteEngineerId: (id: string) => void;
   setLpoNumber: (number: string) => void;
   setDesignation: (designation: string) => void;
-  setShift: (shift: TimesheetShift) => void;
   updateDayEntry: (day: number, field: keyof DayEntry, value: string | number) => void;
 }
 
