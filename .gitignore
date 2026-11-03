@@ -28,10 +28,6 @@ yarn-error.log*
 # vercel
 .vercel
 
-# local scratch files (e.g. one-off SQL to paste into Supabase SQL Editor —
-# the real source of truth lives in supabase-migration.sql, committed)
-.local/
-
 # typescript
 *.tsbuildinfo
 next-env.d.ts
