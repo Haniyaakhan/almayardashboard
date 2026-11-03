@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { Machine } from '@/types/database';
 
-export function useMachines() {
+export function useMachines(activeOnly = true) {
   const [machines, setMachines] = useState<Machine[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -11,12 +11,13 @@ export function useMachines() {
   const fetch = useCallback(async () => {
     setLoading(true);
     const supabase = createClient();
-    const { data, error } = await supabase
-      .from('machines').select('*, vendor:vendors(name)').eq('is_active', true).order('name');
+    let q = supabase.from('machines').select('*, vendor:vendors(name)').order('name');
+    if (activeOnly) q = q.eq('is_active', true);
+    const { data, error } = await q;
     if (error) setError(error.message);
     else setMachines((data ?? []) as Machine[]);
     setLoading(false);
-  }, []);
+  }, [activeOnly]);
 
   useEffect(() => { fetch(); }, [fetch]);
   return { machines, loading, error, refetch: fetch };

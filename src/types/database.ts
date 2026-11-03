@@ -57,9 +57,109 @@ export interface Machine {
   vehicle_photo: string | null;
   vehicle_card: string | null;
   operator_card: string | null;
+  vehicle_type_id: string | null;
   created_at: string;
   updated_at: string;
   vendor?: Vendor;
+  vehicle_type?: VehicleType;
+}
+
+export type UserRole = 'admin' | 'operations';
+
+export interface Profile {
+  id: string;
+  email: string | null;
+  full_name: string | null;
+  role: UserRole;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface VehicleType {
+  id: string;
+  name: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+export type LpoStatus = 'active' | 'pending_renewal' | 'closed';
+
+export interface Lpo {
+  id: string;
+  lpo_number: string;
+  vehicle_type_id: string;
+  quantity_total: number;
+  quantity_used: number;
+  status: LpoStatus;
+  valid_from: string | null;
+  valid_to: string | null;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  vehicle_type?: VehicleType;
+}
+
+export interface LpoRenewal {
+  id: string;
+  lpo_id: string;
+  added_quantity: number;
+  previous_quantity_total: number;
+  new_quantity_total: number;
+  note: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+export type ShiftType = 'day' | 'night';
+export type ShiftStatus = 'draft' | 'submitted' | 'approved' | 'cancelled';
+
+export interface Shift {
+  id: string;
+  vehicle_id: string;
+  shift_date: string;
+  shift_type: ShiftType;
+  start_at: string;
+  end_at: string;
+  break_minutes: number;
+  net_hours: number;
+  driver_name_snapshot: string | null;
+  vehicle_type_snapshot: string | null;
+  vehicle_plate_snapshot: string | null;
+  lpo_id: string | null;
+  lpo_number_snapshot: string | null;
+  overridden_driver: boolean;
+  override_reason: string | null;
+  override_duplicate: boolean;
+  status: ShiftStatus;
+  project_name: string | null;
+  supplier_name: string | null;
+  site_engineer_name: string | null;
+  remarks: string | null;
+  created_by: string | null;
+  approved_by: string | null;
+  approved_at: string | null;
+  created_at: string;
+  updated_at: string;
+  vehicle?: Machine;
+  lpo?: Lpo;
+}
+
+export type VehicleReviewClassification = 'unchanged' | 'driver_changed' | 'left_fleet';
+
+export interface VehicleRegisterReview {
+  id: string;
+  vehicle_id: string;
+  review_month: number;
+  review_year: number;
+  classification: VehicleReviewClassification;
+  previous_driver_name: string | null;
+  new_driver_name: string | null;
+  effective_date: string;
+  notes: string | null;
+  reviewed_by: string | null;
+  created_at: string;
+  vehicle?: Machine;
 }
 
 export interface MachineUsageLog {

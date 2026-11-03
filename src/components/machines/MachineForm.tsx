@@ -1,8 +1,10 @@
 'use client';
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/Button';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { useToast } from '@/components/ui/Toast';
 import { useVendors } from '@/hooks/useVendors';
+import { useVehicleTypes } from '@/hooks/useVehicleTypes';
 import { createClient } from '@/lib/supabase/client';
 import { Upload, X, Image as ImageIcon } from 'lucide-react';
 import type { Machine } from '@/types/database';
@@ -102,12 +104,14 @@ function PhotoUpload({ label, value, onChange }: { label: string; value: string 
 export function MachineForm({ initial, onSubmit, submitLabel = 'Save' }: Props) {
   const toast = useToast();
   const { vendors } = useVendors();
+  const { vehicleTypes } = useVehicleTypes();
   const [form, setForm] = useState<FormData>({
     vendor_id: null, category: 'vehicle', name: '', type: '', plate_number: '', model: '',
     year: null, daily_rate: null, status: 'available', notes: '', is_active: true,
     contact_person: null, contact_number: null,
     operator_name: null, operator_id: null,
     vehicle_photo: null, vehicle_card: null, operator_card: null,
+    vehicle_type_id: null,
     ...initial,
   });
   const [loading, setLoading] = useState(false);
@@ -274,10 +278,23 @@ export function MachineForm({ initial, onSubmit, submitLabel = 'Save' }: Props) 
       {/* Type */}
       <div>
         <label className="block text-sm mb-1" style={{ color: 'var(--text-muted)' }}>{form.category === 'equipment' ? 'Equipment Type' : 'Vehicle Type'} <span style={{ color: '#e8762b' }}>*</span></label>
-        <select required value={form.type} onChange={e => set('type', e.target.value)} className={inputClass} style={inputStyle} onFocus={focus} onBlur={blur}>
-          <option value="">Select type…</option>
-          {machineTypes.map(t => <option key={t} value={t}>{t}</option>)}
-        </select>
+        {form.category === 'vehicle' ? (
+          <SearchableSelect
+            options={vehicleTypes.map(vt => ({ value: vt.id, label: vt.name }))}
+            value={form.vehicle_type_id ?? ''}
+            onChange={id => {
+              const vt = vehicleTypes.find(v => v.id === id);
+              set('vehicle_type_id', vt?.id ?? null);
+              set('type', vt?.name ?? '');
+            }}
+            placeholder="Select type…"
+          />
+        ) : (
+          <select required value={form.type} onChange={e => set('type', e.target.value)} className={inputClass} style={inputStyle} onFocus={focus} onBlur={blur}>
+            <option value="">Select type…</option>
+            {machineTypes.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+        )}
       </div>
 
       {/* Name */}

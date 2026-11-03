@@ -92,7 +92,7 @@ button, input, select, textarea {
 @media print {
   @page {
     size: A4;
-    margin: 0;
+    margin: 6mm;
   }
 
   * {
@@ -106,11 +106,21 @@ button, input, select, textarea {
     padding: 0;
     margin: 0;
     width: 100%;
-    height: 100%;
+    height: auto !important;
+    overflow: visible !important;
   }
 
   body > *, body > * > *, body > * > * > * {
     background: white !important;
+  }
+
+  /* The app shell normally locks itself to one viewport-tall, overflow-hidden
+     box so the on-screen layout never scrolls as a whole; left alone, that
+     same box clips anything taller than one page when printed. Let it grow
+     and flow naturally so content can paginate instead of being cut off. */
+  .app-shell, .app-shell-inner {
+    height: auto !important;
+    overflow: visible !important;
   }
 
   main {
@@ -124,11 +134,10 @@ button, input, select, textarea {
   }
 
   .w-a4 {
-    width: 205mm !important;
+    width: 100% !important;
     min-height: auto !important;
-    margin: 1mm 2.5mm 1mm 2.5mm !important;
-    transform: scaleY(0.935);
-    transform-origin: top left;
+    margin: 0 !important;
+    transform: none !important;
     border: 1px solid black !important;
   }
 
