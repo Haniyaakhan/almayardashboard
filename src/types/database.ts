@@ -87,7 +87,6 @@ export interface Timesheet {
   supplier_name: string;
   site_engineer_name: string;
   designation: string;
-  driver_name: string | null;
   shift: 'day' | 'night' | null;
   total_worked: number;
   total_ot: number;
