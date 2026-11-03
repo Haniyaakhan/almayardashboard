@@ -8,9 +8,9 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
   return (
     <ThemeProvider>
       <ToastProvider>
-        <div className="flex h-screen overflow-hidden" style={{ background: 'var(--bg-canvas)' }}>
+        <div className="app-shell flex h-screen overflow-hidden" style={{ background: 'var(--bg-canvas)' }}>
           <Sidebar />
-          <div className="flex flex-col flex-1 overflow-hidden">
+          <div className="app-shell-inner flex flex-col flex-1 overflow-hidden">
             <Topbar />
             <main className="flex-1 overflow-auto">
               {children}
