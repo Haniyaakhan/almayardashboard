@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { DayEntry, UseTimesheetReturn } from '@/types/timesheet';
-import { generateDaysInMonth, getPreviousMonthYear, isFriday } from '@/lib/dateUtils';
+import { generateDaysInMonth, getLaborShiftTimes, getPreviousMonthYear, isFriday } from '@/lib/dateUtils';
 
 type LoadMeta = {
   month: number; year: number;
@@ -10,12 +10,17 @@ type LoadMeta = {
   supplierName?: string; siteEngineerName?: string; siteEngineerId?: string; lpoNumber?: string; designation?: string;
 };
 
-export function useTimesheet(): UseTimesheetReturn & {
+interface UseTimesheetOptions {
+  laborShiftSchedule?: boolean;
+}
+
+export function useTimesheet(options: UseTimesheetOptions = {}): UseTimesheetReturn & {
   loadEntries: (entries: DayEntry[], meta: LoadMeta) => void;
   clearDayRange: (startDay: number, endDay: number) => void;
   fillDayRange: (startDay: number, endDay: number, hours?: number, skipFridays?: boolean) => void;
   setWorkData: React.Dispatch<React.SetStateAction<DayEntry[]>>;
 } {
+  const laborShiftSchedule = options.laborShiftSchedule ?? false;
   const defaultMonthYear = getPreviousMonthYear();
   const [month, setMonth] = useState(defaultMonthYear.month);
   const [year, setYear] = useState(defaultMonthYear.year);
@@ -35,9 +40,11 @@ export function useTimesheet(): UseTimesheetReturn & {
       skipResetRef.current = false;
       return;
     }
-    const days = generateDaysInMonth(month, year);
+    const days = generateDaysInMonth(month, year).map((entry) => (
+      laborShiftSchedule ? { ...entry, ...getLaborShiftTimes(entry.actualWorked) } : entry
+    ));
     setWorkData(days);
-  }, [month, year]);
+  }, [month, year, laborShiftSchedule]);
 
   // Update a specific day entry field
   const updateDayEntry = (day: number, field: keyof DayEntry, value: string | number) => {
@@ -49,6 +56,12 @@ export function useTimesheet(): UseTimesheetReturn & {
             newEntry.actualWorked = Number(value) || 0;
           } else if (field === 'totalDuration' || field === 'overTime') {
             newEntry.actualWorked = (newEntry.totalDuration || 0) + (newEntry.overTime || 0);
+          }
+          if (laborShiftSchedule && (field === 'actualWorked' || field === 'totalDuration' || field === 'overTime')) {
+            const workedHours = field === 'actualWorked'
+              ? newEntry.actualWorked
+              : newEntry.totalDuration + newEntry.overTime;
+            Object.assign(newEntry, getLaborShiftTimes(workedHours));
           }
           return newEntry;
         }
@@ -70,9 +83,15 @@ export function useTimesheet(): UseTimesheetReturn & {
     if (meta.siteEngineerId !== undefined) setSiteEngineerId(meta.siteEngineerId);
     if (meta.lpoNumber !== undefined) setLpoNumber(meta.lpoNumber);
     if (meta.designation !== undefined) setDesignation(meta.designation);
-    const sortedEntries = [...entries].sort((a, b) => Number(a.day) - Number(b.day));
+    const sortedEntries = [...entries]
+      .map((entry) => {
+        if (!laborShiftSchedule) return entry;
+        const workedHours = entry.actualWorked || entry.totalDuration + entry.overTime;
+        return { ...entry, ...getLaborShiftTimes(workedHours) };
+      })
+      .sort((a, b) => Number(a.day) - Number(b.day));
     setWorkData(sortedEntries);
-  }, []);
+  }, [laborShiftSchedule]);
 
   // Clear entries for a range of days
   const clearDayRange = useCallback((startDay: number, endDay: number) => {
@@ -96,23 +115,28 @@ export function useTimesheet(): UseTimesheetReturn & {
       if (entry.day >= startDay && entry.day <= endDay) {
         const friday = isFriday(year, month, entry.day);
         const shouldSkip = skipFridays && friday;
+        const workedHours = shouldSkip ? 0 : hours;
         return {
           ...entry,
-          timeIn: shouldSkip ? '' : '5:30',
-          timeOutLunch: shouldSkip ? '' : '01:30',
-          lunchBreak: '',
-          timeIn2: shouldSkip ? '' : '3:30',
-          timeOut2: shouldSkip ? '' : '6:30',
-          totalDuration: shouldSkip ? 0 : hours,
+          ...(laborShiftSchedule
+            ? getLaborShiftTimes(workedHours)
+            : {
+                timeIn: shouldSkip ? '' : '5:30',
+                timeOutLunch: shouldSkip ? '' : '01:30',
+                lunchBreak: '',
+                timeIn2: shouldSkip ? '' : '3:30',
+                timeOut2: shouldSkip ? '' : '6:30',
+              }),
+          totalDuration: workedHours,
           overTime: 0,
-          actualWorked: shouldSkip ? 0 : hours,
+          actualWorked: workedHours,
           approverSig: '',
           remarks: '',
         };
       }
       return entry;
     }));
-  }, [month, year]);
+  }, [month, year, laborShiftSchedule]);
 
   // Calculate totals
   const { totalWorked, totalOT, totalActual } = useMemo(() => {

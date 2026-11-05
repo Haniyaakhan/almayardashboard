@@ -33,7 +33,7 @@ function getTimesheetDisplayName(value: string | undefined | null) {
 function TimesheetPageInner() {
   const timesheetRef = useRef<HTMLDivElement>(null);
   const hasAutoPrintedRef = useRef(false);
-  const timesheet = useTimesheet();
+  const timesheet = useTimesheet({ laborShiftSchedule: true });
   const { laborers } = useLaborers();
   const [selectedLaborerId, setSelectedLaborerId] = useState<string>('');
   const [takenLaborerIds, setTakenLaborerIds] = useState<Set<string>>(new Set());

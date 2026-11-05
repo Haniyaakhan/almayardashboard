@@ -56,7 +56,7 @@ export default function WorkTable({
   };
 
   const labels = columnLabels ?? [
-    'Date', 'Time In', 'Time Out', 'Lunch Break\nTime 01:00 to\n03:00', 'Time In', 'Time Out',
+    'Date', 'Time In', 'Time Out', 'Lunch Break Time\n12:00 to 13:00', 'Time In', 'Time Out',
     'Total Worked\nDone(Hrs)', 'Over\nTime', 'Actual\nWorked(Hrs)', 'Approver\nSignature', 'Remarks'
   ];
 
@@ -195,12 +195,11 @@ export default function WorkTable({
               <td className="p-0.5 text-center text-[12px] align-middle" style={{ border: 'none' }}>
                 <input
                   type="text"
-                  value={entry.lunchBreak}
-                  onChange={(e) => onUpdateDayEntry(entry.day, 'lunchBreak', e.target.value)}
+                  value=""
                   onKeyDown={(e) => handleKeyDown(e, rowIndex, 2)}
                   data-worktable-row={rowIndex}
                   data-worktable-col={2}
-                  readOnly={readOnly}
+                  readOnly
                   className="w-full outline-none text-center text-[12px] bg-transparent h-[13px] leading-[13px]"
                 />
               </td>

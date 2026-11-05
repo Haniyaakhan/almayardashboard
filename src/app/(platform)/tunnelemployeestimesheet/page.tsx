@@ -32,7 +32,7 @@ function getTimesheetDisplayName(value: string | undefined | null) {
 function TunnelEmployeeTimesheetPageInner() {
   const timesheetRef = useRef<HTMLDivElement>(null);
   const hasAutoPrintedRef = useRef(false);
-  const timesheet = useTimesheet();
+  const timesheet = useTimesheet({ laborShiftSchedule: true });
   const { laborers } = useLaborers();
   const [selectedLaborerId, setSelectedLaborerId] = useState<string>('');
   const [timesheetId, setTimesheetId] = useState<string | null>(null);
@@ -484,7 +484,7 @@ function TunnelEmployeeTimesheetPageInner() {
               'Date (DD/MM/YYYY)',
               'Time In',
               'Time Out',
-              'Lunch Break Time (Hrs)',
+              'Lunch Break Time\n12:00 to 13:00',
               'Time In',
               'Time Out',
               'Total Worked Done (Hrs)',

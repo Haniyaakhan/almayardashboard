@@ -49,6 +49,30 @@ export function isFriday(year: number, month: number, day: number): boolean {
   return date.getDay() === 5;
 }
 
+export function getLaborShiftTimes(hours: number): Pick<DayEntry, 'timeIn' | 'timeOutLunch' | 'lunchBreak' | 'timeIn2' | 'timeOut2'> {
+  const workedMinutes = Number.isFinite(hours) ? Math.max(0, Math.round(hours * 60)) : 0;
+  if (workedMinutes === 0) {
+    return { timeIn: '', timeOutLunch: '', lunchBreak: '', timeIn2: '', timeOut2: '' };
+  }
+
+  const formatTime = (minutes: number) => {
+    const timeOfDay = minutes % (24 * 60);
+    const hour = Math.floor(timeOfDay / 60);
+    const minute = timeOfDay % 60;
+    return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+  };
+  const firstShiftMinutes = Math.min(workedMinutes, 6 * 60);
+  const secondShiftMinutes = Math.max(workedMinutes - 6 * 60, 0);
+
+  return {
+    timeIn: '06:00',
+    timeOutLunch: formatTime(6 * 60 + firstShiftMinutes),
+    lunchBreak: '',
+    timeIn2: secondShiftMinutes > 0 ? '13:00' : '',
+    timeOut2: secondShiftMinutes > 0 ? formatTime(13 * 60 + secondShiftMinutes) : '',
+  };
+}
+
 export function formatDate(year: number, month: number, day: number): string {
   const dayName = getDayName(year, month, day);
   const dayStr = String(day).padStart(2, '0');
